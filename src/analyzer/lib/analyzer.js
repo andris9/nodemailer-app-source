@@ -1,0 +1,1662 @@
+'use strict';
+
+const level = require('level');
+const { getAppDataPath } = require('appdata-path');
+const util = require('util');
+const mkdirp = util.promisify(require('mkdirp'));
+const mailsplit = require('mailsplit');
+const FlowedDecoder = require('mailsplit/lib/flowed-decoder');
+const libmime = require('libmime');
+const pathlib = require('path');
+const iconv = require('iconv-lite');
+const htmlToText = require('html-to-text');
+const SQL = require('./sql');
+const uuidv4 = require('uuid/v4');
+const tnef = require('node-tnef');
+const crypto = require('crypto');
+const addressparser = require('nodemailer/lib/addressparser');
+const punycode = require('punycode');
+const human = require('humanparser');
+const sharp = require('sharp');
+
+const Splitter = mailsplit.Splitter;
+const Joiner = mailsplit.Joiner;
+const Streamer = mailsplit.Streamer;
+const PassThrough = require('stream').PassThrough;
+const Headers = mailsplit.Headers;
+
+const APPNAME = 'forensicat';
+
+const MAX_HTML_PARSE_LENGTH = 2 * 1024 * 1024; // do not parse HTML messages larger than 2MB to plaintext
+const HASH_ALGO = 'sha1';
+
+class Analyzer {
+    constructor(options) {
+        this.options = options || {};
+
+        this.level = false;
+        this.sql = false;
+
+        this._importCounter = 0;
+
+        this.projectName = this.options.projectName || 'Untitled';
+        this.appDataPath = getAppDataPath(APPNAME);
+
+        this.prepareQueue = [];
+        this.prepared = false;
+        this.preparing = false;
+
+        this.dataPath = pathlib.join(this.appDataPath, this.projectName, 'data');
+        this.sqlPath = pathlib.join(this.appDataPath, this.projectName, 'data.db');
+        console.log(this.sqlPath);
+    }
+
+    async prepare() {
+        if (this.prepared) {
+            return false;
+        }
+
+        if (this.preparing) {
+            let resolver = new Promise((resolve, reject) => {
+                this.prepareQueue.push({ resolve, reject });
+            });
+            return resolver;
+        }
+        this.preparing = true;
+
+        try {
+            await mkdirp(this.dataPath);
+            this.sql = new SQL({ db: this.sqlPath });
+
+            await this.sql.run(`CREATE TABLE IF NOT EXISTS emails (
+                [id] INTEGER PRIMARY KEY,
+                [idate] DATETIME,
+                [hdate] DATETIME,
+                [return_path] TEXT,
+                [message_id] TEXT,
+                [from] TEXT,
+                [to] TEXT,
+                [cc] TEXT,
+                [bcc] TEXT,
+                [reply_to] TEXT,
+                [subject] TEXT,
+                [text] TEXT,
+
+                [attachments] INTEGER,
+                [size] INTEGER,
+                [hash] TEXT,
+
+                [key] TEXT
+            );`);
+
+            await this.sql.run(`CREATE TABLE IF NOT EXISTS headers (
+                [id] INTEGER PRIMARY KEY,
+                [email] INTEGER,
+                [key] TEXT,
+                [value] TEXT,
+
+                FOREIGN KEY ([email])
+                    REFERENCES emails ([id]) ON DELETE CASCADE
+            );`);
+
+            await this.sql.run(`CREATE TABLE IF NOT EXISTS graph (
+                [id] INTEGER PRIMARY KEY,
+                [email] INTEGER,
+
+                [type] TEXT,
+                [message_id] TEXT,
+
+                FOREIGN KEY ([email])
+                    REFERENCES emails ([id]) ON DELETE CASCADE
+            );`);
+
+            await this.sql.run(`CREATE TABLE IF NOT EXISTS addresses (
+                [id] INTEGER PRIMARY KEY,
+                [email] INTEGER,
+
+                [type] TEXT,
+                [name] TEXT,
+                [address] TEXT,
+
+                [first_name] TEXT,
+                [last_name] TEXT,
+                [middle_name] TEXT,
+
+                [contact] INTEGER,
+
+                FOREIGN KEY ([email])
+                    REFERENCES emails ([id]) ON DELETE CASCADE
+            );`);
+
+            await this.sql.run(`CREATE TABLE IF NOT EXISTS contacts (
+                [id] INTEGER PRIMARY KEY,
+
+                [name] TEXT,
+                [address] TEXT,
+                [normalized_address] TEXT UNIQUE,
+
+                [first_name] TEXT,
+                [last_name] TEXT,
+                [middle_name] TEXT
+            );`);
+
+            await this.sql.run(`CREATE TABLE IF NOT EXISTS attachments (
+                [id] INTEGER PRIMARY KEY,
+                [email] INTEGER,
+
+                [content_type] TEXT,
+                [disposition] TEXT,
+                [content_id] TEXT,
+                [filename] TEXT,
+                [real_filename] TEXT,
+                [size] INTEGER,
+                [hash] TEXT,
+                
+                [thumb_key] TEXT,
+                [key] TEXT,
+
+                FOREIGN KEY ([email])
+                    REFERENCES emails ([id]) ON DELETE CASCADE
+            );`);
+
+            await this.sql.run(`CREATE INDEX IF NOT EXISTS [hdate] ON emails (
+                [hdate]
+            )`);
+
+            await this.sql.run(`CREATE INDEX IF NOT EXISTS [idate] ON emails (
+                [idate]
+            )`);
+
+            await this.sql.run(`CREATE INDEX IF NOT EXISTS [subject] ON emails (
+                [subject]
+            )`);
+
+            await this.sql.run(`CREATE INDEX IF NOT EXISTS [attachment] ON emails (
+                [attachments]
+            )`);
+
+            await this.sql.run(`CREATE INDEX IF NOT EXISTS [email_message_od] ON emails (
+                [message_id]
+            )`);
+
+            await this.sql.run(`CREATE INDEX IF NOT EXISTS [email] ON headers (
+                [email]
+            )`);
+
+            await this.sql.run(`CREATE INDEX IF NOT EXISTS [header] ON headers (
+                [key],
+                [value]
+            )`);
+
+            await this.sql.run(`CREATE INDEX IF NOT EXISTS [email] ON addresses (
+                [email]
+            )`);
+
+            await this.sql.run(`CREATE INDEX IF NOT EXISTS [contact] ON addresses (
+                [contact]
+            )`);
+
+            await this.sql.run(`CREATE INDEX IF NOT EXISTS [type] ON addresses (
+                [type]
+            )`);
+
+            await this.sql.run(`CREATE INDEX IF NOT EXISTS [addr_name] ON addresses (
+                [name]
+            )`);
+
+            await this.sql.run(`CREATE INDEX IF NOT EXISTS [addr_address] ON addresses (
+                [address]
+            )`);
+
+            await this.sql.run(`CREATE INDEX IF NOT EXISTS [name] ON contacts (
+                [name]
+            )`);
+
+            await this.sql.run(`CREATE INDEX IF NOT EXISTS [last_name] ON contacts (
+                [last_name]
+            )`);
+
+            await this.sql.run(`CREATE INDEX IF NOT EXISTS [first_name] ON contacts (
+                [first_name]
+            )`);
+
+            await this.sql.run(`CREATE INDEX IF NOT EXISTS [email] ON graph (
+                [email]
+            )`);
+
+            await this.sql.run(`CREATE INDEX IF NOT EXISTS [message_id] ON graph (
+                [message_id],
+                [type]
+            )`);
+
+            await this.sql.run(`CREATE INDEX IF NOT EXISTS [email] ON attachments (
+                [email]
+            )`);
+
+            await this.sql.run(`CREATE INDEX IF NOT EXISTS [hash] ON attachments (
+                [hash]
+            )`);
+
+            await this.sql.run(`CREATE INDEX IF NOT EXISTS [content_id] ON attachments (
+                [content_id]
+            )`);
+
+            await this.sql.run(`CREATE INDEX IF NOT EXISTS [size] ON attachments (
+                [size]
+            )`);
+
+            await this.sql.run(`CREATE INDEX IF NOT EXISTS [real_filename] ON attachments (
+                [real_filename]
+            )`);
+
+            await this.sql.run(`CREATE VIRTUAL TABLE IF NOT EXISTS emails_fts USING fts5([subject], [text], content='emails')`);
+
+            await this.sql.run(`CREATE TRIGGER IF NOT EXISTS emails_ai AFTER INSERT ON emails BEGIN
+                INSERT INTO emails_fts([rowid], [subject], [text]) VALUES (new.rowid, new.subject, new.text);
+            END`);
+
+            await this.sql.run(`CREATE TRIGGER IF NOT EXISTS emails_ad AFTER DELETE ON emails BEGIN
+                INSERT INTO emails_fts([emails_fts], [rowid], [subject], [text]) VALUES('delete', old.rowid, old.subject, old.text);
+            END`);
+
+            await this.sql.run(`CREATE TRIGGER IF NOT EXISTS emails_au AFTER UPDATE ON emails BEGIN
+                INSERT INTO emails_fts([emails_fts], [rowid], [subject], [text]) VALUES('delete', old.rowid, old.subject, old.text);
+                INSERT INTO emails_fts([rowid], [subject], [text]) VALUES (new.rowid, new.subject, new.text);
+            END;`);
+
+            await this.sql.run(`PRAGMA foreign_keys=ON`);
+            await this.sql.run(`PRAGMA case_sensitive_like=OFF`);
+
+            return await new Promise((resolve, reject) => {
+                this.level = level(this.dataPath, {
+                    writeBufferSize: 60 * 1024 * 1024,
+                    maxFileSize: 24 * 1024 * 1024
+                });
+                this.level.on('open', resolve);
+                this.level.once('error', reject);
+            });
+        } catch (err) {
+            this.preparing = false;
+            this.prepared = true;
+
+            while (this.prepareQueue.length) {
+                let promise = this.prepareQueue.shift();
+                promise.reject(err);
+            }
+
+            throw err;
+        } finally {
+            this.preparing = false;
+            this.prepared = true;
+            while (this.prepareQueue.length) {
+                let promise = this.prepareQueue.shift();
+                promise.resolve();
+            }
+        }
+    }
+
+    async readBuffer(key) {
+        return new Promise((resolve, reject) => {
+            let stream = this.level.createValueStream({
+                gt: key + ':',
+                lt: key + ':~',
+                valueEncoding: 'binary'
+            });
+
+            let chunks = [];
+            let chunklen = 0;
+
+            stream.on('readable', () => {
+                let chunk;
+                while ((chunk = stream.read()) !== null) {
+                    if (typeof chunk === 'string') {
+                        chunk = Buffer.from(chunk);
+                    }
+                    chunks.push(chunk);
+                    chunklen += chunk.length;
+                }
+            });
+            stream.once('end', () => {
+                resolve(Buffer.concat(chunks, chunklen));
+            });
+            stream.once('error', reject);
+        });
+    }
+
+    readStream(key) {
+        return this.level.createValueStream({
+            gt: key + ':',
+            lt: key + ':~',
+            valueEncoding: 'binary'
+        });
+    }
+
+    async writeStream(key, stream) {
+        let partNr = 0;
+        let size = 0;
+        let hash = crypto.createHash(HASH_ALGO);
+        return await new Promise((resolve, reject) => {
+            let reading = false;
+            let finished = false;
+
+            let finish = () => {
+                resolve({ key, size, hash: hash.digest('hex') });
+            };
+
+            let formatNr = nr => {
+                nr = nr.toString(16);
+                nr = '0'.repeat(8 - nr.length) + nr;
+                return nr;
+            };
+
+            let processChunk = (chunk, next) => {
+                let chunkKey = [key, formatNr(++partNr)].join(':');
+                hash.update(chunk);
+                this.level.put(
+                    chunkKey,
+                    chunk,
+                    {
+                        valueEncoding: 'binary'
+                    },
+                    err => {
+                        if (err) {
+                            return reject(err);
+                        }
+                        size += chunk.length;
+                        next();
+                    }
+                );
+            };
+
+            let read = () => {
+                reading = true;
+                let readNext = () => {
+                    let chunk = stream.read();
+                    if (chunk === null) {
+                        reading = false;
+                        if (finished) {
+                            return finish();
+                        }
+                        return;
+                    }
+                    processChunk(chunk, readNext);
+                };
+                readNext();
+            };
+
+            stream.on('readable', () => {
+                if (finished) {
+                    return;
+                }
+                if (!reading) {
+                    read();
+                }
+            });
+
+            stream.on('end', () => {
+                if (finished) {
+                    return;
+                }
+                finished = true;
+                if (!reading) {
+                    return finish();
+                }
+            });
+
+            stream.on('error', err => {
+                if (finished) {
+                    return;
+                }
+                finished = true;
+                reject(err);
+            });
+        });
+    }
+
+    async import(metadata, sourceStream) {
+        await this.prepare();
+
+        let key = 'email:' + uuidv4();
+
+        let headers;
+        let textParts = [];
+        let attachments = [];
+
+        let eml = await new Promise((resolve, reject) => {
+            let streamer = new Streamer(() => true);
+            let filenames = new Set();
+            streamer.on('node', data => {
+                if (data.node.root) {
+                    headers = data.node.headers;
+                }
+
+                if (data.node.multipart) {
+                    return data.done();
+                }
+
+                if ((!data.node.disposition || data.node.disposition === 'inline') && ['text/html', 'text/plain'].includes(data.node.contentType)) {
+                    // text
+                    let decoder = data.decoder;
+
+                    if (data.node.flowed) {
+                        let flowDecoder = decoder;
+                        decoder = new FlowedDecoder({
+                            delSp: data.node.delSp
+                        });
+                        flowDecoder.on('error', err => {
+                            decoder.emit('error', err);
+                        });
+                        flowDecoder.pipe(decoder);
+                    }
+
+                    if (data.node.charset && !['ascii', 'usascii', 'utf8'].includes(data.node.charset.toLowerCase().replace(/[^a-z0-9]+/g, ''))) {
+                        try {
+                            let contentStream = decoder;
+                            decoder = iconv.decodeStream(data.node.charset);
+                            contentStream.on('error', err => {
+                                decoder.emit('error', err);
+                            });
+                            contentStream.pipe(decoder);
+                        } catch (E) {
+                            // do not decode charset
+                        }
+                    }
+
+                    let chunks = [];
+                    let chunklen = 0;
+                    decoder.on('readable', () => {
+                        let chunk;
+                        while ((chunk = decoder.read()) !== null) {
+                            if (typeof chunk === 'string') {
+                                chunk = Buffer.from(chunk);
+                            }
+                            chunks.push(chunk);
+                            chunklen += chunk.length;
+                        }
+                    });
+                    decoder.once('error', err => reject(err));
+                    decoder.once('end', () => {
+                        let textContent = {
+                            contentType: data.node.contentType,
+                            charset: data.node.charset,
+                            text: Buffer.concat(chunks, chunklen)
+                                .toString()
+                                // newlines
+                                .replace(/\r?\n/g, '\n')
+                                // trailing whitespace
+                                .replace(/\s+$/, ''),
+                            key: `${key}:text:${textParts.length + 1}`
+                        };
+
+                        textParts.push(textContent);
+                        return data.done();
+                    });
+
+                    return;
+                } else {
+                    // attachment
+
+                    let getFilename = (contentType, realFilename) => {
+                        let extension = libmime.detectExtension(contentType || 'application/octet-stream');
+                        let filename = pathlib.parse(realFilename || (contentType || 'attachment').split('/').shift() + '.' + extension);
+
+                        let base = (filename.name || 'attachment')
+                            .replace(/[/\\\x00-\x1F]/g, '_') // eslint-disable-line no-control-regex
+                            .replace(/\.+/g, '.');
+
+                        let fname;
+                        let i = 0;
+
+                        // eslint-disable-next-line no-constant-condition
+                        while (1) {
+                            fname = base + (i ? '-' + i : '') + filename.ext;
+                            i++;
+                            if (filenames.has(fname)) {
+                                continue;
+                            }
+                            filenames.add(fname);
+                            break;
+                        }
+
+                        return fname;
+                    };
+
+                    let fname = getFilename(data.node.contentType, data.node.filename);
+                    let attachmentData = {
+                        filename: fname,
+                        realFilename: data.node.filename || null,
+                        contentType: data.node.contentType || 'application/octet-stream',
+                        disposition: data.node.disposition,
+                        contentId: data.node.headers.getFirst('content-id').trim() || null,
+                        key: `${key}:attachment:${filenames.size}:file`
+                    };
+                    attachments.push(attachmentData);
+
+                    let setThumb = async attachmentData => {
+                        let buf = await this.readBuffer(key);
+                        const thumbnail = await generateThumbnail(buf);
+                        if (!thumbnail) {
+                            return;
+                        }
+                        let thumbKey = attachmentData.key.replace(/:file$/, ':thumb');
+                        await this.level.put(thumbKey, thumbnail, {
+                            valueEncoding: 'binary'
+                        });
+                        attachmentData.thumbKey = thumbKey;
+                    };
+
+                    let parseTnef = (key, callback) => {
+                        this.readBuffer(key)
+                            .then(buf => {
+                                return new Promise((resolve, reject) => {
+                                    tnef.parseBuffer(buf, (err, content) => {
+                                        if (err) {
+                                            return reject(err);
+                                        }
+
+                                        resolve(content);
+                                    });
+                                });
+                            })
+                            .then(content => {
+                                if (!content || !content.Attachments || !content.Attachments.length) {
+                                    return callback();
+                                }
+
+                                let pos = 0;
+                                let processNext = () => {
+                                    if (pos >= content.Attachments.length) {
+                                        return callback();
+                                    }
+                                    let entry = content.Attachments[pos++];
+                                    if (!entry.Data || !entry.Data.length) {
+                                        return processNext();
+                                    }
+
+                                    let data = Buffer.from(entry.Data);
+
+                                    let contentType = libmime.detectMimeType(entry.Title) || 'application/octet-stream';
+                                    let fname = getFilename(contentType, entry.Title);
+                                    let tnefAttachmentData = {
+                                        filename: fname,
+                                        realFilename: entry.Title || null,
+                                        contentType,
+                                        disposition: 'attachment',
+                                        key: `${key}:attachment:${filenames.size}:file`,
+                                        hash: crypto
+                                            .createHash(HASH_ALGO)
+                                            .update(data)
+                                            .digest('hex'),
+                                        size: data.length
+                                    };
+
+                                    attachments.push(tnefAttachmentData);
+
+                                    let passthrough = new PassThrough();
+                                    this.writeStream(tnefAttachmentData.key, passthrough)
+                                        .then(() => {
+                                            if (/^image\//gi.test(attachmentData.contentType)) {
+                                                // post-process thumbnails
+                                                return setThumb(tnefAttachmentData).finally(() => processNext());
+                                            }
+                                            processNext();
+                                        })
+                                        .catch(processNext);
+
+                                    passthrough.end(data);
+                                };
+
+                                setImmediate(processNext);
+                            })
+                            .catch(err => callback(err));
+                    };
+
+                    this.writeStream(attachmentData.key, data.decoder)
+                        .then(res => {
+                            attachmentData.size = typeof res.size === 'number' ? res.size : null;
+                            attachmentData.hash = res.hash;
+
+                            if (attachmentData.contentType === 'application/ms-tnef') {
+                                // post-process tnef
+                                return parseTnef(attachmentData.key, () => {
+                                    resolve(res);
+                                });
+                            }
+
+                            if (/^image\//gi.test(attachmentData.contentType)) {
+                                // post-process thumbnails
+                                return setThumb(attachmentData).finally(() => resolve(res));
+                            }
+
+                            resolve(res);
+                        })
+                        .catch(reject)
+                        .finally(() => data.done());
+
+                    return;
+                }
+            });
+
+            let source = sourceStream;
+            if (Buffer.isBuffer(sourceStream)) {
+                source = new PassThrough();
+            }
+
+            let file = source
+                .pipe(new Splitter({ ignoreEmbedded: true, maxHeadSize: 2 * 1024 * 1024 }))
+                .pipe(streamer)
+                .pipe(new Joiner());
+
+            this.writeStream(`${key}:source`, file)
+                .then(resolve)
+                .catch(reject);
+
+            if (Buffer.isBuffer(sourceStream)) {
+                source.end(sourceStream);
+            }
+        });
+
+        let ftsText = [];
+        textParts.forEach(part => {
+            if (part.contentType === 'text/html' && part.text.length < MAX_HTML_PARSE_LENGTH) {
+                let text = htmlToText
+                    .fromString(part.text, {
+                        noLinkBrackets: true,
+                        ignoreImage: true,
+                        ignoreHref: true,
+                        singleNewLineParagraphs: true,
+                        uppercaseHeadings: false,
+                        wordwrap: false
+                    })
+                    .replace(/\n+/g, '\n');
+                ftsText.push(text.trim());
+            }
+        });
+
+        if (!ftsText.length) {
+            textParts.forEach(part => {
+                if (part.contentType === 'text/plain') {
+                    ftsText.push(part.text.replace(/\n+/g, '\n').trim());
+                }
+            });
+        }
+
+        await this.level.put(`${key}:text`, textParts, {
+            valueEncoding: 'json'
+        });
+
+        await this.level.put(`${key}:headers`, headers ? headers.getList() : [], {
+            valueEncoding: 'json'
+        });
+
+        const queryParams = {
+            $return_path: metadata.returnPath,
+            $text: ftsText.join('\n'),
+            $key: key,
+            $size: eml.size,
+            $hash: eml.hash,
+            $hdate: formatDate(headers.getFirst('date')),
+            $idate: formatDate(metadata.idate),
+            $attachments: attachments.length
+        };
+
+        let addresses = [];
+        ['from', 'to', 'cc', 'bcc', 'reply-to', 'delivered-to', 'return-path'].forEach(key => {
+            let lines;
+
+            if (key === 'return-path') {
+                lines = [].concat(metadata.returnPath || []);
+            } else {
+                lines = headers ? headers.getDecoded(key) : [];
+            }
+
+            let list = addressparser(
+                lines
+                    .map(line => line.value && line.value.trim())
+                    .filter(line => line)
+                    .join(', '),
+                { flatten: true }
+            );
+            list.forEach(addr => {
+                addr.type = key;
+
+                addr.name = (addr.name || '').toString();
+                if (addr.name) {
+                    try {
+                        addr.name = libmime.decodeWords(addr.name);
+                    } catch (E) {
+                        //ignore, keep as is
+                    }
+                    addr.name = addr.name.replace(/\s+/g, ' ').trim();
+                }
+
+                addr.address = (addr.address || '')
+                    .toString()
+                    .replace(/\s+/g, ' ')
+                    .trim();
+
+                if (/@xn--/.test(addr.address)) {
+                    let atpos = addr.address.lastIndexOf('@');
+                    addr.address = addr.address.substr(0, atpos + 1) + punycode.toUnicode(addr.address.substr(atpos + 1));
+                }
+
+                addresses.push(addr);
+            });
+        });
+
+        ['subject', 'from', 'to', 'cc', 'bcc', 'message-id', 'reply-to'].forEach(key => {
+            let lines = headers ? headers.getDecoded(key) : [];
+            queryParams['$' + key.replace(/-/g, '_')] =
+                libmime.decodeWords(
+                    lines
+                        .map(line => line.value && line.value.replace(/\s+/g, ' ').trim())
+                        .filter(line => line)
+                        .join(', ')
+                ) || null;
+        });
+
+        let graph = [];
+        ['message-id', 'references', 'in-reply-to'].forEach(key => {
+            let entries = (headers ? headers.getDecoded(key) : [])
+                .map(line => line.value && line.value.trim())
+                .filter(line => line)
+                .join(' ')
+                .split(/\s+/);
+            entries
+                .map(value => value.trim())
+                .filter(value => value)
+                .forEach(value => {
+                    graph.push({
+                        type: key,
+                        messageId: value
+                    });
+                });
+        });
+
+        let emailId = await this.sql.run(
+            `INSERT INTO emails 
+                ([return_path], [hdate], [idate], [from], [to], [cc], [bcc], [reply_to], [subject], [text], [message_id], [key], [attachments], [size], [hash]) 
+                VALUES ($return_path, $hdate, $idate, $from, $to, $cc, $bcc, $reply_to, $subject, $text, $message_id, $key, $attachments, $size, $hash)`,
+            queryParams
+        );
+
+        if (emailId) {
+            for (let headerData of headers.getList()) {
+                let header = libmime.decodeHeader(headerData.line);
+                if (!header || !header.value) {
+                    continue;
+                }
+
+                await this.sql.run(
+                    `INSERT INTO headers 
+                        ([email], [key], [value]) 
+                        VALUES ($email, $key, $value)`,
+                    {
+                        $email: emailId,
+                        $key: headerData.key || null,
+                        $value: header.value || null
+                    }
+                );
+            }
+        }
+
+        for (let attachmentData of attachments) {
+            await this.sql.run(
+                `INSERT INTO attachments 
+                    ([email], [content_type],[content_id], [disposition], [filename], [real_filename], [size], [thumb_key], [key], [hash]) 
+                    VALUES ($email, $content_type, $content_id, $disposition, $filename, $real_filename, $size, $thumb_key, $key, $hash)`,
+                {
+                    $email: emailId,
+                    $content_type: attachmentData.contentType || null,
+                    $content_id: attachmentData.contentId || null,
+                    $disposition: attachmentData.disposition || null,
+                    $filename: attachmentData.filename || null,
+                    $real_filename: attachmentData.realFilename || null,
+                    $size: 'size' in attachmentData ? attachmentData.size : null,
+                    $thumb_key: attachmentData.thumbKey || null,
+                    $key: attachmentData.key,
+                    $hash: attachmentData.hash || null
+                }
+            );
+        }
+
+        for (let addressData of addresses) {
+            const attrs = human.parseName(addressData.name);
+
+            let contact;
+
+            if (addressData.address) {
+                let query = `INSERT INTO contacts 
+                ([name], [address], [normalized_address], [first_name], [last_name], [middle_name]) 
+                VALUES ($name, $address, $normalized_address, $first_name, $last_name, $middle_name)`;
+
+                if (addressData.name) {
+                    // override name values if set
+                    query = `${query} ON CONFLICT(normalized_address) DO UPDATE
+                        SET name = $name, first_name = $first_name, last_name = $last_name, middle_name = $middle_name`;
+                }
+
+                let normalizedAddress = addressData.address.toLowerCase().trim();
+                try {
+                    await this.sql.run(query, {
+                        $name: addressData.name || null,
+                        $address: addressData.address || null,
+                        $normalized_address: normalizedAddress,
+                        $first_name: attrs.firstName || null,
+                        $last_name: attrs.lastName || null,
+                        $middle_name: attrs.middleName || null
+                    });
+                } catch (err) {
+                    // ignore unique key conflicts
+                    if (err.code !== 'SQLITE_CONSTRAINT') {
+                        throw err;
+                    }
+                }
+
+                // assuming we have INSERTed or UPSERTed normalized_address
+                let row = await this.sql.findOne('SELECT id, address FROM contacts WHERE normalized_address = ? LIMIT 1', [normalizedAddress]);
+                if (row && row.id) {
+                    contact = row.id;
+                }
+            }
+
+            await this.sql.run(
+                `INSERT INTO addresses 
+                    ([email], [type], [name], [address], [first_name], [last_name], [middle_name], [contact]) 
+                    VALUES ($email, $type, $name, $address, $first_name, $last_name, $middle_name, $contact)`,
+                {
+                    $email: emailId,
+                    $type: addressData.type,
+                    $name: addressData.name || null,
+                    $address: addressData.address || null,
+
+                    $first_name: attrs.firstName || null,
+                    $last_name: attrs.lastName || null,
+                    $middle_name: attrs.middleName || null,
+
+                    $contact: contact || null
+                }
+            );
+        }
+
+        for (let graphData of graph) {
+            await this.sql.run(
+                `INSERT INTO graph 
+                    ([email], [type], [message_id]) 
+                    VALUES ($email, $type, $message_id)`,
+                {
+                    $email: emailId,
+                    $type: graphData.type,
+                    $message_id: graphData.messageId
+                }
+            );
+        }
+    }
+
+    async getTextContent(key) {
+        return await this.level.get(`${key}:text`, {
+            valueEncoding: 'json'
+        });
+    }
+
+    async close() {
+        if (this.prepared) {
+            return false;
+        }
+        await this.sql.close();
+        await this.level.close();
+    }
+
+    async getAttachmentBuffer(id, options) {
+        options = options || {};
+        let row = await this.sql.findOne(`SELECT key, content_type AS contentType FROM attachments WHERE id=?`, [id]);
+        if (!row || !row.key) {
+            return false;
+        }
+        let content = await this.readBuffer(row.key);
+        if (!content) {
+            return false;
+        }
+
+        if (options.dataUri) {
+            return 'data:' + row.contentType + ';base64,' + content.toString('base64');
+        }
+
+        return content;
+    }
+
+    async getAttachmentStream(id) {
+        let row = await this.sql.findOne(`SELECT key, content_type AS contentType FROM attachments WHERE id=?`, [id]);
+        if (!row || !row.key) {
+            return false;
+        }
+
+        return this.readStream(row.key);
+    }
+
+    async getMessageStream(id) {
+        let row = await this.sql.findOne(`SELECT key FROM emails WHERE id=?`, [id]);
+        if (!row || !row.key) {
+            return false;
+        }
+
+        return this.readStream(`${row.key}:source`);
+    }
+
+    async getContacts(options) {
+        let now = Date.now();
+
+        options = options || {};
+        let page = Math.max(Number(options.page) || 0, 1);
+        let pageSize = options.pageSize || 20;
+
+        let queryParams = {};
+
+        let query = ['SELECT [id], [name], [address] FROM [contacts] WHERE 1'];
+        let countQuery = ['SELECT COUNT([contacts].[id]) AS total FROM [contacts] WHERE 1'];
+
+        if (options.term) {
+            let terms = 'AND (name LIKE $term OR normalized_address LIKE $term)';
+            query.push(terms);
+            countQuery.push(terms);
+            queryParams.$term = (options.term || '').toString().trim();
+        }
+
+        let countRes = await this.sql.findOne(countQuery.join(' '), queryParams);
+        let total = (countRes && countRes.total) || 0;
+
+        query.push('ORDER BY last_name ASC, first_name ASC, normalized_address ASC');
+        query.push('LIMIT $limit OFFSET $offset');
+        queryParams.$limit = pageSize;
+        queryParams.$offset = pageSize * (page - 1);
+
+        return {
+            page,
+            pageSize,
+            pages: total ? Math.ceil(total / pageSize) : 0,
+            total,
+            data: await this.sql.findMany(query.join(' '), queryParams),
+            timer: Date.now() - now
+        };
+    }
+
+    async getAttachments(options) {
+        let now = Date.now();
+        options = options || {};
+
+        let page = Math.max(Number(options.page) || 0, 1);
+        let pageSize = options.pageSize || 20;
+
+        let queryParams = {};
+
+        let joinTerms = []; // 'LEFT JOIN x
+        let whereTerms = []; // 'LEFT JOIN x
+
+        joinTerms.push('LEFT JOIN [emails] ON [emails].[id] = [attachments].[email]');
+
+        let selectFields = [
+            `[attachments].[id] AS id`,
+            `[attachments].[content_type] AS contentType`,
+            `[attachments].[disposition] AS disposition`,
+            `[attachments].[content_id] AS contentId`,
+            `[attachments].[filename] AS filename`,
+            `[attachments].[size] AS size`,
+            `[attachments].[thumb_key] AS thumbKey`,
+            `[attachments].[hash] AS hash`,
+
+            `[emails].[id] AS email`,
+            `[emails].[subject] AS subject`,
+            `[emails].[message_id] AS messageId`,
+            `[emails].[idate] AS idate`,
+            `[emails].[hdate] AS hdate`
+        ];
+        let countFields = ['COUNT([attachments].[id]) AS total'];
+
+        if (options.term) {
+            whereTerms.push(`[emails].[id] in (
+                SELECT rowid FROM [emails_fts]
+                WHERE [emails_fts] MATCH $term
+            )`);
+            queryParams.$term = (options.term || '').toString().trim();
+        }
+
+        if (options.subject) {
+            whereTerms.push(`[emails].[subject] LIKE $subject`);
+            queryParams.$subject = (options.subject || '').toString().trim();
+        }
+
+        if (options.headers && typeof options.headers === 'object') {
+            Object.keys(options.headers).forEach((key, i) => {
+                if (options.headers[key] === true) {
+                    // special case, check if key has value
+                    whereTerms.push(`[emails].[id] in (
+                        SELECT [email] FROM [headers]
+                        WHERE [key]=$header_${i}_key
+                    )`);
+                    queryParams[`$header_${i}_key`] = key.toLowerCase().trim();
+                    return;
+                }
+
+                let value = (options.headers[key] || '').toString().trim();
+                if (!value) {
+                    return;
+                }
+                whereTerms.push(`[emails].[id] in (
+                    SELECT [email] FROM [headers]
+                    WHERE [key]=$header_${i}_key AND [value] LIKE $header_${i}_value
+                )`);
+                queryParams[`$header_${i}_key`] = key.toLowerCase().trim();
+                queryParams[`$header_${i}_value`] = value;
+            });
+        }
+
+        if (options.graph) {
+            [].concat(options.graph || []).forEach((messageId, i) => {
+                messageId = (messageId || '').toString().trim();
+                whereTerms.push(`[emails].[id] in (
+                    SELECT [email] FROM [graph]
+                        WHERE [message_id]=$graph_${i}
+                    )`);
+                queryParams[`$graph_${i}`] = messageId;
+            });
+        }
+
+        ['from', 'to', 'cc', 'bcc', 'returnPath', 'deliveredTo'].forEach(key => {
+            let hkey = key.replace(/[A-Z]/g, c => '-' + c.toLowerCase());
+            let lkey = hkey.replace(/-/g, '_');
+
+            let addrWhere = [];
+
+            [].concat(options[key] || []).forEach((addressTerm, i) => {
+                if (typeof addressTerm === 'number') {
+                    addrWhere.push(`[contact] = $addr_${lkey}_${i}`);
+                    queryParams[`$addr_${lkey}_${i}`] = addressTerm;
+                } else {
+                    addrWhere.push(`[name] LIKE $addr_${lkey}_${i}`);
+                    addrWhere.push(`[address] LIKE $addr_${lkey}_${i}`);
+                    queryParams[`$addr_${lkey}_${i}`] = (addressTerm || '').toString().trim();
+                }
+            });
+
+            if (addrWhere.length) {
+                queryParams[`$addr_${lkey}_type`] = hkey;
+                whereTerms.push(`[emails].[id] in (
+                SELECT [email] FROM [addresses]
+                    WHERE [type]=$addr_${lkey}_type AND (${addrWhere.join(' OR ')})
+                )`);
+            }
+        });
+
+        if (options.attachments && typeof options.attachments === 'object') {
+            ['hash', 'contentId', 'contentType', 'filename', 'size'].forEach(key => {
+                let hkey = key.replace(/[A-Z]/g, c => '-' + c.toLowerCase());
+                let lkey = hkey.replace(/-/g, '_');
+
+                let value = options.attachments[key];
+
+                if (typeof value === 'string' || typeof value === 'number') {
+                    whereTerms.push(`[attachments].[${lkey}] LIKE $att_${lkey}`);
+                    queryParams[`$att_${lkey}`] = typeof value === 'string' ? value.trim() : value;
+                } else if (value && typeof value === 'object') {
+                    if (value.start && typeof value.start === 'number') {
+                        whereTerms.push(`[attachments].[${lkey}] >= $att_${lkey}_start`);
+                        queryParams[`$att_${lkey}_start`] = value.start;
+                    }
+
+                    if (value.end && typeof value.end === 'number') {
+                        whereTerms.push(`[attachments].[${lkey}] <= $att_${lkey}_end`);
+                        queryParams[`$att_${lkey}_end`] = value.end;
+                    }
+                }
+            });
+        }
+
+        if (options.hash && typeof options.hash === 'string') {
+            whereTerms.push(`[emails].[hash] = $hash`);
+            queryParams.$hash = options.hash;
+        }
+
+        if (options.messageId && typeof options.messageId === 'string') {
+            whereTerms.push(`[emails].[message_id] LIKE $message_id`);
+            queryParams.$message_id = options.messageId.trim();
+        }
+
+        if (options.date && options.date.start) {
+            let date = formatDate(options.date.start);
+            if (date) {
+                whereTerms.push(`[emails].[hdate] >= DATETIME($date_start)`);
+                queryParams.$date_start = date;
+            }
+        }
+
+        if (options.date && options.date.end) {
+            let date = formatDate(options.date.end);
+            if (date) {
+                whereTerms.push(`[emails].[hdate] <= DATETIME($date_end)`);
+                queryParams.$date_end = date;
+            }
+        }
+
+        let countQuery = []
+            .concat('SELECT')
+            .concat(countFields.join(', '))
+            .concat('FROM [attachments]')
+            .concat(joinTerms)
+            .concat(whereTerms.length ? 'WHERE' : [])
+            .concat(whereTerms.join(' AND '))
+            .join(' ');
+
+        let countRes = await this.sql.findOne(countQuery, queryParams);
+        let total = (countRes && countRes.total) || 0;
+
+        let selectQuery = []
+            .concat('SELECT')
+            .concat(selectFields.join(', '))
+            .concat('FROM [attachments]')
+            .concat(joinTerms)
+            .concat(whereTerms.length ? 'WHERE' : [])
+            .concat(whereTerms.join(' AND '))
+            .concat('ORDER BY [attachments].real_filename ASC')
+            .concat('LIMIT $limit OFFSET $offset')
+            .join(' ');
+
+        queryParams.$limit = pageSize;
+        queryParams.$offset = pageSize * (page - 1);
+
+        let attachments = await this.sql.findMany(selectQuery, queryParams);
+
+        for (let attachmentData of attachments) {
+            if (attachmentData.idate) {
+                attachmentData.idate = new Date(attachmentData.idate + 'Z').toISOString();
+            }
+
+            if (attachmentData.hdate) {
+                attachmentData.hdate = new Date(attachmentData.hdate + 'Z').toISOString();
+            }
+
+            let list = await this.sql.findMany(
+                'SELECT type, name, address, contact FROM addresses WHERE email=? ORDER BY type ASC, last_name ASC, first_name ASC LIMIT 1000',
+                [attachmentData.email]
+            );
+            attachmentData.addresses = {};
+            list.forEach(addressData => {
+                let ckey = addressData.type.replace(/-([^-])/g, (o, c) => c.toUpperCase());
+                if (!attachmentData.addresses[ckey]) {
+                    attachmentData.addresses[ckey] = [];
+                }
+                attachmentData.addresses[ckey].push({
+                    name: addressData.name || '',
+                    address: addressData.address || '',
+                    contact: addressData.contact
+                });
+            });
+
+            let thumbKey = attachmentData.thumbKey;
+            delete attachmentData.thumbKey;
+
+            if (thumbKey) {
+                try {
+                    let thumbnail = await this.level.get(thumbKey, {
+                        valueEncoding: 'binary'
+                    });
+                    if (thumbnail) {
+                        attachmentData.thumbnail = 'data:image/png;base64,' + thumbnail.toString('base64');
+                    }
+                } catch (err) {
+                    // ignore
+                }
+            }
+        }
+
+        let response = {
+            page,
+            pageSize,
+            pages: total ? Math.ceil(total / pageSize) : 0,
+            total,
+            data: attachments,
+            timer: Date.now() - now
+        };
+
+        if (options.debug) {
+            response.selectQuery = selectQuery.replace(/\s+/g, ' ').trim();
+            response.queryParams = queryParams;
+        }
+
+        return response;
+    }
+
+    async getEmails(options) {
+        let now = Date.now();
+        options = options || {};
+
+        let page = Math.max(Number(options.page) || 0, 1);
+        let pageSize = options.pageSize || 20;
+
+        let queryParams = {};
+
+        let joinTerms = []; // 'LEFT JOIN x
+        let whereTerms = []; // 'LEFT JOIN x
+
+        let selectFields = [
+            `[emails].[id] AS id`,
+            `[emails].[subject] AS subject`,
+            `[emails].[message_id] AS messageId`,
+            `[emails].[idate] AS idate`,
+            `[emails].[hdate] AS hdate`,
+            `[emails].[attachments] AS attachments`
+        ];
+        let countFields = ['COUNT([emails].[id]) AS total'];
+
+        if (options.term) {
+            whereTerms.push(`[emails].[id] in (
+                SELECT rowid FROM [emails_fts]
+                WHERE [emails_fts] MATCH $term
+            )`);
+            queryParams.$term = (options.term || '').toString().trim();
+        }
+
+        if (options.subject) {
+            whereTerms.push(`[emails].[subject] LIKE $subject`);
+            queryParams.$subject = (options.subject || '').toString().trim();
+        }
+
+        if (options.headers && typeof options.headers === 'object') {
+            Object.keys(options.headers).forEach((key, i) => {
+                if (options.headers[key] === true) {
+                    // special case, check if key has value
+                    whereTerms.push(`[emails].[id] in (
+                        SELECT [email] FROM [headers]
+                        WHERE [key]=$header_${i}_key
+                    )`);
+                    queryParams[`$header_${i}_key`] = key.toLowerCase().trim();
+                    return;
+                }
+
+                let value = (options.headers[key] || '').toString().trim();
+                if (!value) {
+                    return;
+                }
+                whereTerms.push(`[emails].[id] in (
+                    SELECT [email] FROM [headers]
+                    WHERE [key]=$header_${i}_key AND [value] LIKE $header_${i}_value
+                )`);
+                queryParams[`$header_${i}_key`] = key.toLowerCase().trim();
+                queryParams[`$header_${i}_value`] = value;
+            });
+        }
+
+        if (options.graph) {
+            [].concat(options.graph || []).forEach((messageId, i) => {
+                messageId = (messageId || '').toString().trim();
+                whereTerms.push(`[emails].[id] in (
+                    SELECT [email] FROM [graph]
+                        WHERE [message_id]=$graph_${i}
+                    )`);
+                queryParams[`$graph_${i}`] = messageId;
+            });
+        }
+
+        ['from', 'to', 'cc', 'bcc', 'returnPath', 'deliveredTo'].forEach(key => {
+            let hkey = key.replace(/[A-Z]/g, c => '-' + c.toLowerCase());
+            let lkey = hkey.replace(/-/g, '_');
+
+            let addrWhere = [];
+
+            [].concat(options[key] || []).forEach((addressTerm, i) => {
+                if (typeof addressTerm === 'number') {
+                    addrWhere.push(`[contact] = $addr_${lkey}_${i}`);
+                    queryParams[`$addr_${lkey}_${i}`] = addressTerm;
+                } else {
+                    addrWhere.push(`[name] LIKE $addr_${lkey}_${i}`);
+                    addrWhere.push(`[address] LIKE $addr_${lkey}_${i}`);
+                    queryParams[`$addr_${lkey}_${i}`] = (addressTerm || '').toString().trim();
+                }
+            });
+
+            if (addrWhere.length) {
+                queryParams[`$addr_${lkey}_type`] = hkey;
+                whereTerms.push(`[emails].[id] in (
+                SELECT [email] FROM [addresses]
+                    WHERE [type]=$addr_${lkey}_type AND (${addrWhere.join(' OR ')})
+                )`);
+            }
+        });
+
+        if (options.attachments === true) {
+            whereTerms.push(`[emails].[attachments] > 0`);
+        }
+
+        if (options.attachments === false) {
+            whereTerms.push(`[emails].[attachments] = 0`);
+        }
+
+        if (options.attachments && typeof options.attachments === 'object') {
+            let attWhere = [];
+
+            ['hash', 'contentId', 'contentType', 'filename', 'size'].forEach(key => {
+                let hkey = key.replace(/[A-Z]/g, c => '-' + c.toLowerCase());
+                let lkey = hkey.replace(/-/g, '_');
+
+                let value = options.attachments[key];
+
+                if (typeof value === 'string' || typeof value === 'number') {
+                    attWhere.push(`[${lkey}] LIKE $att_${lkey}`);
+                    queryParams[`$att_${lkey}`] = typeof value === 'string' ? value.trim() : value;
+                } else if (value && typeof value === 'object') {
+                    if (value.start && typeof value.start === 'number') {
+                        attWhere.push(`[${lkey}] >= $att_${lkey}_start`);
+                        queryParams[`$att_${lkey}_start`] = value.start;
+                    }
+
+                    if (value.end && typeof value.end === 'number') {
+                        attWhere.push(`[${lkey}] <= $att_${lkey}_end`);
+                        queryParams[`$att_${lkey}_end`] = value.end;
+                    }
+                }
+            });
+
+            if (attWhere.length) {
+                whereTerms.push(`[emails].[id] in (
+                SELECT [email] FROM [attachments]
+                    WHERE ${attWhere.join(' AND ')}
+                )`);
+            }
+        }
+
+        if (options.hash && typeof options.hash === 'string') {
+            whereTerms.push(`[emails].[hash] = $hash`);
+            queryParams.$hash = options.hash;
+        }
+
+        if (options.messageId && typeof options.messageId === 'string') {
+            whereTerms.push(`[emails].[message_id] LIKE $message_id`);
+            queryParams.$message_id = options.messageId.trim();
+        }
+
+        if (options.date && options.date.start) {
+            let date = formatDate(options.date.start);
+            if (date) {
+                whereTerms.push(`[emails].[hdate] >= DATETIME($date_start)`);
+                queryParams.$date_start = date;
+            }
+        }
+
+        if (options.date && options.date.end) {
+            let date = formatDate(options.date.end);
+            if (date) {
+                whereTerms.push(`[emails].[hdate] <= DATETIME($date_end)`);
+                queryParams.$date_end = date;
+            }
+        }
+
+        let countQuery = []
+            .concat('SELECT')
+            .concat(countFields.join(', '))
+            .concat('FROM [emails]')
+            .concat(joinTerms)
+            .concat(whereTerms.length ? 'WHERE' : [])
+            .concat(whereTerms.join(' AND '))
+            .join(' ');
+
+        let countRes = await this.sql.findOne(countQuery, queryParams);
+        let total = (countRes && countRes.total) || 0;
+
+        let selectQuery = []
+            .concat('SELECT')
+            .concat(selectFields.join(', '))
+            .concat('FROM [emails]')
+            .concat(joinTerms)
+            .concat(whereTerms.length ? 'WHERE' : [])
+            .concat(whereTerms.join(' AND '))
+            .concat('ORDER BY [emails].idate DESC, [emails].[id] DESC')
+            .concat('LIMIT $limit OFFSET $offset')
+            .join(' ');
+
+        queryParams.$limit = pageSize;
+        queryParams.$offset = pageSize * (page - 1);
+
+        let emails = await this.sql.findMany(selectQuery, queryParams);
+
+        for (let emailData of emails) {
+            if (emailData.idate) {
+                emailData.idate = new Date(emailData.idate + 'Z').toISOString();
+            }
+
+            if (emailData.hdate) {
+                emailData.hdate = new Date(emailData.hdate + 'Z').toISOString();
+            }
+
+            let list = await this.sql.findMany(
+                'SELECT type, name, address, contact FROM addresses WHERE email=? ORDER BY type ASC, last_name ASC, first_name ASC LIMIT 1000',
+                [emailData.id]
+            );
+            emailData.addresses = {};
+            list.forEach(addressData => {
+                let ckey = addressData.type.replace(/-([^-])/g, (o, c) => c.toUpperCase());
+                if (!emailData.addresses[ckey]) {
+                    emailData.addresses[ckey] = [];
+                }
+                emailData.addresses[ckey].push({
+                    name: addressData.name || '',
+                    address: addressData.address || '',
+                    contact: addressData.contact
+                });
+            });
+        }
+
+        let response = {
+            page,
+            pageSize,
+            pages: total ? Math.ceil(total / pageSize) : 0,
+            total,
+            data: emails,
+            timer: Date.now() - now
+        };
+
+        if (options.debug) {
+            response.selectQuery = selectQuery.replace(/\s+/g, ' ').trim();
+            response.queryParams = queryParams;
+        }
+
+        return response;
+    }
+
+    async getEmail(id) {
+        let now = Date.now();
+
+        let selectFields = [
+            `[emails].[id] AS id`,
+            `[emails].[subject] AS subject`,
+            `[emails].[message_id] AS messageId`,
+            `[emails].[idate] AS idate`,
+            `[emails].[hdate] AS hdate`,
+            `[emails].[hash] AS hash`,
+            `[emails].[size] AS size`,
+            `[emails].[key] AS key`
+        ];
+
+        let emailData = await this.sql.findOne(`SELECT ${selectFields.join(', ')} FROM emails WHERE id=? LIMIT 1`, [id]);
+        if (!emailData) {
+            return false;
+        }
+
+        let key = emailData.key;
+        delete emailData.key;
+
+        if (emailData.idate) {
+            emailData.idate = new Date(emailData.idate + 'Z').toISOString();
+        }
+
+        if (emailData.hdate) {
+            emailData.hdate = new Date(emailData.hdate + 'Z').toISOString();
+        }
+
+        let addresses = await this.sql.findMany(
+            'SELECT [type], [name], [address], [contact] FROM addresses WHERE email=? ORDER BY type ASC, last_name ASC, first_name ASC LIMIT 1000',
+            [id]
+        );
+
+        emailData.addresses = {};
+        addresses.forEach(addressData => {
+            let ckey = addressData.type.replace(/-([^-])/g, (o, c) => c.toUpperCase());
+            if (!emailData.addresses[ckey]) {
+                emailData.addresses[ckey] = [];
+            }
+            emailData.addresses[ckey].push({
+                name: addressData.name || '',
+                address: addressData.address || '',
+                contact: addressData.contact
+            });
+        });
+
+        let headers = new Headers(
+            await this.level.get(`${key}:headers`, {
+                valueEncoding: 'json'
+            })
+        );
+
+        emailData.headers = {
+            original: headers
+                .build()
+                .toString()
+                .replace(/\r\n/g, '\n')
+                .trim(),
+            structured: headers.getList().map(header => {
+                let data = headers.libmime.decodeHeader(header.line);
+                data.value = Buffer.from(data.value, 'binary').toString();
+                return data;
+            })
+        };
+
+        let textParts = await this.level.get(`${key}:text`, {
+            valueEncoding: 'json'
+        });
+
+        let text = {};
+        let attachmentReferences = new Set();
+        textParts.forEach(textPart => {
+            let contentType = (textPart.contentType || '').toLowerCase();
+            let partKey = contentType.substr(contentType.indexOf('/') + 1);
+            if (!text[partKey]) {
+                text[partKey] = [];
+            }
+
+            let content = textPart.text || '';
+            content = content.replace(/\n{3,}/g, '\n\n\n').replace(/^\n+/, '');
+
+            let cids = content.match(/\bcid:[^'"\s]+/g);
+            if (cids) {
+                Array.from(cids).forEach(cid => {
+                    attachmentReferences.add('<' + cid.substr(4).replace(/[<>\s]/g, '') + '>');
+                });
+            }
+
+            text[partKey].push(content);
+        });
+
+        Object.keys(text).forEach(key => {
+            text[key] = text[key].join('\n');
+        });
+
+        emailData.text = text;
+
+        let attachments = await this.sql.findMany(
+            'SELECT [id], [content_type] AS contentType, disposition, content_id AS contentId, filename, size, hash, key FROM attachments WHERE email=? ORDER BY filename ASC LIMIT 1000',
+            [id]
+        );
+        for (let attachmentData of attachments) {
+            console.log('XXXXXX');
+            console.log(attachmentData);
+            let contentId = attachmentData.contentId ? '<' + attachmentData.contentId.replace(/[<>\s]/g, '') + '>' : false;
+            if (contentId && attachmentReferences.has(contentId)) {
+                try {
+                    console.log('zzzzz');
+                    console.log(attachmentData.key);
+                    let attachmentContent = await this.readBuffer(attachmentData.key);
+                    if (attachmentContent) {
+                        console.log('YYYY');
+                        console.log(attachmentContent);
+                        attachmentData.dataUri = 'data:' + attachmentData.contentType + ';base64,' + attachmentContent.toString('base64');
+                    }
+                } catch (err) {
+                    // ignore
+                }
+            } else if (attachmentData.thumbKey) {
+                try {
+                    let thumbnail = await this.level.get(attachmentData.thumbKey, {
+                        valueEncoding: 'binary'
+                    });
+                    if (thumbnail) {
+                        attachmentData.thumbnail = 'data:image/png;base64,' + thumbnail.toString('base64');
+                    }
+                } catch (err) {
+                    // ignore
+                }
+            }
+        }
+
+        emailData.attachments = (attachments || []).map(attachmentData => {
+            let data = {
+                id: attachmentData.id,
+                contentType: attachmentData.contentType,
+                disposition: attachmentData.disposition,
+                contentId: attachmentData.contentId,
+                filename: attachmentData.filename,
+                size: attachmentData.size,
+                hash: attachmentData.hash
+            };
+            if (attachmentData.thumbnail) {
+                data.thumbnail = attachmentData.thumbnail;
+            }
+            if (attachmentData.dataUri) {
+                data.dataUri = attachmentData.dataUri;
+            }
+            return data;
+        });
+
+        emailData.timer = Date.now() - now;
+        return emailData;
+    }
+}
+
+function formatDate(value) {
+    if (!value) {
+        return null;
+    }
+
+    let date;
+
+    if (typeof value === 'string' || typeof value === 'number') {
+        date = new Date(value);
+    } else if (Object.prototype.toString.apply(value) === '[object Date]') {
+        date = value;
+    } else {
+        return null;
+    }
+
+    if (date.toString() === 'Invalid Date') {
+        return null;
+    }
+
+    if (date.getTime() === 0) {
+        return null;
+    }
+
+    return date
+        .toISOString()
+        .replace(/T/, ' ')
+        .substr(0, 19);
+}
+
+async function generateThumbnail(buffer) {
+    return await sharp(buffer)
+        .resize(128, 128, {
+            fit: 'inside',
+            withoutEnlargement: true,
+            background: { r: 0xff, g: 0xff, b: 0xff, alpha: 0 }
+        })
+        .png()
+        .toBuffer();
+}
+
+module.exports = Analyzer;
