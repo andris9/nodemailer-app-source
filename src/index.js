@@ -1,6 +1,6 @@
 'use strict';
 
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const execCommand = require('./exec-command');
 const Projects = require('./projects/projects');
 const urllib = require('url');
@@ -43,6 +43,20 @@ const createWindow = () => {
     // Open the DevTools.
     //mainWindow.webContents.openDevTools();
 
+    mainWindow.on('close', e => {
+        if (projects._imports) {
+            let choice = dialog.showMessageBoxSync(mainWindow, {
+                type: 'question',
+                buttons: ['Yes', 'No'],
+                title: 'Confirm',
+                message: 'You have active imports. Are you sure you want to quit?'
+            });
+            if (choice === 1) {
+                e.preventDefault();
+            }
+        }
+    });
+
     // Emitted when the window is closed.
     mainWindow.on('closed', () => {
         // Dereference the window object, usually you would store windows
@@ -72,7 +86,10 @@ app.on('activate', () => {
 
 app.on('will-quit', () => {
     if (projects) {
-        projects.close().finally(() => false);
+        projects
+            .close()
+            .catch(() => false)
+            .finally(() => false);
     }
 });
 

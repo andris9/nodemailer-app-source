@@ -5,6 +5,8 @@
 (() => {
     let elements = [];
 
+    const humanize = require('humanize');
+
     let deleteActiveBtn = document.getElementById('delete-active-btn');
     let editActiveBtn = document.getElementById('edit-active-btn');
 
@@ -33,9 +35,11 @@
             params: {
                 id
             }
-        }).finally(() => {
-            setActive();
-        });
+        })
+            .catch(() => false)
+            .finally(() => {
+                setActive();
+            });
     };
 
     let renderProject = (container, data) => {
@@ -83,7 +87,7 @@
         divBodyElm.appendChild(titleElm);
 
         let descriptionElm = document.createElement('p');
-        descriptionElm.textContent = data.folderName;
+        descriptionElm.textContent = `${humanize.numberFormat(data.emails, 0, '.', ' ')} emails indexed`;
         divBodyElm.appendChild(descriptionElm);
 
         container.appendChild(liElm);
@@ -118,8 +122,6 @@
             command: 'listProjects'
         });
 
-        console.log(projects);
-
         let container = document.getElementById('project-list');
         while (elements.length) {
             let elm = elements.shift();
@@ -144,6 +146,7 @@
                     return redrawList();
                 }
             })
+            .catch(() => false)
             .finally(() => {
                 createProjectElm.classList.remove('active');
             });
@@ -222,6 +225,7 @@
                     return redrawList();
                 }
             })
+            .catch(() => false)
             .finally(() => {
                 editActiveBtn.classList.remove('active');
             });

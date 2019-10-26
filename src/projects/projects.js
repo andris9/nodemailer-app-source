@@ -20,11 +20,14 @@ class Projects {
         this.opened = new Map();
         this.projectRef = new Map();
 
+        this._imports = 0;
+
         this.prepareQueue = [];
         this.prepared = false;
         this.preparing = false;
 
         this.windows = new Set();
+        this.windowRef = new WeakMap();
 
         this.sqlPath = pathlib.join(this.appDataPath, 'forensicat.db');
     }
@@ -55,6 +58,21 @@ class Projects {
                 [folder_name] TEXT
             );`);
 
+            await this.sql.run(`CREATE TABLE IF NOT EXISTS imports (
+                [id] INTEGER PRIMARY KEY,
+                [project] INTEGER,
+                [created] DATETIME,
+                [finished] DATETIME,
+                [errored] TEXT,
+                [source] TEXT,
+                [emails] INTEGER DEFAULT 0,
+                [processed] INTEGER DEFAULT 0,
+                [totalsize] INTEGER DEFAULT 0,
+
+                FOREIGN KEY ([project])
+                    REFERENCES projects ([id]) ON DELETE CASCADE
+            );`);
+
             await this.sql.run(`CREATE INDEX IF NOT EXISTS [project_created] ON projects (
                 [created]
             )`);
@@ -63,9 +81,24 @@ class Projects {
                 [name]
             )`);
 
+            await this.sql.run(`CREATE INDEX IF NOT EXISTS [import_created] ON imports (
+                [created]
+            )`);
+
+            await this.sql.run(`CREATE INDEX IF NOT EXISTS [import_finished] ON imports (
+                [finished]
+            )`);
+
+            await this.sql.run(`UPDATE [imports] SET finished=$finished, errored=$errored WHERE finished IS NULL`, {
+                $errored: 'Unfinished import',
+                $finished: formatDate(new Date())
+            });
+
             await this.sql.run(`PRAGMA foreign_keys=ON`);
             await this.sql.run(`PRAGMA case_sensitive_like=OFF`);
         } catch (err) {
+            console.error(err);
+
             this.preparing = false;
             this.prepared = true;
 
@@ -87,7 +120,7 @@ class Projects {
 
     async list() {
         await this.prepare();
-        let list = await this.sql.findMany('SELECT [id], [name], [version], folder_name AS folderName, created FROM [projects] ORDER BY name ASC');
+        let list = await this.sql.findMany('SELECT [id], [name], [version], [emails], folder_name AS folderName, created FROM [projects] ORDER BY name ASC');
         if (!list) {
             return false;
         }
@@ -97,6 +130,7 @@ class Projects {
                 id: item.id,
                 name: item.name,
                 folderName: item.folderName,
+                emails: item.emails,
                 created: new Date(item.created + 'Z').toISOString()
             };
         });
@@ -202,6 +236,8 @@ class Projects {
             folderName: row.folderName
         });
 
+        analyzer.id = id;
+
         this.opened.set(id, analyzer);
         await analyzer.prepare();
 
@@ -266,7 +302,6 @@ class Projects {
         if (!project) {
             return;
         }
-        console.log(project);
 
         // Create the browser window.
         let projectWindow = new BrowserWindow({
@@ -307,18 +342,147 @@ class Projects {
                 }
             }
 
+            /*
             if (!hasOpenWindow) {
                 let analyzer = this.opened.get(id);
                 this.opened.delete(id);
                 if (analyzer) {
-                    analyzer.close().finally(() => false);
+                    analyzer
+                        .close()
+                        .catch(() => false)
+                        .finally(() => false);
                 }
             }
+            */
 
             // Dereference the window object, usually you would store windows
             // in an array if your app supports multi windows, this is the time
             // when you should delete the corresponding element.
             projectWindow = null;
+        });
+    }
+
+    async createImport(id, options) {
+        options = options || {};
+
+        let query = 'INSERT INTO imports ([project], [created], [source], [totalsize]) VALUES ($project, $created, $source, $totalsize)';
+        let queryParams = {
+            $project: id,
+            $created: formatDate(new Date()),
+            $source: JSON.stringify(options.source || {}),
+            $totalsize: options.totalsize || 0
+        };
+
+        let importId = await this.sql.run(query, queryParams);
+        return importId;
+    }
+
+    async updateImport(analyzer, importId, options) {
+        let id = analyzer.id;
+        let sets = [];
+        let queryParams = {
+            $importId: importId
+        };
+
+        if (options.emails) {
+            sets.push('[emails] = [emails] + $emails');
+            queryParams.$emails = Number(options.emails) || 0;
+        }
+
+        if (options.finished) {
+            sets.push('[finished] = $finished');
+            queryParams.$finished = formatDate(new Date());
+        }
+
+        if (options.errored) {
+            sets.push('[errored] = $errored');
+            queryParams.$errored = options.errored;
+        }
+
+        if (options.processed) {
+            sets.push('[processed] = [processed] + $processed');
+            queryParams.$processed = Number(options.processed) || 0;
+        }
+
+        if (sets.length) {
+            let query = `UPDATE imports SET ${sets.join(',')} WHERE [id] = $importId`;
+            await this.sql.run(query, queryParams);
+
+            let item = await this.sql.findOne('SELECT id, emails, errored, finished, created, processed, totalsize FROM imports WHERE id=?', [importId]);
+            let source;
+            try {
+                source = JSON.parse(item.source);
+            } catch (err) {
+                source = null;
+            }
+
+            let info = {
+                id: item.id,
+                source,
+                emails: item.emails || 0,
+                processed: item.processed || 0,
+                totalsize: item.totalsize || 0,
+                errored: item.errored,
+                finished: item.finished ? new Date(item.finished + 'Z').toISOString() : null,
+                created: new Date(item.created + 'Z').toISOString()
+            };
+
+            for (let entry of this.projectRef.entries()) {
+                if (entry[1] === id) {
+                    try {
+                        if (!this.windowRef.has(analyzer)) {
+                            this.windowRef.set(analyzer, {});
+                        }
+                        let winRefs = this.windowRef.get(analyzer);
+                        let win;
+                        if (winRefs[entry[0]]) {
+                            win = winRefs[entry[0]];
+                        } else {
+                            win = BrowserWindow.fromId(entry[0]);
+                            winRefs[entry[0]] = win;
+                        }
+                        win.webContents.send('import-update', JSON.stringify(info));
+                    } catch (err) {
+                        console.error(err);
+                    }
+                }
+            }
+        }
+
+        if (options.emails) {
+            let query = 'UPDATE projects SET [emails] = [emails] + $emails WHERE [id] = $id';
+            await this.sql.run(query, {
+                $id: id,
+                $emails: Number(options.emails) || 0
+            });
+        }
+    }
+
+    async listImports() {
+        await this.prepare();
+        let list = await this.sql.findMany('SELECT id, emails, source, errored, finished, created, processed, totalsize FROM imports ORDER BY created DESC');
+        if (!list) {
+            return false;
+        }
+
+        return list.map(item => {
+            let source;
+            try {
+                source = JSON.parse(item.source);
+            } catch (err) {
+                source = null;
+            }
+
+            return {
+                id: item.id,
+                source,
+                emails: item.emails || 0,
+                processed: item.processed || 0,
+                totalsize: item.totalsize || 0,
+                errored: item.errored,
+                finished: item.finished ? new Date(item.finished + 'Z').toISOString() : null,
+                created: new Date(item.created + 'Z').toISOString()
+            };
         });
     }
 }

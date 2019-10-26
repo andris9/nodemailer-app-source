@@ -1,12 +1,117 @@
 'use strict';
 
+const fs = require('fs').promises;
+const fsCreateReadStream = require('fs').createReadStream;
+const { dialog } = require('electron');
 const prompt = require('./prompt/prompt');
+const pathlib = require('path');
+const { eachMessage } = require('mbox-reader');
+
+async function createImportFromFile(curWin, projects, analyzer) {
+    let res = await dialog.showOpenDialog(curWin, {
+        title: 'Select Mail Source',
+        properties: ['openFile']
+    });
+    if (res.canceled) {
+        return false;
+    }
+    if (!res.filePaths || !res.filePaths.length) {
+        return false;
+    }
+
+    for (let path of res.filePaths) {
+        let buffer = Buffer.alloc(5);
+        try {
+            let fd = await fs.open(path, 'r');
+            try {
+                await fd.read(buffer, 0, buffer.length, 0);
+            } finally {
+                try {
+                    await fd.close();
+                } catch (err) {
+                    console.error(err);
+                    // ignore
+                }
+            }
+        } catch (err) {
+            console.error(err);
+            throw new Error(`Failed to process file "${pathlib.basename(path)}"`);
+        }
+        if (buffer.toString() !== 'From ') {
+            throw new Error(`"${pathlib.basename(path)}" does not seem to be a MBOX file`);
+        }
+    }
+
+    let totalsize = 0;
+    for (let filename of res.filePaths) {
+        totalsize += (await fs.stat(filename)).size;
+    }
+
+    let importId = await projects.createImport(analyzer.id, {
+        totalsize,
+        source: {
+            format: 'mbox',
+            filePaths: res.filePaths
+        }
+    });
+
+    let processImport = async () => {
+        let errored = false;
+        try {
+            for (let filename of res.filePaths) {
+                let input = fsCreateReadStream(filename);
+                let lastSize = 0;
+                for await (let message of eachMessage(input)) {
+                    await analyzer.import(
+                        {
+                            source: {
+                                filename,
+                                importId
+                            },
+                            idate: message.time,
+                            returnPath: message.returnPath
+                        },
+                        message.content
+                    );
+
+                    // increment counters
+                    let sizeDiff = message.readSize - lastSize;
+                    lastSize = message.readSize;
+                    await projects.updateImport(analyzer, importId, { emails: 1, processed: sizeDiff });
+                }
+            }
+        } catch (err) {
+            errored = err.message;
+            throw err;
+        } finally {
+            await projects.updateImport(analyzer, importId, { finished: true, errored });
+            projects.windowRef.delete(analyzer);
+        }
+    };
+
+    setImmediate(() => {
+        projects._imports++;
+        processImport()
+            .catch(err => console.error(err))
+            .finally(() => {
+                projects._imports--;
+            });
+    });
+
+    return importId;
+}
 
 async function listProjects(curWin, projects) {
     let response = {
         data: await projects.list()
     };
-    console.log(response.data);
+    return response;
+}
+
+async function listImports(curWin, projects) {
+    let response = {
+        data: await projects.listImports()
+    };
     return response;
 }
 
@@ -88,6 +193,12 @@ module.exports = async (curWin, projects, analyzer, data) => {
 
         case 'openProject':
             return await openProject(curWin, projects, analyzer, data.params);
+
+        case 'createImportFromFile':
+            return await createImportFromFile(curWin, projects, analyzer, data.params);
+
+        case 'listImports':
+            return await listImports(curWin, projects, analyzer, data.params);
 
         case 'openDevTools':
             curWin.webContents.openDevTools();

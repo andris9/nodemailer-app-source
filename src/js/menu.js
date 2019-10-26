@@ -14,7 +14,9 @@
                 // Trigger an alert when menu item is clicked
                 exec({
                     command: 'openDevTools'
-                }).finally(() => false);
+                })
+                    .catch(() => false)
+                    .finally(() => false);
             }
         })
     );

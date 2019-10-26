@@ -1,9 +1,68 @@
 'use strict';
 /* eslint global-require: 0 */
-/* globals document, alert */
+/* globals document, alert, exec, window */
 
 (() => {
-    const { dialog, getCurrentWindow } = require('electron').remote;
+    const humanize = require('humanize');
+
+    let importListElm = document.getElementById('import-list');
+    let imports = [];
+
+    let paintImportCell = (rowElm, importData) => {
+        rowElm.querySelector('td.cell-01').textContent = humanize.date('Y-m-d H:i', new Date(importData.created));
+        rowElm.querySelector('td.cell-02').textContent = humanize.numberFormat(importData.emails, 0, '.', ' ');
+        rowElm.querySelector('td.cell-03').textContent = (importData.totalsize ? Math.round((importData.processed / importData.totalsize) * 100) : 0) + '%';
+        rowElm.querySelector('td.cell-04').textContent = !importData.finished ? 'Importing…' : importData.errored ? 'Failed' : 'Finished';
+    };
+
+    let renderImportListItem = importData => {
+        let rowElm = document.createElement('tr');
+
+        let cell01Elm = document.createElement('td');
+        let cell02Elm = document.createElement('td');
+        let cell03Elm = document.createElement('td');
+        let cell04Elm = document.createElement('td');
+
+        cell01Elm.classList.add('cell-01');
+        cell02Elm.classList.add('cell-02', 'text-right');
+        cell03Elm.classList.add('cell-03', 'text-right');
+        cell04Elm.classList.add('cell-04');
+
+        rowElm.appendChild(cell01Elm);
+        rowElm.appendChild(cell02Elm);
+        rowElm.appendChild(cell03Elm);
+        rowElm.appendChild(cell04Elm);
+
+        imports.push({ data: importData, elm: rowElm });
+
+        importListElm.appendChild(rowElm);
+
+        paintImportCell(rowElm, importData);
+    };
+
+    let reloadImports = async () => {
+        let list = await exec({
+            command: 'listImports'
+        });
+
+        if (!list || !list.data) {
+            return;
+        }
+
+        imports.forEach(importData => {
+            if (importData.elm.parentNode === importListElm) {
+                importListElm.removeChild(importData.elm);
+            }
+        });
+        imports = [];
+
+        list.data.forEach(importData => {
+            renderImportListItem(importData);
+        });
+        return true;
+    };
+
+    let renderImports = async () => {};
 
     let selectFileElm = document.getElementById('select-file');
     selectFileElm.addEventListener('click', () => {
@@ -12,17 +71,38 @@
 
         selectFileElm.classList.add('active');
 
-        dialog
-            .showOpenDialog(getCurrentWindow(), { title: 'Select Mail Source', properties: ['openFile'] })
-            .then(result => {
-                alert(JSON.stringify(result.canceled));
-                alert(result.filePaths);
+        exec({
+            command: 'createImportFromFile'
+        })
+            .then(res => {
+                if (res) {
+                    return reloadImports();
+                }
+            })
+            .then(res => {
+                if (res) {
+                    alert(`Import started`);
+                }
             })
             .catch(err => {
-                console.log(err);
+                alert(err.message);
             })
             .finally(() => {
                 selectFileElm.classList.remove('active');
             });
     });
+
+    async function main() {
+        await reloadImports();
+        window.events.subscribe('import-update', data => {
+            let importRow = imports.find(row => row.data.id === data.id);
+
+            if (importRow) {
+                importRow.data = data;
+                paintImportCell(importRow.elm, data);
+            }
+        });
+    }
+
+    main().catch(err => alert(err.message));
 })();

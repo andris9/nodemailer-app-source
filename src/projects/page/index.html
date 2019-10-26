@@ -16,7 +16,7 @@
                 <div class="toolbar-actions">
                     <div class="btn-group">
                         <button class="btn btn-default" id="select-file">
-                            <span class="icon icon-download"></span>
+                            <span class="icon icon-folder"></span>
                         </button>
                     </div>
 
@@ -29,8 +29,46 @@
             <!-- Your app's content goes inside .window-content -->
             <div class="window-content">
                 <div class="pane-group">
+                    <div class="pane-sm sidebar">
+                        <nav class="nav-group">
+                            <span class="nav-group-item">
+                                <span class="icon icon-mail"></span>
+                                Emails
+                            </span>
+                            <span class="nav-group-item">
+                                <span class="icon icon-picture"></span>
+                                Attachments
+                            </span>
+                            <span class="nav-group-item">
+                                <span class="icon icon-users"></span>
+                                Contacts
+                            </span>
+                            <a class="nav-group-item active">
+                                <span class="icon icon-download"></span>
+                                Imports
+                            </a>
+                        </nav>
+                    </div>
                     <div class="pane">
-                        <h1>Hello worlf</h1>
+                        <div id="page-imports">
+                            <table class="table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Created</th>
+                                        <th>Imported</th>
+                                        <th>Progress</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="import-list"></tbody>
+                            </table>
+                        </div>
+
+                        <div class="hidden" id="page-emails">
+                            <div class="padded-more">
+                                <h1>Hello world</h1>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

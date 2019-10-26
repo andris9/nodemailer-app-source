@@ -72,6 +72,7 @@ class Analyzer {
                 [id] INTEGER PRIMARY KEY,
                 [idate] DATETIME,
                 [hdate] DATETIME,
+                [source] TEXT,
                 [return_path] TEXT,
                 [message_id] TEXT,
                 [from] TEXT,
@@ -597,7 +598,9 @@ class Analyzer {
                                         .then(() => {
                                             if (/^image\//gi.test(attachmentData.contentType)) {
                                                 // post-process thumbnails
-                                                return setThumb(tnefAttachmentData).finally(() => processNext());
+                                                return setThumb(tnefAttachmentData)
+                                                    .catch(() => false)
+                                                    .finally(() => processNext());
                                             }
                                             processNext();
                                         })
@@ -625,7 +628,9 @@ class Analyzer {
 
                             if (/^image\//gi.test(attachmentData.contentType)) {
                                 // post-process thumbnails
-                                return setThumb(attachmentData).finally(() => resolve(res));
+                                return setThumb(attachmentData)
+                                    .catch(() => false)
+                                    .finally(() => resolve(res));
                             }
 
                             resolve(res);
@@ -690,7 +695,8 @@ class Analyzer {
         });
 
         const queryParams = {
-            $return_path: metadata.returnPath,
+            $source: metadata.source || null,
+            $return_path: metadata.returnPath || null,
             $text: ftsText.join('\n'),
             $key: key,
             $size: eml.size,
@@ -775,8 +781,8 @@ class Analyzer {
 
         let emailId = await this.sql.run(
             `INSERT INTO emails 
-                ([return_path], [hdate], [idate], [from], [to], [cc], [bcc], [reply_to], [subject], [text], [message_id], [key], [attachments], [size], [hash]) 
-                VALUES ($return_path, $hdate, $idate, $from, $to, $cc, $bcc, $reply_to, $subject, $text, $message_id, $key, $attachments, $size, $hash)`,
+                ([return_path], [source], [hdate], [idate], [from], [to], [cc], [bcc], [reply_to], [subject], [text], [message_id], [key], [attachments], [size], [hash]) 
+                VALUES ($return_path, $source, $hdate, $idate, $from, $to, $cc, $bcc, $reply_to, $subject, $text, $message_id, $key, $attachments, $size, $hash)`,
             queryParams
         );
 
