@@ -197,31 +197,4 @@ class SQL {
     }
 }
 
-/*
-let example = async () => {
-    let s = new SQL();
-
-    await s.run('CREATE VIRTUAL TABLE email USING fts5(sender, title, body)');
-
-    for (let i = 0; i < 10; i++) {
-        let a = await s.run('INSERT INTO email VALUES (?,?,?)', ['Ipsum ' + i, 'Kipsum ' + i, 'Zipstum ' + i]);
-        console.log(a);
-    }
-
-    for (let i = 0; i < 10; i++) {
-        //let a = await s.run('DELETE FROM email WHERE sender=?', ['Ipsum ' + (i + 1)]);
-        //console.log(a);
-    }
-
-    for await (let a of s.each('SELECT * FROM email(?)', ['Kipsum'])) {
-        console.log(a);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-
-    console.log('iiii');
-
-    await s.close();
-};
-*/
-
 module.exports = SQL;

@@ -1,7 +1,6 @@
 'use strict';
 
 const level = require('level');
-const { getAppDataPath } = require('appdata-path');
 const util = require('util');
 const mkdirp = util.promisify(require('mkdirp'));
 const mailsplit = require('mailsplit');
@@ -10,7 +9,7 @@ const libmime = require('libmime');
 const pathlib = require('path');
 const iconv = require('iconv-lite');
 const htmlToText = require('html-to-text');
-const SQL = require('./sql');
+const SQL = require('../../sql/sql');
 const uuidv4 = require('uuid/v4');
 const tnef = require('node-tnef');
 const crypto = require('crypto');
@@ -25,8 +24,6 @@ const Streamer = mailsplit.Streamer;
 const PassThrough = require('stream').PassThrough;
 const Headers = mailsplit.Headers;
 
-const APPNAME = 'forensicat';
-
 const MAX_HTML_PARSE_LENGTH = 2 * 1024 * 1024; // do not parse HTML messages larger than 2MB to plaintext
 const HASH_ALGO = 'sha1';
 
@@ -39,16 +36,19 @@ class Analyzer {
 
         this._importCounter = 0;
 
+        this.appDataPath = this.options.appDataPath;
         this.projectName = this.options.projectName || 'Untitled';
-        this.appDataPath = getAppDataPath(APPNAME);
+        this.folderName = this.options.folderName || this.projectName;
+
+        this.closing = false;
+        this.closed = false;
 
         this.prepareQueue = [];
         this.prepared = false;
         this.preparing = false;
 
-        this.dataPath = pathlib.join(this.appDataPath, this.projectName, 'data');
-        this.sqlPath = pathlib.join(this.appDataPath, this.projectName, 'data.db');
-        console.log(this.sqlPath);
+        this.dataPath = pathlib.join(this.appDataPath, this.folderName, 'data');
+        this.sqlPath = pathlib.join(this.appDataPath, this.folderName, 'data.db');
     }
 
     async prepare() {
@@ -900,11 +900,17 @@ class Analyzer {
     }
 
     async close() {
-        if (this.prepared) {
+        if (!this.prepared) {
             return false;
         }
+        if (this.closed || this.closing) {
+            return;
+        }
+        this.closing = true;
         await this.sql.close();
         await this.level.close();
+        this.closing = false;
+        this.closed = true;
     }
 
     async getAttachmentBuffer(id, options) {
@@ -1565,17 +1571,11 @@ class Analyzer {
             [id]
         );
         for (let attachmentData of attachments) {
-            console.log('XXXXXX');
-            console.log(attachmentData);
             let contentId = attachmentData.contentId ? '<' + attachmentData.contentId.replace(/[<>\s]/g, '') + '>' : false;
             if (contentId && attachmentReferences.has(contentId)) {
                 try {
-                    console.log('zzzzz');
-                    console.log(attachmentData.key);
                     let attachmentContent = await this.readBuffer(attachmentData.key);
                     if (attachmentContent) {
-                        console.log('YYYY');
-                        console.log(attachmentContent);
                         attachmentData.dataUri = 'data:' + attachmentData.contentType + ';base64,' + attachmentContent.toString('base64');
                     }
                 } catch (err) {

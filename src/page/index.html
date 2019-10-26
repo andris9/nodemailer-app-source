@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Forensicat</title>
+
+        <link rel="stylesheet" href="../css/photon.min.css" />
+        <link rel="stylesheet" href="../css/forensicat.css" />
+
+        <meta http-equiv="Content-Security-Policy" content="script-src 'self';" />
+    </head>
+    <body>
+        <div class="window">
+            <!-- .toolbar-header sits at the top of your app -->
+
+            <header class="toolbar toolbar-header">
+                <div class="toolbar-actions">
+                    <div class="btn-group">
+                        <button class="btn btn-default" id="create-project-btn">
+                            <span class="icon icon-plus-squared"></span>
+                        </button>
+                        <button class="btn btn-default hidden" id="edit-active-btn">
+                            <span class="icon icon-cog"></span>
+                        </button>
+                        <button class="btn btn-default hidden" id="delete-active-btn">
+                            <span class="icon icon-trash"></span>
+                        </button>
+                    </div>
+
+                    <button class="btn btn-default btn-dropdown pull-right js-context-menu">
+                        <span class="icon icon-tools"></span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Your app's content goes inside .window-content -->
+            <div class="window-content">
+                <div class="pane-group">
+                    <div class="pane">
+                        <ul class="list-group" id="project-list">
+                            <li class="list-group-header">
+                                <input class="form-control" type="text" placeholder="Search for a project" id="search-project" />
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script src="../js/renderer.js" charset="utf-8"></script>
+        <script src="../js/menu.js" charset="utf-8"></script>
+        <script src="page.js"></script>
+    </body>
+</html>

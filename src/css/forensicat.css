@@ -1,0 +1,10 @@
+input,
+button,
+textarea,
+:focus {
+    outline: none !important;
+}
+
+.hidden {
+    display: none;
+}

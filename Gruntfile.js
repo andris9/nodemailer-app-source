@@ -4,7 +4,7 @@ module.exports = function(grunt) {
     // Project configuration.
     grunt.initConfig({
         eslint: {
-            all: ['lib/**/*.js', 'Gruntfile.js']
+            all: ['src/**/*.js', 'Gruntfile.js']
         }
     });
 
