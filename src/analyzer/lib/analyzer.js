@@ -75,6 +75,8 @@ class Analyzer {
                 [source] TEXT,
                 [return_path] TEXT,
                 [message_id] TEXT,
+                [flags] TEXT,
+                [labels] TEXT,
                 [from] TEXT,
                 [to] TEXT,
                 [cc] TEXT,
@@ -440,14 +442,15 @@ class Analyzer {
                     let decoder = data.decoder;
 
                     if (data.node.flowed) {
-                        let flowDecoder = decoder;
-                        decoder = new FlowedDecoder({
+                        let contentDecoder = decoder;
+                        let flowDecoder = new FlowedDecoder({
                             delSp: data.node.delSp
                         });
-                        flowDecoder.on('error', err => {
-                            decoder.emit('error', err);
+                        contentDecoder.on('error', err => {
+                            flowDecoder.emit('error', err);
                         });
-                        flowDecoder.pipe(decoder);
+                        contentDecoder.pipe(flowDecoder);
+                        decoder = flowDecoder;
                     }
 
                     if (data.node.charset && !['ascii', 'usascii', 'utf8'].includes(data.node.charset.toLowerCase().replace(/[^a-z0-9]+/g, ''))) {
@@ -694,16 +697,29 @@ class Analyzer {
             valueEncoding: 'json'
         });
 
+        let returnPath = metadata.returnPath;
+        if (!returnPath) {
+            let addr = headers.getFirst('return-path');
+            if (addr) {
+                addr = addressparser(addr);
+                if (addr && addr[0] && addr[0].address) {
+                    returnPath = addr[0].address;
+                }
+            }
+        }
+
         const queryParams = {
             $source: metadata.source || null,
-            $return_path: metadata.returnPath || null,
+            $return_path: returnPath || null,
             $text: ftsText.join('\n'),
             $key: key,
             $size: eml.size,
             $hash: eml.hash,
             $hdate: formatDate(headers.getFirst('date')),
             $idate: formatDate(metadata.idate),
-            $attachments: attachments.length
+            $attachments: attachments.length,
+            $flags: metadata.flags ? JSON.stringify(metadata.flags) : null,
+            $labels: metadata.labels ? JSON.stringify(metadata.labels) : null
         };
 
         let addresses = [];
@@ -711,7 +727,7 @@ class Analyzer {
             let lines;
 
             if (key === 'return-path') {
-                lines = [].concat(metadata.returnPath || []);
+                lines = [].concat(returnPath || []);
             } else {
                 lines = headers ? headers.getDecoded(key) : [];
             }
@@ -762,9 +778,15 @@ class Analyzer {
         });
 
         let graph = [];
-        ['message-id', 'references', 'in-reply-to'].forEach(key => {
+        ['message-id', 'references', 'in-reply-to', 'thread-index', 'X-GM-THRID'.toLowerCase()].forEach(key => {
             let entries = (headers ? headers.getDecoded(key) : [])
-                .map(line => line.value && line.value.trim())
+                .map(line => {
+                    let value = line.value && line.value.trim();
+                    if (key === 'thread-index') {
+                        value = value.substr(0, 22);
+                    }
+                    return value;
+                })
                 .filter(line => line)
                 .join(' ')
                 .split(/\s+/);
@@ -781,29 +803,31 @@ class Analyzer {
 
         let emailId = await this.sql.run(
             `INSERT INTO emails 
-                ([return_path], [source], [hdate], [idate], [from], [to], [cc], [bcc], [reply_to], [subject], [text], [message_id], [key], [attachments], [size], [hash]) 
-                VALUES ($return_path, $source, $hdate, $idate, $from, $to, $cc, $bcc, $reply_to, $subject, $text, $message_id, $key, $attachments, $size, $hash)`,
+                ([return_path], [source], [hdate], [idate], [from], [to], [cc], [bcc], [reply_to], [subject], [text], [message_id], [key], [attachments], [flags], [labels], [size], [hash]) 
+                VALUES ($return_path, $source, $hdate, $idate, $from, $to, $cc, $bcc, $reply_to, $subject, $text, $message_id, $key, $attachments, $flags, $labels, $size, $hash)`,
             queryParams
         );
 
-        if (emailId) {
-            for (let headerData of headers.getList()) {
-                let header = libmime.decodeHeader(headerData.line);
-                if (!header || !header.value) {
-                    continue;
-                }
+        if (!emailId) {
+            return false;
+        }
 
-                await this.sql.run(
-                    `INSERT INTO headers 
+        for (let headerData of headers.getList()) {
+            let header = libmime.decodeHeader(headerData.line);
+            if (!header || !header.value) {
+                continue;
+            }
+
+            await this.sql.run(
+                `INSERT INTO headers 
                         ([email], [key], [value]) 
                         VALUES ($email, $key, $value)`,
-                    {
-                        $email: emailId,
-                        $key: headerData.key || null,
-                        $value: header.value || null
-                    }
-                );
-            }
+                {
+                    $email: emailId,
+                    $key: headerData.key || null,
+                    $value: header.value || null
+                }
+            );
         }
 
         for (let attachmentData of attachments) {
@@ -842,7 +866,7 @@ class Analyzer {
                         SET name = $name, first_name = $first_name, last_name = $last_name, middle_name = $middle_name`;
                 }
 
-                let normalizedAddress = addressData.address.toLowerCase().trim();
+                let normalizedAddress = normalizeAddress(addressData.address);
                 try {
                     await this.sql.run(query, {
                         $name: addressData.name || null,
@@ -897,6 +921,11 @@ class Analyzer {
                 }
             );
         }
+
+        return {
+            id: emailId,
+            size: eml.size
+        };
     }
 
     async getTextContent(key) {
@@ -1663,6 +1692,21 @@ async function generateThumbnail(buffer) {
         })
         .png()
         .toBuffer();
+}
+
+function normalizeAddress(address) {
+    address = (address || '').toString();
+
+    let atpos = address.indexOf('@');
+
+    if (atpos < 0) {
+        return address.toLowerCase();
+    }
+
+    let user = address.substr(0, atpos);
+    let domain = address.substr(atpos + 1);
+
+    return user.replace(/\+.*$/, '').toLowerCase() + '@' + domain.toLowerCase();
 }
 
 module.exports = Analyzer;

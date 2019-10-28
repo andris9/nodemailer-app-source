@@ -26,6 +26,8 @@ class Projects {
         this.prepared = false;
         this.preparing = false;
 
+        this.mainWindow = options.mainWindow;
+
         this.windows = new Set();
         this.windowRef = new WeakMap();
 
@@ -54,6 +56,7 @@ class Projects {
                 [version] INTEGER,
                 [created] DATETIME,
                 [emails] INTEGER DEFAULT 0,
+                [size] INTEGER DEFAULT 0,
                 [name] TEXT,
                 [folder_name] TEXT
             );`);
@@ -66,6 +69,7 @@ class Projects {
                 [errored] TEXT,
                 [source] TEXT,
                 [emails] INTEGER DEFAULT 0,
+                [size] INTEGER DEFAULT 0,
                 [processed] INTEGER DEFAULT 0,
                 [totalsize] INTEGER DEFAULT 0,
 
@@ -120,7 +124,9 @@ class Projects {
 
     async list() {
         await this.prepare();
-        let list = await this.sql.findMany('SELECT [id], [name], [version], [emails], folder_name AS folderName, created FROM [projects] ORDER BY name ASC');
+        let list = await this.sql.findMany(
+            'SELECT [id], [name], [version], [emails], [size], folder_name AS folderName, created FROM [projects] ORDER BY name ASC'
+        );
         if (!list) {
             return false;
         }
@@ -131,6 +137,7 @@ class Projects {
                 name: item.name,
                 folderName: item.folderName,
                 emails: item.emails,
+                size: item.size,
                 created: new Date(item.created + 'Z').toISOString()
             };
         });
@@ -342,8 +349,8 @@ class Projects {
                 }
             }
 
-            /*
             if (!hasOpenWindow) {
+                /*
                 let analyzer = this.opened.get(id);
                 this.opened.delete(id);
                 if (analyzer) {
@@ -352,8 +359,8 @@ class Projects {
                         .catch(() => false)
                         .finally(() => false);
                 }
+                */
             }
-            */
 
             // Dereference the window object, usually you would store windows
             // in an array if your app supports multi windows, this is the time
@@ -389,6 +396,11 @@ class Projects {
             queryParams.$emails = Number(options.emails) || 0;
         }
 
+        if (options.size) {
+            sets.push('[size] = [size] + $size');
+            queryParams.$size = Number(options.size) || 0;
+        }
+
         if (options.finished) {
             sets.push('[finished] = $finished');
             queryParams.$finished = formatDate(new Date());
@@ -404,11 +416,31 @@ class Projects {
             queryParams.$processed = Number(options.processed) || 0;
         }
 
+        if (options.emails || options.size) {
+            let query = 'UPDATE projects SET [emails] = [emails] + $emails, [size] = [size] + $size WHERE [id] = $id';
+            await this.sql.run(query, {
+                $id: id,
+                $emails: Number(options.emails) || 0,
+                $size: Number(options.size) || 0
+            });
+        }
+
         if (sets.length) {
             let query = `UPDATE imports SET ${sets.join(',')} WHERE [id] = $importId`;
             await this.sql.run(query, queryParams);
 
-            let item = await this.sql.findOne('SELECT id, emails, errored, finished, created, processed, totalsize FROM imports WHERE id=?', [importId]);
+            let projectData = await this.sql.findOne('SELECT id, emails, size FROM projects WHERE id=?', [id]);
+            // push info to main window
+            this.mainWindow.webContents.send(
+                'project-update',
+                JSON.stringify({
+                    id,
+                    emails: projectData.emails,
+                    size: projectData.size
+                })
+            );
+
+            let item = await this.sql.findOne('SELECT id, emails, size, errored, finished, created, processed, totalsize FROM imports WHERE id=?', [importId]);
             let source;
             try {
                 source = JSON.parse(item.source);
@@ -420,6 +452,7 @@ class Projects {
                 id: item.id,
                 source,
                 emails: item.emails || 0,
+                size: item.size || 0,
                 processed: item.processed || 0,
                 totalsize: item.totalsize || 0,
                 errored: item.errored,
@@ -427,6 +460,7 @@ class Projects {
                 created: new Date(item.created + 'Z').toISOString()
             };
 
+            // push info to project windows
             for (let entry of this.projectRef.entries()) {
                 if (entry[1] === id) {
                     try {
@@ -448,19 +482,14 @@ class Projects {
                 }
             }
         }
-
-        if (options.emails) {
-            let query = 'UPDATE projects SET [emails] = [emails] + $emails WHERE [id] = $id';
-            await this.sql.run(query, {
-                $id: id,
-                $emails: Number(options.emails) || 0
-            });
-        }
     }
 
-    async listImports() {
+    async listImports(id) {
         await this.prepare();
-        let list = await this.sql.findMany('SELECT id, emails, source, errored, finished, created, processed, totalsize FROM imports ORDER BY created DESC');
+        let list = await this.sql.findMany(
+            'SELECT id, emails, source, errored, finished, created, processed, size, totalsize FROM imports WHERE project=? ORDER BY created DESC',
+            [id]
+        );
         if (!list) {
             return false;
         }
@@ -477,6 +506,7 @@ class Projects {
                 id: item.id,
                 source,
                 emails: item.emails || 0,
+                size: item.size || 0,
                 processed: item.processed || 0,
                 totalsize: item.totalsize || 0,
                 errored: item.errored,

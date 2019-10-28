@@ -20,8 +20,8 @@ let projects;
 const createWindow = () => {
     // Create the browser window.
     mainWindow = new BrowserWindow({
-        width: 300,
-        height: 400,
+        width: 400,
+        height: 500,
         'min-width': 300,
         'min-height': 200,
         'accept-first-mouse': true,
@@ -30,6 +30,7 @@ const createWindow = () => {
             nodeIntegration: true
         }
     });
+    projects.mainWindow = mainWindow;
 
     const windowUrl = urllib.format({
         protocol: 'file',

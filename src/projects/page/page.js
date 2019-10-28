@@ -11,8 +11,9 @@
     let paintImportCell = (rowElm, importData) => {
         rowElm.querySelector('td.cell-01').textContent = humanize.date('Y-m-d H:i', new Date(importData.created));
         rowElm.querySelector('td.cell-02').textContent = humanize.numberFormat(importData.emails, 0, '.', ' ');
-        rowElm.querySelector('td.cell-03').textContent = (importData.totalsize ? Math.round((importData.processed / importData.totalsize) * 100) : 0) + '%';
-        rowElm.querySelector('td.cell-04').textContent = !importData.finished ? 'Importing…' : importData.errored ? 'Failed' : 'Finished';
+        rowElm.querySelector('td.cell-03').textContent = humanize.filesize(importData.size || 0, 1024, 0, '.', ' ');
+        rowElm.querySelector('td.cell-04').textContent = (importData.totalsize ? Math.round((importData.processed / importData.totalsize) * 100) : 0) + '%';
+        rowElm.querySelector('td.cell-05').textContent = !importData.finished ? 'Importing…' : importData.errored ? 'Failed' : 'Finished';
     };
 
     let renderImportListItem = importData => {
@@ -22,16 +23,19 @@
         let cell02Elm = document.createElement('td');
         let cell03Elm = document.createElement('td');
         let cell04Elm = document.createElement('td');
+        let cell05Elm = document.createElement('td');
 
         cell01Elm.classList.add('cell-01');
         cell02Elm.classList.add('cell-02', 'text-right');
         cell03Elm.classList.add('cell-03', 'text-right');
-        cell04Elm.classList.add('cell-04');
+        cell04Elm.classList.add('cell-04', 'text-right');
+        cell05Elm.classList.add('cell-05');
 
         rowElm.appendChild(cell01Elm);
         rowElm.appendChild(cell02Elm);
         rowElm.appendChild(cell03Elm);
         rowElm.appendChild(cell04Elm);
+        rowElm.appendChild(cell05Elm);
 
         imports.push({ data: importData, elm: rowElm });
 
@@ -89,6 +93,62 @@
             })
             .finally(() => {
                 selectFileElm.classList.remove('active');
+            });
+    });
+
+    let selectMaildirElm = document.getElementById('select-maildir');
+    selectMaildirElm.addEventListener('click', () => {
+        //ev.preventDefault();
+        //ev.stopPropagation();
+
+        selectMaildirElm.classList.add('active');
+
+        exec({
+            command: 'createImportFromMaildir'
+        })
+            .then(res => {
+                if (res) {
+                    return reloadImports();
+                }
+            })
+            .then(res => {
+                if (res) {
+                    alert(`Import started`);
+                }
+            })
+            .catch(err => {
+                alert(err.message);
+            })
+            .finally(() => {
+                selectMaildirElm.classList.remove('active');
+            });
+    });
+
+    let selectFolderElm = document.getElementById('select-folder');
+    selectFolderElm.addEventListener('click', () => {
+        //ev.preventDefault();
+        //ev.stopPropagation();
+
+        selectFolderElm.classList.add('active');
+
+        exec({
+            command: 'createImportFromFolder'
+        })
+            .then(res => {
+                if (res) {
+                    return reloadImports();
+                }
+            })
+            .then(res => {
+                if (res) {
+                    alert(`Import started`);
+                }
+            })
+            .catch(err => {
+                alert(err.message);
+            })
+            .finally(() => {
+                selectFolderElm.classList.remove('active');
             });
     });
 

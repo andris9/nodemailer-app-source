@@ -1,6 +1,6 @@
 'use strict';
 /* eslint global-require: 0 */
-/* globals document, exec, confirm, alert */
+/* globals document, window, exec, confirm, alert */
 
 (() => {
     let elements = [];
@@ -87,7 +87,25 @@
         divBodyElm.appendChild(titleElm);
 
         let descriptionElm = document.createElement('p');
-        descriptionElm.textContent = `${humanize.numberFormat(data.emails, 0, '.', ' ')} emails indexed`;
+        let emailCountElm = document.createElement('span');
+        emailCountElm.classList.add('emails-count');
+        emailCountElm.textContent = `${humanize.numberFormat(data.emails, 0, '.', ' ')}`;
+
+        let emailSizeElm = document.createElement('span');
+        emailSizeElm.classList.add('emails-size');
+        emailSizeElm.textContent = `${humanize.filesize(data.size || 0, 1024, 0, '.', ' ')}`;
+
+        // "<123> emails indexed (<456>)"
+        let middleText = document.createElement('span');
+        middleText.textContent = ' emails indexed (';
+        let endText = document.createElement('span');
+        endText.textContent = ')';
+
+        descriptionElm.appendChild(emailCountElm);
+        descriptionElm.appendChild(middleText);
+        descriptionElm.appendChild(emailSizeElm);
+        descriptionElm.appendChild(endText);
+
         divBodyElm.appendChild(descriptionElm);
 
         container.appendChild(liElm);
@@ -115,6 +133,24 @@
         });
 
         setActive();
+
+        window.events.subscribe('project-update', data => {
+            let projectRow = elements.find(row => row.data.id === data.id);
+
+            if (projectRow) {
+                projectRow.data = data;
+
+                let emailCountElm = projectRow.elm.querySelector('.emails-count');
+                if (emailCountElm) {
+                    emailCountElm.textContent = `${humanize.numberFormat(data.emails, 0, '.', ' ')}`;
+                }
+
+                let emailSizeElm = projectRow.elm.querySelector('.emails-size');
+                if (emailSizeElm) {
+                    emailSizeElm.textContent = `${humanize.filesize(data.size || 0, 1024, 0, '.', ' ')}`;
+                }
+            }
+        });
     };
 
     let redrawList = async () => {

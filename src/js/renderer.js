@@ -33,19 +33,22 @@ window.events = {
     let ci = 0;
     let execQueue = new Map();
 
-    ipcRenderer.on('import-update', (event, arg) => {
-        let payload;
-        try {
-            payload = JSON.parse(arg);
-        } catch (err) {
-            console.error(err);
-            return;
-        }
-        if (!payload || !payload.id) {
-            return;
-        }
+    ['project-update', 'import-update'].forEach(channel => {
+        ipcRenderer.on(channel, (event, arg) => {
+            let payload;
+            try {
+                payload = JSON.parse(arg);
+            } catch (err) {
+                console.error(err);
+                return;
+            }
+            if (!payload || !payload.id) {
+                return;
+            }
 
-        window.events.publish('import-update', payload);
+            console.log(payload);
+            window.events.publish(channel, payload);
+        });
     });
 
     ipcRenderer.on('cmdres', (event, arg) => {
