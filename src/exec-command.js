@@ -90,7 +90,6 @@ async function createImportFromFile(curWin, projects, analyzer) {
             throw err;
         } finally {
             await projects.updateImport(analyzer, importId, { finished: true, errored });
-            projects.windowRef.delete(analyzer);
         }
     };
 
@@ -179,7 +178,6 @@ async function createImportFromMaildir(curWin, projects, analyzer) {
             throw err;
         } finally {
             await projects.updateImport(analyzer, importId, { finished: true, errored });
-            projects.windowRef.delete(analyzer);
         }
     };
 
@@ -257,7 +255,6 @@ async function createImportFromFolder(curWin, projects, analyzer) {
             throw err;
         } finally {
             await projects.updateImport(analyzer, importId, { finished: true, errored });
-            projects.windowRef.delete(analyzer);
         }
     };
 

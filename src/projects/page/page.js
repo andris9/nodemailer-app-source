@@ -5,162 +5,194 @@
 (() => {
     const humanize = require('humanize');
 
-    let importListElm = document.getElementById('import-list');
-    let imports = [];
+    class ImportPage {
+        constructor() {
+            this.importListElm = document.getElementById('import-list');
+            this.imports = [];
 
-    let paintImportCell = (rowElm, importData) => {
-        rowElm.querySelector('td.cell-01').textContent = humanize.date('Y-m-d H:i', new Date(importData.created));
-        rowElm.querySelector('td.cell-02').textContent = humanize.numberFormat(importData.emails, 0, '.', ' ');
-        rowElm.querySelector('td.cell-03').textContent = humanize.filesize(importData.size || 0, 1024, 0, '.', ' ');
-        rowElm.querySelector('td.cell-04').textContent = (importData.totalsize ? Math.round((importData.processed / importData.totalsize) * 100) : 0) + '%';
-        rowElm.querySelector('td.cell-05').textContent = !importData.finished ? 'Importing…' : importData.errored ? 'Failed' : 'Finished';
-    };
+            this.buttonGroupElm = document.getElementById('import-button-group');
+            this.pageImportsElm = document.getElementById('page-imports');
+            this.pageMenuImportsElm = document.getElementById('page-menu-imports');
 
-    let renderImportListItem = importData => {
-        let rowElm = document.createElement('tr');
+            this.selectFileElm = document.getElementById('select-file');
+            this.selectMaildirElm = document.getElementById('select-maildir');
+            this.selectFolderElm = document.getElementById('select-folder');
 
-        let cell01Elm = document.createElement('td');
-        let cell02Elm = document.createElement('td');
-        let cell03Elm = document.createElement('td');
-        let cell04Elm = document.createElement('td');
-        let cell05Elm = document.createElement('td');
-
-        cell01Elm.classList.add('cell-01');
-        cell02Elm.classList.add('cell-02', 'text-right');
-        cell03Elm.classList.add('cell-03', 'text-right');
-        cell04Elm.classList.add('cell-04', 'text-right');
-        cell05Elm.classList.add('cell-05');
-
-        rowElm.appendChild(cell01Elm);
-        rowElm.appendChild(cell02Elm);
-        rowElm.appendChild(cell03Elm);
-        rowElm.appendChild(cell04Elm);
-        rowElm.appendChild(cell05Elm);
-
-        imports.push({ data: importData, elm: rowElm });
-
-        importListElm.appendChild(rowElm);
-
-        paintImportCell(rowElm, importData);
-    };
-
-    let reloadImports = async () => {
-        let list = await exec({
-            command: 'listImports'
-        });
-
-        if (!list || !list.data) {
-            return;
+            this.visible = false;
         }
 
-        imports.forEach(importData => {
-            if (importData.elm.parentNode === importListElm) {
-                importListElm.removeChild(importData.elm);
+        show() {
+            this.buttonGroupElm.classList.remove('hidden');
+            this.pageImportsElm.classList.remove('hidden');
+            this.pageMenuImportsElm.classList.add('active');
+            this.visible = true;
+        }
+
+        hide() {
+            this.buttonGroupElm.classList.add('hidden');
+            this.pageImportsElm.classList.add('hidden');
+            this.pageMenuImportsElm.classList.remove('active');
+            this.visible = false;
+        }
+
+        async init() {
+            // setup buttons
+            [
+                { elm: this.selectFileElm, cmd: 'createImportFromFile' },
+                { elm: this.selectMaildirElm, cmd: 'createImportFromMaildir' },
+                { elm: this.selectFolderElm, cmd: 'createImportFromFolder' }
+            ].forEach(entry => {
+                entry.elm.addEventListener('click', () => {
+                    //ev.preventDefault();
+                    //ev.stopPropagation();
+
+                    entry.elm.classList.add('active');
+
+                    exec({
+                        command: entry.cmd
+                    })
+                        .then(res => {
+                            if (res) {
+                                alert(`Import started`);
+                            }
+                        })
+                        .catch(err => {
+                            alert(err.message);
+                        })
+                        .finally(() => {
+                            entry.elm.classList.remove('active');
+                        });
+                });
+            });
+
+            await this.reloadImports();
+            window.events.subscribe('import-update', data => {
+                let importRow = this.imports.find(row => row.data.id === data.id);
+
+                if (importRow) {
+                    importRow.data = data;
+                    this.paintImportCell(importRow.elm, data);
+                }
+            });
+
+            window.events.subscribe('import-list', data => {
+                this.renderImports(data);
+            });
+        }
+
+        paintImportCell(rowElm, importData) {
+            rowElm.querySelector('td.cell-01').textContent = humanize.date('Y-m-d H:i', new Date(importData.created));
+            rowElm.querySelector('td.cell-02').textContent = humanize.numberFormat(importData.emails, 0, '.', ' ');
+            rowElm.querySelector('td.cell-03').textContent = humanize.filesize(importData.size || 0, 1024, 0, '.', ' ');
+            rowElm.querySelector('td.cell-04').textContent = (importData.totalsize ? Math.round((importData.processed / importData.totalsize) * 100) : 0) + '%';
+            rowElm.querySelector('td.cell-05').textContent = !importData.finished ? 'Importing…' : importData.errored ? 'Failed' : 'Finished';
+        }
+
+        renderImportListItem(importData) {
+            let rowElm = document.createElement('tr');
+
+            let cell01Elm = document.createElement('td');
+            let cell02Elm = document.createElement('td');
+            let cell03Elm = document.createElement('td');
+            let cell04Elm = document.createElement('td');
+            let cell05Elm = document.createElement('td');
+
+            cell01Elm.classList.add('cell-01');
+            cell02Elm.classList.add('cell-02', 'text-right');
+            cell03Elm.classList.add('cell-03', 'text-right');
+            cell04Elm.classList.add('cell-04', 'text-right');
+            cell05Elm.classList.add('cell-05');
+
+            rowElm.appendChild(cell01Elm);
+            rowElm.appendChild(cell02Elm);
+            rowElm.appendChild(cell03Elm);
+            rowElm.appendChild(cell04Elm);
+            rowElm.appendChild(cell05Elm);
+
+            this.imports.push({ data: importData, elm: rowElm });
+            this.importListElm.appendChild(rowElm);
+            this.paintImportCell(rowElm, importData);
+        }
+
+        renderImports(list) {
+            if (!list || !list.data) {
+                return;
             }
-        });
-        imports = [];
 
-        list.data.forEach(importData => {
-            renderImportListItem(importData);
-        });
-        return true;
-    };
-
-    let renderImports = async () => {};
-
-    let selectFileElm = document.getElementById('select-file');
-    selectFileElm.addEventListener('click', () => {
-        //ev.preventDefault();
-        //ev.stopPropagation();
-
-        selectFileElm.classList.add('active');
-
-        exec({
-            command: 'createImportFromFile'
-        })
-            .then(res => {
-                if (res) {
-                    return reloadImports();
+            this.imports.forEach(importData => {
+                if (importData.elm.parentNode === this.importListElm) {
+                    this.importListElm.removeChild(importData.elm);
                 }
-            })
-            .then(res => {
-                if (res) {
-                    alert(`Import started`);
-                }
-            })
-            .catch(err => {
-                alert(err.message);
-            })
-            .finally(() => {
-                selectFileElm.classList.remove('active');
             });
-    });
+            this.imports = [];
 
-    let selectMaildirElm = document.getElementById('select-maildir');
-    selectMaildirElm.addEventListener('click', () => {
-        //ev.preventDefault();
-        //ev.stopPropagation();
-
-        selectMaildirElm.classList.add('active');
-
-        exec({
-            command: 'createImportFromMaildir'
-        })
-            .then(res => {
-                if (res) {
-                    return reloadImports();
-                }
-            })
-            .then(res => {
-                if (res) {
-                    alert(`Import started`);
-                }
-            })
-            .catch(err => {
-                alert(err.message);
-            })
-            .finally(() => {
-                selectMaildirElm.classList.remove('active');
+            list.data.forEach(importData => {
+                this.renderImportListItem(importData);
             });
-    });
 
-    let selectFolderElm = document.getElementById('select-folder');
-    selectFolderElm.addEventListener('click', () => {
-        //ev.preventDefault();
-        //ev.stopPropagation();
+            return true;
+        }
 
-        selectFolderElm.classList.add('active');
-
-        exec({
-            command: 'createImportFromFolder'
-        })
-            .then(res => {
-                if (res) {
-                    return reloadImports();
-                }
-            })
-            .then(res => {
-                if (res) {
-                    alert(`Import started`);
-                }
-            })
-            .catch(err => {
-                alert(err.message);
-            })
-            .finally(() => {
-                selectFolderElm.classList.remove('active');
+        async reloadImports() {
+            let list = await exec({
+                command: 'listImports'
             });
-    });
+
+            this.renderImports(list);
+        }
+    }
+
+    class ContactsPage {
+        constructor() {
+            this.buttonGroupElm = document.getElementById('contacts-button-group');
+            this.pageContactsElm = document.getElementById('page-contacts');
+            this.pageMenuContactsElm = document.getElementById('page-menu-contacts');
+
+            this.visible = false;
+        }
+
+        show() {
+            this.buttonGroupElm.classList.remove('hidden');
+            this.pageContactsElm.classList.remove('hidden');
+            this.pageMenuContactsElm.classList.add('active');
+            this.visible = true;
+        }
+
+        hide() {
+            this.buttonGroupElm.classList.add('hidden');
+            this.pageContactsElm.classList.add('hidden');
+            this.pageMenuContactsElm.classList.remove('active');
+            this.visible = false;
+        }
+
+        async init() {}
+    }
 
     async function main() {
-        await reloadImports();
-        window.events.subscribe('import-update', data => {
-            let importRow = imports.find(row => row.data.id === data.id);
+        let pages = {
+            imports: new ImportPage(),
+            contacts: new ContactsPage()
+        };
 
-            if (importRow) {
-                importRow.data = data;
-                paintImportCell(importRow.elm, data);
-            }
+        // show import page by default
+        let selected = 'imports';
+        pages.imports.show();
+
+        await Promise.all([pages.imports.init(), pages.contacts.init()]);
+
+        let menuItems = Array.from(document.querySelectorAll('.page-menu'));
+        menuItems.forEach(menuItem => {
+            let target = menuItem.dataset.target;
+
+            menuItem.addEventListener('click', () => {
+                if (!pages[target] || target === selected) {
+                    // nothing to do here
+                    return;
+                }
+                pages[selected].hide();
+                pages[target].show();
+                selected = target;
+            });
         });
     }
 

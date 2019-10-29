@@ -33,7 +33,7 @@ window.events = {
     let ci = 0;
     let execQueue = new Map();
 
-    ['project-update', 'import-update'].forEach(channel => {
+    ['project-update', 'import-update', 'import-list'].forEach(channel => {
         ipcRenderer.on(channel, (event, arg) => {
             let payload;
             try {
@@ -45,8 +45,6 @@ window.events = {
             if (!payload || !payload.id) {
                 return;
             }
-
-            console.log(payload);
             window.events.publish(channel, payload);
         });
     });

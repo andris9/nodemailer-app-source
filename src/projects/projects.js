@@ -28,8 +28,8 @@ class Projects {
 
         this.mainWindow = options.mainWindow;
 
+        this.projectWindows = new Map();
         this.windows = new Set();
-        this.windowRef = new WeakMap();
 
         this.sqlPath = pathlib.join(this.appDataPath, 'forensicat.db');
     }
@@ -328,6 +328,11 @@ class Projects {
         let windowId = projectWindow.id;
         this.projectRef.set(windowId, id);
 
+        if (!this.projectWindows.has(id)) {
+            this.projectWindows.set(id, new Set());
+        }
+        this.projectWindows.get(id).add(projectWindow);
+
         const windowUrl = urllib.format({
             protocol: 'file',
             slashes: true,
@@ -341,15 +346,11 @@ class Projects {
         projectWindow.on('closed', () => {
             this.windows.delete(projectWindow);
             this.projectRef.delete(windowId);
-            let hasOpenWindow = false;
-            for (let projectId of this.projectRef.values()) {
-                if (projectId === id) {
-                    hasOpenWindow = true;
-                    break;
-                }
-            }
+            this.projectWindows.get(id).delete(projectWindow);
 
+            let hasOpenWindow = !!this.projectWindows.get(id).size;
             if (!hasOpenWindow) {
+                this.projectWindows.delete(id);
                 /*
                 let analyzer = this.opened.get(id);
                 this.opened.delete(id);
@@ -381,6 +382,14 @@ class Projects {
         };
 
         let importId = await this.sql.run(query, queryParams);
+
+        // push updated list info to project windows
+        let list = await this.listImports(id);
+        this.sendToProjectWindows(id, 'import-list', {
+            id,
+            data: list // keep compatible with command output
+        });
+
         return importId;
     }
 
@@ -448,7 +457,8 @@ class Projects {
                 source = null;
             }
 
-            let info = {
+            // push info to project windows
+            this.sendToProjectWindows(id, 'import-update', {
                 id: item.id,
                 source,
                 emails: item.emails || 0,
@@ -458,27 +468,18 @@ class Projects {
                 errored: item.errored,
                 finished: item.finished ? new Date(item.finished + 'Z').toISOString() : null,
                 created: new Date(item.created + 'Z').toISOString()
-            };
+            });
+        }
+    }
 
-            // push info to project windows
-            for (let entry of this.projectRef.entries()) {
-                if (entry[1] === id) {
-                    try {
-                        if (!this.windowRef.has(analyzer)) {
-                            this.windowRef.set(analyzer, {});
-                        }
-                        let winRefs = this.windowRef.get(analyzer);
-                        let win;
-                        if (winRefs[entry[0]]) {
-                            win = winRefs[entry[0]];
-                        } else {
-                            win = BrowserWindow.fromId(entry[0]);
-                            winRefs[entry[0]] = win;
-                        }
-                        win.webContents.send('import-update', JSON.stringify(info));
-                    } catch (err) {
-                        console.error(err);
-                    }
+    async sendToProjectWindows(id, channel, data) {
+        // push info to project windows
+        if (this.projectWindows.has(id)) {
+            for (let win of this.projectWindows.get(id)) {
+                try {
+                    win.webContents.send(channel, JSON.stringify(data));
+                } catch (err) {
+                    console.error(err);
                 }
             }
         }
