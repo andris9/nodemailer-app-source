@@ -4,6 +4,7 @@
 
 (() => {
     const humanize = require('humanize');
+    const { getCurrentWindow, Menu, MenuItem } = require('electron').remote;
 
     class ImportPage {
         constructor() {
@@ -13,10 +14,6 @@
             this.buttonGroupElm = document.getElementById('import-button-group');
             this.pageImportsElm = document.getElementById('page-imports');
             this.pageMenuImportsElm = document.getElementById('page-menu-imports');
-
-            this.selectFileElm = document.getElementById('select-file');
-            this.selectMaildirElm = document.getElementById('select-maildir');
-            this.selectFolderElm = document.getElementById('select-folder');
 
             this.visible = false;
         }
@@ -36,33 +33,63 @@
         }
 
         async init() {
-            // setup buttons
-            [
-                { elm: this.selectFileElm, cmd: 'createImportFromFile' },
-                { elm: this.selectMaildirElm, cmd: 'createImportFromMaildir' },
-                { elm: this.selectFolderElm, cmd: 'createImportFromFolder' }
-            ].forEach(entry => {
-                entry.elm.addEventListener('click', () => {
-                    //ev.preventDefault();
-                    //ev.stopPropagation();
-
-                    entry.elm.classList.add('active');
-
-                    exec({
-                        command: entry.cmd
-                    })
-                        .then(res => {
-                            if (res) {
-                                alert(`Import started`);
-                            }
+            const menu = new Menu();
+            menu.append(
+                new MenuItem({
+                    label: 'Import from MBOX',
+                    click() {
+                        exec({
+                            command: 'createImportFromFile'
                         })
-                        .catch(err => {
-                            alert(err.message);
+                            .then(res => {
+                                if (res) {
+                                    alert(`Import started`);
+                                }
+                            })
+                            .catch(() => false);
+                    }
+                })
+            );
+
+            menu.append(
+                new MenuItem({
+                    label: 'Import from MAILDIR',
+                    click() {
+                        exec({
+                            command: 'createImportFromMaildir'
                         })
-                        .finally(() => {
-                            entry.elm.classList.remove('active');
-                        });
-                });
+                            .then(res => {
+                                if (res) {
+                                    alert(`Import started`);
+                                }
+                            })
+                            .catch(() => false);
+                    }
+                })
+            );
+
+            menu.append(
+                new MenuItem({
+                    label: 'Scan folder for EML files',
+                    click() {
+                        exec({
+                            command: 'createImportFromFolder'
+                        })
+                            .then(res => {
+                                if (res) {
+                                    alert(`Import started`);
+                                }
+                            })
+                            .catch(() => false);
+                    }
+                })
+            );
+
+            // Add the listener
+            let menuBtnElm = document.querySelector('#imports-import-menu');
+            menuBtnElm.addEventListener('click', () => {
+                let rect = menuBtnElm.getBoundingClientRect();
+                menu.popup({ window: getCurrentWindow(), x: Math.round(rect.x), y: Math.ceil(rect.y + rect.height) });
             });
 
             await this.reloadImports();
