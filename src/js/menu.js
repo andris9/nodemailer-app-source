@@ -24,13 +24,9 @@
     // Add the listener
     document.addEventListener('DOMContentLoaded', function() {
         let menuBtnElm = document.querySelector('.js-context-menu');
-        menuBtnElm.addEventListener('click', e => {
-            console.log(e);
+        menuBtnElm.addEventListener('click', () => {
             let rect = menuBtnElm.getBoundingClientRect();
-            console.log(rect);
             menu.popup({ window: getCurrentWindow(), x: Math.round(rect.x), y: Math.ceil(rect.y + rect.height) });
-            console.log({ x: rect.x, y: rect.y + rect.height });
-            //menu.popup({ window: getCurrentWindow(), x: rect.x, y: rect.y + rect.height });
         });
     });
 })();

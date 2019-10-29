@@ -213,6 +213,13 @@ class Projects {
         };
 
         let id = await this.sql.run(query, queryParams);
+
+        this.mainWindow.webContents.send(
+            'project-created',
+            JSON.stringify({
+                id
+            })
+        );
         return id;
     }
 
@@ -314,7 +321,7 @@ class Projects {
         let projectWindow = new BrowserWindow({
             title: project.name,
 
-            width: 800,
+            width: 1024,
             height: 600,
             'min-width': 500,
             'min-height': 200,
@@ -393,8 +400,7 @@ class Projects {
         return importId;
     }
 
-    async updateImport(analyzer, importId, options) {
-        let id = analyzer.id;
+    async updateImport(id, importId, options) {
         let sets = [];
         let queryParams = {
             $importId: importId

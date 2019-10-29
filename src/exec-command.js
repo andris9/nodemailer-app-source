@@ -82,14 +82,14 @@ async function createImportFromFile(curWin, projects, analyzer) {
                     // increment counters
                     let sizeDiff = messageData.readSize - lastSize;
                     lastSize = messageData.readSize;
-                    await projects.updateImport(analyzer, importId, { emails: 1, processed: sizeDiff, size });
+                    await projects.updateImport(analyzer.id, importId, { emails: 1, processed: sizeDiff, size });
                 }
             }
         } catch (err) {
             errored = err.message;
             throw err;
         } finally {
-            await projects.updateImport(analyzer, importId, { finished: true, errored });
+            await projects.updateImport(analyzer.id, importId, { finished: true, errored });
         }
     };
 
@@ -171,13 +171,13 @@ async function createImportFromMaildir(curWin, projects, analyzer) {
                 );
 
                 // increment counters
-                await projects.updateImport(analyzer, importId, { emails: 1, processed: 1, size });
+                await projects.updateImport(analyzer.id, importId, { emails: 1, processed: 1, size });
             }
         } catch (err) {
             errored = err.message;
             throw err;
         } finally {
-            await projects.updateImport(analyzer, importId, { finished: true, errored });
+            await projects.updateImport(analyzer.id, importId, { finished: true, errored });
         }
     };
 
@@ -248,13 +248,73 @@ async function createImportFromFolder(curWin, projects, analyzer) {
                 );
 
                 // increment counters
-                await projects.updateImport(analyzer, importId, { emails: 1, processed: 1, size });
+                await projects.updateImport(analyzer.id, importId, { emails: 1, processed: 1, size });
             }
         } catch (err) {
             errored = err.message;
             throw err;
         } finally {
-            await projects.updateImport(analyzer, importId, { finished: true, errored });
+            await projects.updateImport(analyzer.id, importId, { finished: true, errored });
+        }
+    };
+
+    setImmediate(() => {
+        projects._imports++;
+        processImport()
+            .catch(err => console.error(err))
+            .finally(() => {
+                projects._imports--;
+            });
+    });
+
+    return importId;
+}
+
+async function createImportFromEml(curWin, projects, analyzer) {
+    let res = await dialog.showOpenDialog(curWin, {
+        title: 'Select Mail Source',
+        properties: ['openFile', 'multiSelections']
+    });
+    if (res.canceled) {
+        return false;
+    }
+    if (!res.filePaths || !res.filePaths.length) {
+        return false;
+    }
+
+    let paths = res.filePaths;
+    let totalsize = paths.length;
+
+    let importId = await projects.createImport(analyzer.id, {
+        totalsize,
+        source: {
+            format: 'folder',
+            filePaths: res.filePaths
+        }
+    });
+
+    let processImport = async () => {
+        let errored = false;
+        try {
+            for (let path of paths) {
+                let { size } = await analyzer.import(
+                    {
+                        source: {
+                            filename: path,
+                            importId
+                        }
+                    },
+                    fsCreateReadStream(path)
+                );
+
+                // increment counters
+                await projects.updateImport(analyzer.id, importId, { emails: 1, processed: 1, size });
+            }
+        } catch (err) {
+            errored = err.message;
+            throw err;
+        } finally {
+            await projects.updateImport(analyzer.id, importId, { finished: true, errored });
         }
     };
 
@@ -284,7 +344,29 @@ async function listImports(curWin, projects, analyzer) {
     return response;
 }
 
-async function createProject(curWin, projects, analyzer, params) {
+async function listContacts(curWin, projects, analyzer, params) {
+    return await analyzer.getContacts(params);
+}
+
+async function searchContacts(curWin, projects, analyzer, params) {
+    let term = await prompt(
+        {
+            title: 'Contact search',
+            label: 'Contact search',
+            value: params.term || '',
+            inputAttrs: {
+                type: 'text'
+            },
+            type: 'input'
+        },
+        curWin
+    );
+
+    term = (term || '').toString().trim();
+    return term;
+}
+
+async function createProject(curWin, projects) {
     let name = await prompt(
         {
             title: 'Project name',
@@ -299,12 +381,8 @@ async function createProject(curWin, projects, analyzer, params) {
     );
 
     name = (name || '').toString().trim();
-
     if (name) {
         let project = await projects.create(name);
-        if (params && params.open) {
-            await projects.openWindow(project);
-        }
         return project;
     }
 
@@ -372,6 +450,9 @@ module.exports = async (curWin, projects, analyzer, data) => {
         case 'createImportFromFolder':
             return await createImportFromFolder(curWin, projects, analyzer, data.params);
 
+        case 'createImportFromEml':
+            return await createImportFromEml(curWin, projects, analyzer, data.params);
+
         case 'listImports':
             return await listImports(curWin, projects, analyzer, data.params);
 
@@ -379,7 +460,13 @@ module.exports = async (curWin, projects, analyzer, data) => {
             curWin.webContents.openDevTools();
             return true;
 
+        case 'listContacts':
+            return await listContacts(curWin, projects, analyzer, data.params);
+
+        case 'searchContacts':
+            return await searchContacts(curWin, projects, analyzer, data.params);
+
         default:
-            throw new Error('Unknown command');
+            throw new Error('Unknown command ' + JSON.stringify(data));
     }
 };

@@ -6,9 +6,18 @@ textarea,
 }
 
 .hidden {
-    display: none;
+    display: none !important;
 }
 
 .text-right {
     text-align: right;
+}
+
+.toolbar-text {
+    padding: 3px 0px 0px 0px;
+    line-height: 19px;
+}
+
+.text-inline {
+    display: inline;
 }

@@ -14,13 +14,11 @@
 
             <header class="toolbar toolbar-header">
                 <div class="toolbar-actions">
-                    <div class="btn-group hidden" id="import-button-group">
-                        <button class="btn btn-default" id="imports-import-menu">
-                            <span class="icon icon-plus-squared"></span>
-                        </button>
-                    </div>
+                    <button class="btn btn-default hidden import-button-group" id="imports-import-menu">
+                        <span class="icon icon-plus-squared"></span>
+                    </button>
 
-                    <div class="btn-group hidden" id="contacts-button-group">
+                    <div class="btn-group hidden contacts-button-group">
                         <button class="btn btn-default" id="contacts-reload">
                             <span class="icon icon-ccw"></span>
                         </button>
@@ -32,6 +30,25 @@
                     <button class="btn btn-default btn-dropdown pull-right js-context-menu">
                         <span class="icon icon-tools"></span>
                     </button>
+
+                    <div class="btn-group hidden contacts-button-group pull-right">
+                        <button class="btn btn-default" id="contacts-page-prev">
+                            <span class="icon icon-left-circled"></span>
+                        </button>
+                        <button class="btn btn-default" id="contacts-page-next">
+                            <span class="icon icon-right-circled"></span>
+                        </button>
+                    </div>
+
+                    <div class="hidden contacts-button-group pull-right toolbar-text">
+                        Page <span id="contacts-page-nr">0</span> of
+                        <span id="contacts-page-total">0</span>
+                    </div>
+
+                    <button class="btn btn-default pull-right hidden" id="contacts-search-clear">
+                        Clear Search
+                    </button>
+                    <div id="contacts-search-block" class="pull-right hidden toolbar-text">Searching for "<span id="contacts-search-term"></span>"</div>
                 </div>
             </header>
 
@@ -70,14 +87,22 @@
                                         <th>Status</th>
                                     </tr>
                                 </thead>
-                                <tbody id="import-list"></tbody>
+                                <tbody class="enumerable-list" id="import-list"></tbody>
                             </table>
                         </div>
 
                         <div class="hidden" id="page-contacts">
-                            <div class="padded-more">
-                                <h1>Hello world</h1>
-                            </div>
+                            <table class="table-striped">
+                                <thead>
+                                    <tr>
+                                        <th width="8%" class="text-right">#</th>
+                                        <th width="35%">Name</th>
+                                        <th>Address</th>
+                                        <th width="8%">Emails</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="enumerable-list" id="contacts-list"></tbody>
+                            </table>
                         </div>
                     </div>
                 </div>

@@ -11,22 +11,22 @@
             this.importListElm = document.getElementById('import-list');
             this.imports = [];
 
-            this.buttonGroupElm = document.getElementById('import-button-group');
+            this.buttonGroupElms = Array.from(document.querySelectorAll('.import-button-group'));
             this.pageImportsElm = document.getElementById('page-imports');
             this.pageMenuImportsElm = document.getElementById('page-menu-imports');
 
             this.visible = false;
         }
 
-        show() {
-            this.buttonGroupElm.classList.remove('hidden');
+        async show() {
+            this.buttonGroupElms.forEach(elm => elm.classList.remove('hidden'));
             this.pageImportsElm.classList.remove('hidden');
             this.pageMenuImportsElm.classList.add('active');
             this.visible = true;
         }
 
-        hide() {
-            this.buttonGroupElm.classList.add('hidden');
+        async hide() {
+            this.buttonGroupElms.forEach(elm => elm.classList.add('hidden'));
             this.pageImportsElm.classList.add('hidden');
             this.pageMenuImportsElm.classList.remove('active');
             this.visible = false;
@@ -57,6 +57,23 @@
                     click() {
                         exec({
                             command: 'createImportFromMaildir'
+                        })
+                            .then(res => {
+                                if (res) {
+                                    alert(`Import started`);
+                                }
+                            })
+                            .catch(() => false);
+                    }
+                })
+            );
+
+            menu.append(
+                new MenuItem({
+                    label: 'Import selected EML files',
+                    click() {
+                        exec({
+                            command: 'createImportFromEml'
                         })
                             .then(res => {
                                 if (res) {
@@ -171,28 +188,203 @@
 
     class ContactsPage {
         constructor() {
-            this.buttonGroupElm = document.getElementById('contacts-button-group');
+            this.buttonGroupElms = Array.from(document.querySelectorAll('.contacts-button-group'));
             this.pageContactsElm = document.getElementById('page-contacts');
             this.pageMenuContactsElm = document.getElementById('page-menu-contacts');
 
+            this.pageNrElm = document.getElementById('contacts-page-nr');
+            this.pageTotalElm = document.getElementById('contacts-page-total');
+
+            this.pageNextElm = document.getElementById('contacts-page-next');
+            this.pagePrevElm = document.getElementById('contacts-page-prev');
+
+            this.rowListElm = document.getElementById('contacts-list');
+            this.rows = [];
+
+            this.term = '';
+            this.page = 1;
+            this.pages = 1;
             this.visible = false;
         }
 
-        show() {
-            this.buttonGroupElm.classList.remove('hidden');
+        async show() {
+            this.buttonGroupElms.forEach(elm => elm.classList.remove('hidden'));
             this.pageContactsElm.classList.remove('hidden');
             this.pageMenuContactsElm.classList.add('active');
             this.visible = true;
+            await this.reloadContacts();
         }
 
-        hide() {
-            this.buttonGroupElm.classList.add('hidden');
+        async hide() {
+            this.buttonGroupElms.forEach(elm => elm.classList.add('hidden'));
             this.pageContactsElm.classList.add('hidden');
             this.pageMenuContactsElm.classList.remove('active');
             this.visible = false;
         }
 
-        async init() {}
+        renderContactListItem(contactData, nr) {
+            let rowElm = document.createElement('tr');
+
+            let cell01Elm = document.createElement('td');
+            let cell02Elm = document.createElement('td');
+            let cell03Elm = document.createElement('td');
+            let cell04Elm = document.createElement('td');
+
+            cell01Elm.classList.add('cell-01', 'text-right');
+            cell02Elm.classList.add('cell-02');
+            cell03Elm.classList.add('cell-03');
+            cell04Elm.classList.add('cell-04', 'text-right');
+
+            cell01Elm.textContent = humanize.numberFormat(nr, 0, '.', ' ');
+            cell02Elm.textContent = contactData.name || '';
+            cell03Elm.textContent = contactData.address;
+            cell04Elm.textContent = humanize.numberFormat(contactData.messages, 0, '.', ' ');
+
+            rowElm.appendChild(cell01Elm);
+            rowElm.appendChild(cell02Elm);
+            rowElm.appendChild(cell03Elm);
+            rowElm.appendChild(cell04Elm);
+
+            this.rows.push({ data: contactData, elm: rowElm });
+            this.rowListElm.appendChild(rowElm);
+        }
+
+        async renderContacts(list) {
+            if (!list || !list.data) {
+                return;
+            }
+
+            this.page = list.page || 1;
+            this.pages = list.pages || this.page;
+
+            this.pageNrElm.textContent = humanize.numberFormat(list.page, 0, '.', ' ');
+            this.pageTotalElm.textContent = humanize.numberFormat(list.pages, 0, '.', ' ');
+
+            this.rows.forEach(contactData => {
+                if (contactData.elm.parentNode === this.rowListElm) {
+                    this.rowListElm.removeChild(contactData.elm);
+                }
+            });
+            this.rows = [];
+
+            let startNr = (list.page - 1) * list.pageSize;
+            for (let contactData of list.data) {
+                this.renderContactListItem(contactData, ++startNr);
+            }
+        }
+
+        async reloadContacts() {
+            console.log({
+                command: 'listContacts',
+                params: {
+                    page: this.page,
+                    term: this.term ? '%' + this.term + '%' : false
+                }
+            });
+            let list = await exec({
+                command: 'listContacts',
+                params: {
+                    page: this.page,
+                    term: this.term ? '%' + this.term + '%' : false
+                }
+            });
+
+            this.renderContacts(list);
+        }
+
+        async searchContacts() {
+            let term = await exec({
+                command: 'searchContacts',
+                params: {
+                    term: this.term || ''
+                }
+            });
+            term = (term || '').trim();
+            if (term) {
+                this.term = term;
+                this.page = 1;
+
+                let searchBlockElm = document.getElementById('contacts-search-block');
+                searchBlockElm.classList.remove('hidden');
+                let searchClearElm = document.getElementById('contacts-search-clear');
+                searchClearElm.classList.remove('hidden');
+                let searchTermElm = document.getElementById('contacts-search-term');
+                searchTermElm.innerText = term;
+
+                await this.reloadContacts();
+            }
+        }
+
+        async init() {
+            await this.reloadContacts();
+
+            let refreshBtnElm = document.querySelector('#contacts-reload');
+            refreshBtnElm.addEventListener('click', () => {
+                refreshBtnElm.classList.add('active');
+                this.reloadContacts()
+                    .catch(err => {
+                        alert(err.message);
+                    })
+                    .finally(() => {
+                        refreshBtnElm.classList.remove('active');
+                    });
+            });
+
+            this.pageNextElm.addEventListener('click', () => {
+                if (this.page < this.pages) {
+                    this.page++;
+                    this.pageNextElm.classList.add('active');
+                    this.reloadContacts()
+                        .catch(err => {
+                            alert(err.message);
+                        })
+                        .finally(() => {
+                            this.pageNextElm.classList.remove('active');
+                        });
+                }
+            });
+
+            this.pagePrevElm.addEventListener('click', () => {
+                if (this.page > 1) {
+                    this.page--;
+                    this.pagePrevElm.classList.add('active');
+                    this.reloadContacts()
+                        .catch(err => {
+                            alert(err.message);
+                        })
+                        .finally(() => {
+                            this.pagePrevElm.classList.remove('active');
+                        });
+                }
+            });
+
+            let searchBtnElm = document.querySelector('#contacts-search');
+            searchBtnElm.addEventListener('click', () => {
+                searchBtnElm.classList.add('active');
+                this.searchContacts()
+                    .catch(err => {
+                        alert(err.message);
+                    })
+                    .finally(() => {
+                        searchBtnElm.classList.remove('active');
+                    });
+            });
+
+            let searchClearElm = document.getElementById('contacts-search-clear');
+            searchClearElm.addEventListener('click', () => {
+                this.page = 1;
+                this.term = '';
+
+                let searchBlockElm = document.getElementById('contacts-search-block');
+                searchBlockElm.classList.add('hidden');
+                let searchClearElm = document.getElementById('contacts-search-clear');
+                searchClearElm.classList.add('hidden');
+
+                this.reloadContacts().catch(err => {
+                    alert(err.message);
+                });
+            });
+        }
     }
 
     async function main() {
@@ -203,12 +395,12 @@
 
         // show import page by default
         let selected = 'imports';
-        pages.imports.show();
+        await pages.imports.show();
 
         await Promise.all([pages.imports.init(), pages.contacts.init()]);
 
         let menuItems = Array.from(document.querySelectorAll('.page-menu'));
-        menuItems.forEach(menuItem => {
+        for (let menuItem of menuItems) {
             let target = menuItem.dataset.target;
 
             menuItem.addEventListener('click', () => {
@@ -216,11 +408,19 @@
                     // nothing to do here
                     return;
                 }
-                pages[selected].hide();
-                pages[target].show();
-                selected = target;
+                pages[selected]
+                    .hide()
+                    .catch(err => console.error(err))
+                    .finally(() => {
+                        pages[target]
+                            .show()
+                            .catch(err => console.error(err))
+                            .finally(() => {
+                                selected = target;
+                            });
+                    });
             });
-        });
+        }
     }
 
     main().catch(err => alert(err.message));

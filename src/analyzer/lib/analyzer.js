@@ -993,11 +993,13 @@ class Analyzer {
 
         let queryParams = {};
 
-        let query = ['SELECT [id], [name], [address] FROM [contacts] WHERE 1'];
+        let query = [
+            'SELECT contacts.[id] AS id, contacts.[name] AS [name], contacts.[address] AS [address], contacts.first_name AS firstName, contacts.middle_name AS middleName, contacts.last_name AS lastName, COUNT(addresses.id) AS [messages] FROM [contacts] LEFT JOIN addresses ON addresses.contact = contacts.id WHERE 1'
+        ];
         let countQuery = ['SELECT COUNT([contacts].[id]) AS total FROM [contacts] WHERE 1'];
 
         if (options.term) {
-            let terms = 'AND (name LIKE $term OR normalized_address LIKE $term)';
+            let terms = 'AND (contacts.name LIKE $term OR contacts.normalized_address LIKE $term)';
             query.push(terms);
             countQuery.push(terms);
             queryParams.$term = (options.term || '').toString().trim();
@@ -1006,7 +1008,9 @@ class Analyzer {
         let countRes = await this.sql.findOne(countQuery.join(' '), queryParams);
         let total = (countRes && countRes.total) || 0;
 
-        query.push('ORDER BY last_name ASC, first_name ASC, normalized_address ASC');
+        query.push('GROUP BY addresses.contact');
+
+        query.push('ORDER BY contacts.last_name ASC, contacts.first_name ASC, contacts.normalized_address ASC');
         query.push('LIMIT $limit OFFSET $offset');
         queryParams.$limit = pageSize;
         queryParams.$offset = pageSize * (page - 1);

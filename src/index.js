@@ -1,6 +1,5 @@
 'use strict';
-
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, shell } = require('electron');
 const execCommand = require('./exec-command');
 const Projects = require('./projects/projects');
 const urllib = require('url');
@@ -146,3 +145,116 @@ function prepare(next) {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
+
+const isMac = process.platform === 'darwin';
+const template = [
+    // { role: 'appMenu' }
+    ...(isMac
+        ? [
+              {
+                  label: app.name,
+                  submenu: [
+                      { role: 'about' },
+                      { type: 'separator' },
+                      { role: 'services' },
+                      { type: 'separator' },
+                      { role: 'hide' },
+                      { role: 'hideothers' },
+                      { role: 'unhide' },
+                      { type: 'separator' },
+                      { role: 'quit' }
+                  ]
+              }
+          ]
+        : []),
+    // { role: 'fileMenu' }
+    {
+        label: 'File',
+        submenu: [
+            {
+                label: 'New Project...',
+                click: async () => {
+                    mainWindow.webContents.focus();
+                    let project = await execCommand(mainWindow, projects, false, {
+                        command: 'createProject',
+                        params: {
+                            name: ''
+                        }
+                    });
+
+                    if (project) {
+                        await execCommand(mainWindow, projects, false, {
+                            command: 'openProject',
+                            params: {
+                                id: project
+                            }
+                        });
+                    }
+                }
+            },
+            isMac ? { role: 'close' } : { role: 'quit' }
+        ]
+    },
+    // { role: 'editMenu' }
+    {
+        label: 'Edit',
+        submenu: [
+            { role: 'undo' },
+            { role: 'redo' },
+            { type: 'separator' },
+            { role: 'cut' },
+            { role: 'copy' },
+            { role: 'paste' },
+            ...(isMac
+                ? [
+                      { role: 'pasteAndMatchStyle' },
+                      { role: 'delete' },
+                      { role: 'selectAll' },
+                      { type: 'separator' },
+                      {
+                          label: 'Speech',
+                          submenu: [{ role: 'startspeaking' }, { role: 'stopspeaking' }]
+                      }
+                  ]
+                : [{ role: 'delete' }, { type: 'separator' }, { role: 'selectAll' }])
+        ]
+    },
+    // { role: 'viewMenu' }
+    {
+        label: 'View',
+        submenu: [
+            { role: 'reload' },
+            { role: 'forcereload' },
+            { role: 'toggledevtools' },
+            { type: 'separator' },
+            { role: 'resetzoom' },
+            { role: 'zoomin' },
+            { role: 'zoomout' },
+            { type: 'separator' },
+            { role: 'togglefullscreen' }
+        ]
+    },
+    // { role: 'windowMenu' }
+    {
+        label: 'Window',
+        submenu: [
+            { role: 'minimize' },
+            { role: 'zoom' },
+            ...(isMac ? [{ type: 'separator' }, { role: 'front' }, { type: 'separator' }, { role: 'window' }] : [{ role: 'close' }])
+        ]
+    },
+    {
+        role: 'help',
+        submenu: [
+            {
+                label: 'Learn More',
+                click: async () => {
+                    await shell.openExternal('https://electronjs.org');
+                }
+            }
+        ]
+    }
+];
+
+const menu = Menu.buildFromTemplate(template);
+Menu.setApplicationMenu(menu);

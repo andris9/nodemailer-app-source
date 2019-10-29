@@ -7,6 +7,8 @@
 
     const humanize = require('humanize');
 
+    let projectEditGroupElm = document.getElementById('project-edit-group');
+
     let deleteActiveBtn = document.getElementById('delete-active-btn');
     let editActiveBtn = document.getElementById('edit-active-btn');
 
@@ -21,15 +23,13 @@
         });
         if (selected) {
             selected.classList.add('active');
-            deleteActiveBtn.classList.remove('hidden');
-            editActiveBtn.classList.remove('hidden');
+            projectEditGroupElm.classList.remove('hidden');
         } else {
-            deleteActiveBtn.classList.add('hidden');
-            editActiveBtn.classList.add('hidden');
+            projectEditGroupElm.classList.add('hidden');
         }
     };
 
-    let openProject = (elms, id) => {
+    let openProject = id => {
         exec({
             command: 'openProject',
             params: {
@@ -62,19 +62,17 @@
             </button>
         </div>
         */
-        let menuGroupElm = document.createElement('div');
-        menuGroupElm.classList.add('btn-group', 'pull-right');
+
         let menuBtnOpenElm = document.createElement('button');
-        menuBtnOpenElm.classList.add('btn', 'btn-default');
+        menuBtnOpenElm.classList.add('btn', 'btn-default', 'pull-right');
         let menuBtnOpenIconElm = document.createElement('span');
         menuBtnOpenIconElm.classList.add('icon', 'icon-export');
         menuBtnOpenElm.appendChild(menuBtnOpenIconElm);
-        menuGroupElm.appendChild(menuBtnOpenElm);
-        liElm.appendChild(menuGroupElm);
+        liElm.appendChild(menuBtnOpenElm);
 
         menuBtnOpenElm.addEventListener('click', () => {
             menuBtnOpenElm.classList.add('active');
-            openProject([menuBtnOpenElm, liElm], data.id);
+            openProject(data.id);
         });
 
         // body
@@ -118,38 +116,7 @@
 
         liElm.addEventListener('dblclick', e => {
             setActive(e, liElm);
-            openProject([liElm], data.id);
-        });
-    };
-
-    let main = async () => {
-        let projects = await exec({
-            command: 'listProjects'
-        });
-
-        let container = document.getElementById('project-list');
-        projects.data.forEach(projectData => {
-            renderProject(container, projectData);
-        });
-
-        setActive();
-
-        window.events.subscribe('project-update', data => {
-            let projectRow = elements.find(row => row.data.id === data.id);
-
-            if (projectRow) {
-                projectRow.data = data;
-
-                let emailCountElm = projectRow.elm.querySelector('.emails-count');
-                if (emailCountElm) {
-                    emailCountElm.textContent = `${humanize.numberFormat(data.emails, 0, '.', ' ')}`;
-                }
-
-                let emailSizeElm = projectRow.elm.querySelector('.emails-size');
-                if (emailSizeElm) {
-                    emailSizeElm.textContent = `${humanize.filesize(data.size || 0, 1024, 0, '.', ' ')}`;
-                }
-            }
+            openProject(data.id);
         });
     };
 
@@ -171,6 +138,41 @@
         setActive();
     };
 
+    let main = async () => {
+        let projects = await exec({
+            command: 'listProjects'
+        });
+
+        let container = document.getElementById('project-list');
+        projects.data.forEach(projectData => {
+            renderProject(container, projectData);
+        });
+
+        setActive();
+
+        window.events.subscribe('project-created', () => {
+            return redrawList();
+        });
+
+        window.events.subscribe('project-update', data => {
+            let projectRow = elements.find(row => row.data.id === data.id);
+
+            if (projectRow) {
+                projectRow.data = data;
+
+                let emailCountElm = projectRow.elm.querySelector('.emails-count');
+                if (emailCountElm) {
+                    emailCountElm.textContent = `${humanize.numberFormat(data.emails, 0, '.', ' ')}`;
+                }
+
+                let emailSizeElm = projectRow.elm.querySelector('.emails-size');
+                if (emailSizeElm) {
+                    emailSizeElm.textContent = `${humanize.filesize(data.size || 0, 1024, 0, '.', ' ')}`;
+                }
+            }
+        });
+    };
+
     let createProjectElm = document.getElementById('create-project-btn');
     createProjectElm.addEventListener('click', () => {
         createProjectElm.classList.add('active');
@@ -179,7 +181,7 @@
         })
             .then(result => {
                 if (result) {
-                    return redrawList();
+                    openProject(result);
                 }
             })
             .catch(() => false)
