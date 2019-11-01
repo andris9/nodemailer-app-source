@@ -130,7 +130,7 @@ ipcMain.on('cmdreq', (event, arg) => {
 let cs = crypto.randomBytes(8).toString('hex');
 let tbci = 0;
 let thumbnailQueue = new Map();
-async function thumbnailGenerator(src, widht, height) {
+async function thumbnailGenerator(src, width, height) {
     return new Promise((resolve, reject) => {
         let cid = `${cs}:${++tbci}`;
         let time = Date.now();
@@ -140,7 +140,7 @@ async function thumbnailGenerator(src, widht, height) {
             JSON.stringify({
                 cid,
                 src,
-                widht,
+                width,
                 height
             })
         );
@@ -156,12 +156,14 @@ ipcMain.on('resizeres', (event, arg) => {
         return;
     }
     if (!payload || !payload.cid) {
+        console.error('no cid for image resize response');
         return;
     }
 
     let handler = thumbnailQueue.get(payload.cid);
     thumbnailQueue.delete(payload.cid);
     if (payload.error) {
+        console.error('Failed to resize image', payload.cid);
         return handler.reject(new Error(payload.error));
     }
     handler.resolve(payload.src);

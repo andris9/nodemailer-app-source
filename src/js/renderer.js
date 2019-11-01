@@ -20,7 +20,7 @@ window.events = {
             try {
                 listener(data);
             } catch (err) {
-                // ignore
+                console.error(err);
             }
         });
     }
@@ -90,9 +90,17 @@ window.events = {
             this.canvas.width = width;
             this.canvas.height = height;
 
-            return new Promise(resolve => {
+            return new Promise((resolve, reject) => {
+                let timeout = setTimeout(() => {
+                    reject(new Error('TIMEOUT'));
+                }, 30 * 1000);
+
                 const img = new Image();
+                img.onerror = err => {
+                    reject(err);
+                };
                 img.onload = () => {
+                    clearTimeout(timeout);
                     const ctx = this.canvas.getContext('2d');
                     ctx.clearRect(0, 0, width, height);
 
