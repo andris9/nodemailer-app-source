@@ -16,7 +16,6 @@ const crypto = require('crypto');
 const addressparser = require('nodemailer/lib/addressparser');
 const punycode = require('punycode');
 const human = require('humanparser');
-const sharp = require('sharp');
 
 const Splitter = mailsplit.Splitter;
 const Joiner = mailsplit.Joiner;
@@ -49,6 +48,8 @@ class Analyzer {
 
         this.dataPath = pathlib.join(this.appDataPath, this.folderName, 'data');
         this.sqlPath = pathlib.join(this.appDataPath, this.folderName, 'data.db');
+
+        this.thumbnailGenerator = options.thumbnailGenerator;
     }
 
     async prepare() {
@@ -500,6 +501,19 @@ class Analyzer {
                 } else {
                     // attachment
 
+                    let getContentType = (contentType, realFilename) => {
+                        contentType = (contentType || '')
+                            .toString()
+                            .trim()
+                            .toLowerCase();
+                        if (contentType) {
+                            return contentType;
+                        }
+
+                        contentType = libmime.detectMimeType(realFilename);
+                        return contentType;
+                    };
+
                     let getFilename = (contentType, realFilename) => {
                         let extension = libmime.detectExtension(contentType || 'application/octet-stream');
                         let filename = pathlib.parse(realFilename || (contentType || 'attachment').split('/').shift() + '.' + extension);
@@ -525,11 +539,13 @@ class Analyzer {
                         return fname;
                     };
 
-                    let fname = getFilename(data.node.contentType, data.node.filename);
+                    let contentType = getContentType(data.node.contentType, data.node.filename);
+                    let fname = getFilename(contentType, data.node.filename);
+
                     let attachmentData = {
                         filename: fname,
                         realFilename: data.node.filename || null,
-                        contentType: data.node.contentType || 'application/octet-stream',
+                        contentType,
                         disposition: data.node.disposition,
                         contentId: data.node.headers.getFirst('content-id').trim() || null,
                         key: `${key}:attachment:${filenames.size}:file`
@@ -538,7 +554,7 @@ class Analyzer {
 
                     let setThumb = async attachmentData => {
                         let buf = await this.readBuffer(key);
-                        const thumbnail = await generateThumbnail(buf);
+                        const thumbnail = await this.generateThumbnail(contentType, buf);
                         if (!thumbnail) {
                             return;
                         }
@@ -579,7 +595,7 @@ class Analyzer {
 
                                     let data = Buffer.from(entry.Data);
 
-                                    let contentType = libmime.detectMimeType(entry.Title) || 'application/octet-stream';
+                                    let contentType = getContentType(false, entry.Title);
                                     let fname = getFilename(contentType, entry.Title);
                                     let tnefAttachmentData = {
                                         filename: fname,
@@ -602,7 +618,7 @@ class Analyzer {
                                             if (/^image\//gi.test(attachmentData.contentType)) {
                                                 // post-process thumbnails
                                                 return setThumb(tnefAttachmentData)
-                                                    .catch(() => false)
+                                                    .catch(err => console.error(err))
                                                     .finally(() => processNext());
                                             }
                                             processNext();
@@ -632,7 +648,7 @@ class Analyzer {
                             if (/^image\//gi.test(attachmentData.contentType)) {
                                 // post-process thumbnails
                                 return setThumb(attachmentData)
-                                    .catch(() => false)
+                                    .catch(err => console.error(err))
                                     .finally(() => resolve(res));
                             }
 
@@ -1245,7 +1261,7 @@ class Analyzer {
                         valueEncoding: 'binary'
                     });
                     if (thumbnail) {
-                        attachmentData.thumbnail = 'data:image/png;base64,' + thumbnail.toString('base64');
+                        attachmentData.thumbnail = 'data:image/webp;base64,' + thumbnail.toString('base64');
                     }
                 } catch (err) {
                     // ignore
@@ -1626,7 +1642,7 @@ class Analyzer {
                         valueEncoding: 'binary'
                     });
                     if (thumbnail) {
-                        attachmentData.thumbnail = 'data:image/png;base64,' + thumbnail.toString('base64');
+                        attachmentData.thumbnail = 'data:image/webp;base64,' + thumbnail.toString('base64');
                     }
                 } catch (err) {
                     // ignore
@@ -1655,6 +1671,24 @@ class Analyzer {
 
         emailData.timer = Date.now() - now;
         return emailData;
+    }
+
+    async generateThumbnail(contentType, buffer) {
+        if (!/^image\//i.test(contentType)) {
+            return false;
+        }
+
+        if (!this.thumbnailGenerator) {
+            return false;
+        }
+
+        let thumb = await this.thumbnailGenerator('data:' + contentType + ';base64,' + buffer.toString('base64'), 80, 80);
+        if (!thumb || typeof thumb !== 'string') {
+            return false;
+        }
+
+        let comma = thumb.indexOf(',');
+        return Buffer.from(thumb.substr(comma + 1), 'base64');
     }
 }
 
@@ -1685,17 +1719,6 @@ function formatDate(value) {
         .toISOString()
         .replace(/T/, ' ')
         .substr(0, 19);
-}
-
-async function generateThumbnail(buffer) {
-    return await sharp(buffer)
-        .resize(128, 128, {
-            fit: 'inside',
-            withoutEnlargement: true,
-            background: { r: 0xff, g: 0xff, b: 0xff, alpha: 0 }
-        })
-        .png()
-        .toBuffer();
 }
 
 function normalizeAddress(address) {

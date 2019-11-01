@@ -3,6 +3,7 @@
 /* globals document, alert, exec, window */
 
 (() => {
+    const fs = require('fs').promises;
     const humanize = require('humanize');
     const { getCurrentWindow, Menu, MenuItem } = require('electron').remote;
 
@@ -12,28 +13,29 @@
             this.imports = [];
 
             this.buttonGroupElms = Array.from(document.querySelectorAll('.import-button-group'));
-            this.pageImportsElm = document.getElementById('page-imports');
-            this.pageMenuImportsElm = document.getElementById('page-menu-imports');
+            this.pageElm = document.getElementById('page-imports');
+            this.pageMenuElm = document.getElementById('page-menu-imports');
 
             this.visible = false;
         }
 
         async show() {
             this.buttonGroupElms.forEach(elm => elm.classList.remove('hidden'));
-            this.pageImportsElm.classList.remove('hidden');
-            this.pageMenuImportsElm.classList.add('active');
+            this.pageElm.classList.remove('hidden');
+            this.pageMenuElm.classList.add('active');
             this.visible = true;
         }
 
         async hide() {
             this.buttonGroupElms.forEach(elm => elm.classList.add('hidden'));
-            this.pageImportsElm.classList.add('hidden');
-            this.pageMenuImportsElm.classList.remove('active');
+            this.pageElm.classList.add('hidden');
+            this.pageMenuElm.classList.remove('active');
             this.visible = false;
         }
 
         async init() {
             const menu = new Menu();
+
             menu.append(
                 new MenuItem({
                     label: 'Import from MBOX',
@@ -101,6 +103,36 @@
                     }
                 })
             );
+
+            if (typeof process !== 'undefined' && process && process.env && process.env.USER) {
+                try {
+                    let path = '/var/mail/' + process.env.USER;
+                    let stats = await fs.stat(path);
+                    if (stats && stats.size) {
+                        menu.append(
+                            new MenuItem({
+                                label: 'Import local mail account',
+                                click() {
+                                    exec({
+                                        command: 'createImportFromFile',
+                                        params: {
+                                            filePaths: [path]
+                                        }
+                                    })
+                                        .then(res => {
+                                            if (res) {
+                                                alert(`Import started`);
+                                            }
+                                        })
+                                        .catch(() => false);
+                                }
+                            })
+                        );
+                    }
+                } catch (err) {
+                    // just ignore
+                }
+            }
 
             // Add the listener
             let menuBtnElm = document.querySelector('#imports-import-menu');
@@ -189,8 +221,8 @@
     class ContactsPage {
         constructor() {
             this.buttonGroupElms = Array.from(document.querySelectorAll('.contacts-button-group'));
-            this.pageContactsElm = document.getElementById('page-contacts');
-            this.pageMenuContactsElm = document.getElementById('page-menu-contacts');
+            this.pageElm = document.getElementById('page-contacts');
+            this.pageMenuElm = document.getElementById('page-menu-contacts');
 
             this.pageNrElm = document.getElementById('contacts-page-nr');
             this.pageTotalElm = document.getElementById('contacts-page-total');
@@ -209,16 +241,16 @@
 
         async show() {
             this.buttonGroupElms.forEach(elm => elm.classList.remove('hidden'));
-            this.pageContactsElm.classList.remove('hidden');
-            this.pageMenuContactsElm.classList.add('active');
+            this.pageElm.classList.remove('hidden');
+            this.pageMenuElm.classList.add('active');
             this.visible = true;
             await this.reloadContacts();
         }
 
         async hide() {
             this.buttonGroupElms.forEach(elm => elm.classList.add('hidden'));
-            this.pageContactsElm.classList.add('hidden');
-            this.pageMenuContactsElm.classList.remove('active');
+            this.pageElm.classList.add('hidden');
+            this.pageMenuElm.classList.remove('active');
             this.visible = false;
         }
 
@@ -274,13 +306,6 @@
         }
 
         async reloadContacts() {
-            console.log({
-                command: 'listContacts',
-                params: {
-                    page: this.page,
-                    term: this.term ? '%' + this.term + '%' : false
-                }
-            });
             let list = await exec({
                 command: 'listContacts',
                 params: {
@@ -387,10 +412,62 @@
         }
     }
 
+    class AttachmentsPage {
+        constructor() {
+            this.buttonGroupElms = Array.from(document.querySelectorAll('.attachments-button-group'));
+            this.pageElm = document.getElementById('page-attachments');
+            this.pageMenuElm = document.getElementById('page-menu-attachments');
+            this.visible = false;
+        }
+
+        async show() {
+            this.buttonGroupElms.forEach(elm => elm.classList.remove('hidden'));
+            this.pageElm.classList.remove('hidden');
+            this.pageMenuElm.classList.add('active');
+            this.visible = true;
+        }
+
+        async hide() {
+            this.buttonGroupElms.forEach(elm => elm.classList.add('hidden'));
+            this.pageElm.classList.add('hidden');
+            this.pageMenuElm.classList.remove('active');
+            this.visible = false;
+        }
+
+        async init() {}
+    }
+
+    class EmailsPage {
+        constructor() {
+            this.buttonGroupElms = Array.from(document.querySelectorAll('.emails-button-group'));
+            this.pageElm = document.getElementById('page-emails');
+            this.pageMenuElm = document.getElementById('page-menu-emails');
+            this.visible = false;
+        }
+
+        async show() {
+            this.buttonGroupElms.forEach(elm => elm.classList.remove('hidden'));
+            this.pageElm.classList.remove('hidden');
+            this.pageMenuElm.classList.add('active');
+            this.visible = true;
+        }
+
+        async hide() {
+            this.buttonGroupElms.forEach(elm => elm.classList.add('hidden'));
+            this.pageElm.classList.add('hidden');
+            this.pageMenuElm.classList.remove('active');
+            this.visible = false;
+        }
+
+        async init() {}
+    }
+
     async function main() {
         let pages = {
             imports: new ImportPage(),
-            contacts: new ContactsPage()
+            contacts: new ContactsPage(),
+            attachments: new AttachmentsPage(),
+            emails: new EmailsPage()
         };
 
         // show import page by default

@@ -32,6 +32,8 @@ class Projects {
         this.windows = new Set();
 
         this.sqlPath = pathlib.join(this.appDataPath, 'forensicat.db');
+
+        this.thumbnailGenerator = options.thumbnailGenerator;
     }
 
     async prepare() {
@@ -198,7 +200,8 @@ class Projects {
         let analyzer = new Analyzer({
             projectName: name, //'testikas_1571740887371'
             appDataPath: this.appDataPath,
-            folderName
+            folderName,
+            thumbnailGenerator: this.thumbnailGenerator
         });
 
         await analyzer.prepare();
@@ -247,7 +250,8 @@ class Projects {
         let analyzer = new Analyzer({
             projectName: row.name, //'testikas_1571740887371'
             appDataPath: this.appDataPath,
-            folderName: row.folderName
+            folderName: row.folderName,
+            thumbnailGenerator: this.thumbnailGenerator
         });
 
         analyzer.id = id;

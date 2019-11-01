@@ -158,7 +158,9 @@
             let projectRow = elements.find(row => row.data.id === data.id);
 
             if (projectRow) {
-                projectRow.data = data;
+                Object.keys(data).forEach(key => {
+                    projectRow.data[key] = data[key];
+                });
 
                 let emailCountElm = projectRow.elm.querySelector('.emails-count');
                 if (emailCountElm) {
@@ -198,6 +200,7 @@
                 entry.elm.classList.remove('hidden');
                 return;
             }
+            console.log(entry);
             if (entry.data.name.toLowerCase().indexOf(searchTerm) < 0) {
                 entry.elm.classList.add('hidden');
             } else {

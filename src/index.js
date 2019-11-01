@@ -4,6 +4,7 @@ const execCommand = require('./exec-command');
 const Projects = require('./projects/projects');
 const urllib = require('url');
 const pathlib = require('path');
+const crypto = require('crypto');
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 // eslint-disable-next-line global-require
@@ -126,12 +127,53 @@ ipcMain.on('cmdreq', (event, arg) => {
         });
 });
 
+let cs = crypto.randomBytes(8).toString('hex');
+let tbci = 0;
+let thumbnailQueue = new Map();
+async function thumbnailGenerator(src, widht, height) {
+    return new Promise((resolve, reject) => {
+        let cid = `${cs}:${++tbci}`;
+        let time = Date.now();
+        thumbnailQueue.set(cid, { resolve, reject, time });
+        mainWindow.webContents.send(
+            'resize',
+            JSON.stringify({
+                cid,
+                src,
+                widht,
+                height
+            })
+        );
+    });
+}
+
+ipcMain.on('resizeres', (event, arg) => {
+    let payload;
+    try {
+        payload = JSON.parse(arg);
+    } catch (err) {
+        console.error(err);
+        return;
+    }
+    if (!payload || !payload.cid) {
+        return;
+    }
+
+    let handler = thumbnailQueue.get(payload.cid);
+    thumbnailQueue.delete(payload.cid);
+    if (payload.error) {
+        return handler.reject(new Error(payload.error));
+    }
+    handler.resolve(payload.src);
+});
+
 function prepare(next) {
     if (projects) {
         return next();
     }
     projects = new Projects({
-        appDataPath: app.getPath('userData')
+        appDataPath: app.getPath('userData'),
+        thumbnailGenerator
     });
 
     projects

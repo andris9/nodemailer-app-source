@@ -10,11 +10,19 @@ const MaildirScan = require('maildir-scan');
 const util = require('util');
 const recursiveReaddir = require('recursive-readdir');
 
-async function createImportFromFile(curWin, projects, analyzer) {
-    let res = await dialog.showOpenDialog(curWin, {
-        title: 'Select Mail Source',
-        properties: ['openFile', 'multiSelections']
-    });
+async function createImportFromFile(curWin, projects, analyzer, params) {
+    let res;
+    if (params && params.filePaths) {
+        res = {
+            filePaths: params.filePaths,
+            canceled: false
+        };
+    } else {
+        res = await dialog.showOpenDialog(curWin, {
+            title: 'Select Mail Source',
+            properties: ['openFile', 'multiSelections']
+        });
+    }
     if (res.canceled) {
         return false;
     }

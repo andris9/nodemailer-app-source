@@ -60,7 +60,6 @@
         "nodemailer": "6.3.1",
         "recursive-readdir": "2.2.2",
         "rimraf": "3.0.0",
-        "sharp": "0.23.2",
         "sqlite3": "4.1.0",
         "uuid": "3.3.3"
     },
