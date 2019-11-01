@@ -356,6 +356,10 @@ async function listContacts(curWin, projects, analyzer, params) {
     return await analyzer.getContacts(params);
 }
 
+async function listAttachments(curWin, projects, analyzer, params) {
+    return await analyzer.getAttachments(params);
+}
+
 async function searchContacts(curWin, projects, analyzer, params) {
     let term = await prompt(
         {
@@ -470,6 +474,9 @@ module.exports = async (curWin, projects, analyzer, data) => {
 
         case 'listContacts':
             return await listContacts(curWin, projects, analyzer, data.params);
+
+        case 'listAttachments':
+            return await listAttachments(curWin, projects, analyzer, data.params);
 
         case 'searchContacts':
             return await searchContacts(curWin, projects, analyzer, data.params);

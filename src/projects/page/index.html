@@ -15,9 +15,13 @@
 
             <header class="toolbar toolbar-header">
                 <div class="toolbar-actions">
+                    <!-- import -->
+
                     <button class="btn btn-default hidden import-button-group" id="imports-import-menu">
                         <span class="icon icon-plus-squared"></span>
                     </button>
+
+                    <!-- contacts -->
 
                     <div class="btn-group hidden contacts-button-group">
                         <button class="btn btn-default" id="contacts-reload">
@@ -28,9 +32,24 @@
                         </button>
                     </div>
 
+                    <!-- attachments -->
+
+                    <div class="btn-group hidden attachments-button-group">
+                        <button class="btn btn-default" id="attachments-reload">
+                            <span class="icon icon-ccw"></span>
+                        </button>
+                        <button class="btn btn-default" id="attachments-search">
+                            <span class="icon icon-search"></span>
+                        </button>
+                    </div>
+
+                    <!-- general -->
+
                     <button class="btn btn-default btn-dropdown pull-right js-context-menu">
                         <span class="icon icon-tools"></span>
                     </button>
+
+                    <!-- contacts -->
 
                     <div class="btn-group hidden contacts-button-group pull-right">
                         <button class="btn btn-default" id="contacts-page-prev">
@@ -52,6 +71,31 @@
                         </button>
                         <div id="contacts-search-block" class="pull-right hidden toolbar-text" style="margin-right:5px;">
                             Searching for "<span id="contacts-search-term"></span>"
+                        </div>
+                    </div>
+
+                    <!-- attachments -->
+
+                    <div class="btn-group hidden attachments-button-group pull-right">
+                        <button class="btn btn-default" id="attachments-page-prev">
+                            <span class="icon icon-left-circled"></span>
+                        </button>
+                        <button class="btn btn-default" id="attachments-page-next">
+                            <span class="icon icon-right-circled"></span>
+                        </button>
+                    </div>
+
+                    <div class="hidden attachments-button-group pull-right toolbar-text">
+                        Page <span id="attachments-page-nr">0</span> of
+                        <span id="attachments-page-total">0</span>
+                    </div>
+
+                    <div class=" pull-right hidden attachments-button-group">
+                        <button class="btn btn-default pull-right hidden" id="attachments-search-clear" style="margin-right:5px;">
+                            Clear Search
+                        </button>
+                        <div id="attachments-search-block" class="pull-right hidden toolbar-text" style="margin-right:5px;">
+                            Searching for "<span id="attachments-search-term"></span>"
                         </div>
                     </div>
                 </div>
@@ -91,60 +135,16 @@
                             <table class="table-striped">
                                 <thead>
                                     <tr>
+                                        <th width="8%" class="text-right">#</th>
                                         <th width="10%">Preview</th>
                                         <th>Filename</th>
                                         <th>From</th>
                                         <th>Subject</th>
-                                        <th width="10%">Size</th>
-                                        <th width="10%">&nbsp;</th>
+                                        <th width="8%">Size</th>
+                                        <th width="8%">&nbsp;</th>
                                     </tr>
                                 </thead>
-                                <tbody class="enumerable-list" id="attachments-list">
-                                    <tr>
-                                        <td>
-                                            <div class="file-icon" data-file="webp"></div>
-                                        </td>
-                                        <td>
-                                            Test.rar
-                                        </td>
-                                        <td>
-                                            andris.reinman@gmail.com
-                                        </td>
-                                        <td>
-                                            Lorem ipsum jne
-                                        </td>
-                                        <td class="text-right">
-                                            123 MB
-                                        </td>
-                                        <td class="text-right">
-                                            <button class="btn btn-default">
-                                                <span class="icon icon-install"></span>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <div class="file-icon" data-file="docx"></div>
-                                        </td>
-                                        <td>
-                                            Test.docx
-                                        </td>
-                                        <td>
-                                            andris.reinman@gmail.com
-                                        </td>
-                                        <td>
-                                            Lorem ipsum jne
-                                        </td>
-                                        <td class="text-right">
-                                            123 MB
-                                        </td>
-                                        <td class="text-right">
-                                            <button class="btn btn-default">
-                                                <span class="icon icon-install"></span>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                </tbody>
+                                <tbody class="enumerable-list" id="attachments-list"></tbody>
                             </table>
                         </div>
 
