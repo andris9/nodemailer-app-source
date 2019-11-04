@@ -333,7 +333,9 @@ class Projects {
 
             webPreferences: {
                 nodeIntegration: true
-            }
+            },
+
+            icon: pathlib.join(__dirname, '..', 'icons/png/64x64.png')
         });
 
         let windowId = projectWindow.id;

@@ -28,7 +28,9 @@ const createWindow = () => {
 
         webPreferences: {
             nodeIntegration: true
-        }
+        },
+
+        icon: pathlib.join(__dirname, 'icons/png/64x64.png')
     });
     projects.mainWindow = mainWindow;
 

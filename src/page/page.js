@@ -12,35 +12,28 @@
     let deleteActiveBtn = document.getElementById('delete-active-btn');
     let editActiveBtn = document.getElementById('edit-active-btn');
 
-    let setActive = (e, selected) => {
-        if (e) {
-            //e.preventDefault();
-        }
-        elements.forEach(elm => {
-            if (!selected || elm.elm !== selected) {
-                elm.elm.classList.remove('active');
-            }
-        });
-        if (selected) {
-            selected.classList.add('active');
-            projectEditGroupElm.classList.remove('hidden');
-        } else {
-            projectEditGroupElm.classList.add('hidden');
-        }
-    };
-
     let openProject = id => {
         exec({
             command: 'openProject',
             params: {
                 id
             }
-        })
-            .catch(() => false)
-            .finally(() => {
-                setActive();
-            });
+        }).catch(() => false);
     };
+
+    let selectable = new window.Selectable(elements, (action, row) => {
+        switch (action) {
+            case 'open':
+                openProject(row.data.id);
+                break;
+            case 'active':
+                projectEditGroupElm.classList.remove('hidden');
+                break;
+            case 'deactivate':
+                projectEditGroupElm.classList.add('hidden');
+                break;
+        }
+    });
 
     let renderProject = (container, data) => {
         let liElm = document.createElement('li');
@@ -109,15 +102,6 @@
         container.appendChild(liElm);
 
         elements.push({ data, elm: liElm });
-
-        liElm.addEventListener('click', e => setActive(e, liElm));
-        liElm.addEventListener('mousedown', e => setActive(e, liElm));
-        liElm.addEventListener('touchstart', e => setActive(e, liElm));
-
-        liElm.addEventListener('dblclick', e => {
-            setActive(e, liElm);
-            openProject(data.id);
-        });
     };
 
     let redrawList = async () => {
@@ -135,7 +119,7 @@
             renderProject(container, projectData);
         });
 
-        setActive();
+        selectable.update(elements);
     };
 
     let main = async () => {
@@ -148,7 +132,8 @@
             renderProject(container, projectData);
         });
 
-        setActive();
+        selectable.update(elements);
+        selectable.activate();
 
         window.events.subscribe('project-created', () => {
             return redrawList();
@@ -206,7 +191,6 @@
                 entry.elm.classList.remove('hidden');
             }
         });
-        setActive();
     };
 
     searchElm.addEventListener('change', onSearchChange);

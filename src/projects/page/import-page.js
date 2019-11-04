@@ -11,13 +11,19 @@
     class ImportPage {
         constructor() {
             this.importListElm = document.getElementById('import-list');
-            this.imports = [];
+            this.rows = [];
 
             this.buttonGroupElms = Array.from(document.querySelectorAll('.import-button-group'));
             this.pageElm = document.getElementById('page-imports');
             this.pageMenuElm = document.getElementById('page-menu-imports');
 
+            this.selectable = new window.Selectable(this.rows, (...args) => this.listAction(...args));
+
             this.visible = false;
+        }
+
+        listAction(action, row) {
+            console.log(action, row);
         }
 
         async show() {
@@ -25,6 +31,8 @@
             this.pageElm.classList.remove('hidden');
             this.pageMenuElm.classList.add('active');
             this.visible = true;
+
+            this.selectable.activate();
         }
 
         async hide() {
@@ -32,6 +40,8 @@
             this.pageElm.classList.add('hidden');
             this.pageMenuElm.classList.remove('active');
             this.visible = false;
+
+            this.selectable.disable();
         }
 
         async init() {
@@ -164,7 +174,7 @@
 
             await this.reloadImports();
             window.events.subscribe('import-update', data => {
-                let importRow = this.imports.find(row => row.data.id === data.id);
+                let importRow = this.rows.find(row => row.data.id === data.id);
 
                 if (importRow) {
                     importRow.data = data;
@@ -206,7 +216,7 @@
             rowElm.appendChild(cell04Elm);
             rowElm.appendChild(cell05Elm);
 
-            this.imports.push({ data: importData, elm: rowElm });
+            this.rows.push({ data: importData, elm: rowElm });
             this.importListElm.appendChild(rowElm);
             this.paintImportCell(rowElm, importData);
         }
@@ -216,16 +226,18 @@
                 return;
             }
 
-            this.imports.forEach(importData => {
+            this.rows.forEach(importData => {
                 if (importData.elm.parentNode === this.importListElm) {
                     this.importListElm.removeChild(importData.elm);
                 }
             });
-            this.imports = [];
+            this.rows = [];
 
             list.data.forEach(importData => {
                 this.renderImportListItem(importData);
             });
+
+            this.selectable.update(this.rows);
 
             return true;
         }

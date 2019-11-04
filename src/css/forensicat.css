@@ -38,6 +38,17 @@ textarea,
     margin-left: -60px;
 }
 
+tr.active,
+.table-striped tr.active:nth-child(even) {
+    color: #fff;
+    background-color: #116cd6;
+}
+
+thead tr.active {
+    color: #333;
+    background-color: #f5f5f4;
+}
+
 @keyframes spin {
     0% {
         transform: rotate(0deg);

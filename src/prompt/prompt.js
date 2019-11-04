@@ -8,7 +8,7 @@ const electron = require('electron');
 const BrowserWindow = electron.BrowserWindow || electron.remote.BrowserWindow;
 const ipcMain = electron.ipcMain || electron.remote.ipcMain;
 const url = require('url');
-const path = require('path');
+const pathlib = require('path');
 
 const DEFAULT_WIDTH = 370;
 const DEFAULT_HEIGHT = 160;
@@ -55,11 +55,12 @@ function electronPrompt(options, parentWindow) {
             useContentSize: opts.resizable,
             modal: Boolean(parentWindow),
             title: opts.title,
-            icon: opts.icon,
 
             webPreferences: {
                 nodeIntegration: true
-            }
+            },
+
+            icon: pathlib.join(__dirname, '..', 'icons/png/64x64.png')
         });
 
         // promptWindow.setMenu(null);
@@ -108,7 +109,7 @@ function electronPrompt(options, parentWindow) {
         const promptUrl = url.format({
             protocol: 'file',
             slashes: true,
-            pathname: path.join(__dirname, 'page', 'prompt.html'),
+            pathname: pathlib.join(__dirname, 'page', 'prompt.html'),
             hash: id
         });
 

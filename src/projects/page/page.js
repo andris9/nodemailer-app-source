@@ -11,7 +11,6 @@
         loaderQueue++;
         if (loaderQueue === 1) {
             // show loader
-            console.log('SHOW LOADER');
             document.body.appendChild(loaderElm);
         }
     }
@@ -56,16 +55,12 @@
                 }
                 pages[selected]
                     .hide()
-                    .then(() => {
-                        console.log('HIDE', selected);
-                    })
+                    .then(() => {})
                     .catch(err => console.error(err))
                     .finally(() => {
                         pages[target]
                             .show()
-                            .then(() => {
-                                console.log('SHOW ', target);
-                            })
+                            .then(() => {})
                             .catch(err => console.error(err))
                             .finally(() => {
                                 selected = target;

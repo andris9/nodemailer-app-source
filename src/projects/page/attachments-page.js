@@ -21,6 +21,8 @@
             this.rowListElm = document.getElementById('attachments-list');
             this.rows = [];
 
+            this.selectable = new window.Selectable(this.rows, (...args) => this.listAction(...args));
+
             this.term = '';
             this.page = 1;
             this.pages = 1;
@@ -36,8 +38,11 @@
             if (this.page !== 1) {
                 this.page = 1;
                 this.term = '';
+                this.clearSearch();
                 await this.reload();
             }
+
+            this.selectable.activate();
         }
 
         async hide() {
@@ -45,6 +50,8 @@
             this.pageElm.classList.add('hidden');
             this.pageMenuElm.classList.remove('active');
             this.visible = false;
+
+            this.selectable.disable();
         }
 
         renderListItem(data, nr) {
@@ -141,6 +148,12 @@
             for (let data of list.data) {
                 this.renderListItem(data, ++startNr);
             }
+
+            this.selectable.update(this.rows);
+        }
+
+        listAction(action, row) {
+            console.log(action, row);
         }
 
         async reload() {
@@ -177,6 +190,16 @@
 
                 await this.reload();
             }
+        }
+
+        clearSearch() {
+            this.page = 1;
+            this.term = '';
+
+            let searchBlockElm = document.getElementById('attachments-search-block');
+            searchBlockElm.classList.add('hidden');
+            let searchClearElm = document.getElementById('attachments-search-clear');
+            searchClearElm.classList.add('hidden');
         }
 
         async init() {
@@ -236,13 +259,7 @@
 
             let searchClearElm = document.getElementById('attachments-search-clear');
             searchClearElm.addEventListener('click', () => {
-                this.page = 1;
-                this.term = '';
-
-                let searchBlockElm = document.getElementById('attachments-search-block');
-                searchBlockElm.classList.add('hidden');
-                let searchClearElm = document.getElementById('attachments-search-clear');
-                searchClearElm.classList.add('hidden');
+                this.clearSearch();
 
                 this.reload().catch(err => {
                     alert(err.message);
