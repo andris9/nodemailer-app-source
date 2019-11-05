@@ -104,3 +104,36 @@ dl.info-dl dd {
     align-items: center;
     justify-content: center;
 }
+
+.padded-contain {
+    padding: 0px 10px;
+}
+
+hr {
+    margin: 0px;
+    padding: 0px;
+}
+
+.padded-sides {
+    flex-grow: 1;
+    border: none;
+    margin: 0;
+    padding: 0;
+}
+
+.padded-sides iframe {
+    background-color: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.full-height {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    flex-direction: column;
+    overflow: hidden;
+}

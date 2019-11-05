@@ -88,6 +88,7 @@
                 entry.elm.addEventListener('touchstart', () => this.select(entry));
 
                 entry.elm.addEventListener('dblclick', () => {
+                    this.select(entry);
                     this.open(entry);
                 });
             });

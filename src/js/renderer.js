@@ -1,6 +1,6 @@
 'use strict';
 /* eslint global-require: 0 */
-/* global window, Image, document */
+/* global window, document */
 
 window.events = {
     subscribers: new Map(),
@@ -85,47 +85,63 @@ window.events = {
 
     // resize images on behalf of the main process with no DOM access
     const resizer = {
-        canvas: document.createElement('canvas'),
-        resize(dataURL, width, height) {
-            this.canvas.width = width;
-            this.canvas.height = height;
+        async resize(dataURL, width, height) {
+            let result;
 
-            return new Promise((resolve, reject) => {
-                let timeout = setTimeout(() => {
-                    reject(new Error('TIMEOUT'));
-                }, 30 * 1000);
+            let canvas = document.createElement('canvas');
 
-                const img = new Image();
-                img.onerror = err => {
-                    reject(err);
-                };
-                img.onload = () => {
-                    clearTimeout(timeout);
-                    const ctx = this.canvas.getContext('2d');
-                    ctx.clearRect(0, 0, width, height);
+            try {
+                canvas.width = width;
+                canvas.height = height;
 
-                    let scale;
-                    if (img.width <= width && img.height <= height) {
-                        scale = 1;
-                    } else {
-                        // get the scale
-                        scale = Math.min(width / img.width, height / img.height);
-                    }
+                result = await new Promise((resolve, reject) => {
+                    let timeout = setTimeout(() => {
+                        reject(new Error('TIMEOUT'));
+                    }, 30 * 1000);
 
-                    // get the top left position of the image
-                    const x = width / 2 - (img.width / 2) * scale;
-                    const y = height / 2 - (img.height / 2) * scale;
-                    ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-                    return resolve(this.canvas.toDataURL('image/webp'));
-                };
+                    const img = document.createElement('img');
 
-                img.src = dataURL;
-            });
+                    img.onerror = err => {
+                        reject(err);
+                    };
+                    img.onload = () => {
+                        clearTimeout(timeout);
+
+                        const ctx = canvas.getContext('2d');
+                        ctx.clearRect(0, 0, width, height);
+
+                        let scale;
+                        if (img.width <= width && img.height <= height) {
+                            scale = 1;
+                        } else {
+                            // get the scale
+                            scale = Math.min(width / img.width, height / img.height);
+                        }
+
+                        // get the top left position of the image
+                        const x = width / 2 - (img.width / 2) * scale;
+                        const y = height / 2 - (img.height / 2) * scale;
+                        ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+
+                        //ctx.font = '10px Arial';
+                        //ctx.fillText(cid, 10, 10);
+
+                        let result = canvas.toDataURL('image/webp');
+                        resolve(result);
+                    };
+
+                    img.src = dataURL;
+                });
+            } finally {
+                canvas = null;
+            }
+
+            return result;
         }
     };
 
     ipcRenderer.on('resize', (event, arg) => {
-        let run = async () => {
+        let run = async arg => {
             let payload;
             try {
                 payload = JSON.parse(arg);
@@ -145,7 +161,9 @@ window.events = {
                 if (!payload.src) {
                     throw new Error('Image URI not provided');
                 }
-                response.src = await resizer.resize(payload.src, payload.width || 120, payload.height || 120);
+
+                let img = await resizer.resize(payload.src, payload.width || 120, payload.height || 120);
+                response.src = img;
             } catch (err) {
                 response.error = err.message;
             } finally {
@@ -153,6 +171,6 @@ window.events = {
             }
         };
 
-        run().catch(err => console.error(err));
+        run(arg).catch(err => console.error(err));
     });
 })();

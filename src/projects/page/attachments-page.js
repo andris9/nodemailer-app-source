@@ -111,12 +111,14 @@
             this.selectable.update(this.rows);
         }
 
-        listAction(action, row) {
-            console.log(action, row);
+        listAction(action) {
             switch (action) {
                 case 'active':
                 case 'deactivate':
                     return this.paintInfoWindow();
+                case 'open':
+                    this.actionOpen().catch(err => alert(err.message));
+                    return;
             }
         }
 
@@ -213,7 +215,7 @@
             [
                 { key: 'filename', name: 'File name', type: 'text', contained: true },
                 { key: 'size', name: 'Size', type: 'text', filesize: true },
-                { key: 'contentType', name: 'Mime Type', type: 'text' },
+                { key: 'contentType', name: 'Mime type', type: 'text' },
                 { key: 'subject', name: 'Subject', type: 'text', contained: true },
                 { key: 'hdate', name: 'Date', type: 'date' },
                 { key: 'from', name: 'From', type: 'address' },

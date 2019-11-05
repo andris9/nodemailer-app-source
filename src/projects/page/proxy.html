@@ -1,0 +1,34 @@
+<script>
+    let getUrl = () => {
+        let hash = (window.location.hash || '#')
+            .toString()
+            .substr(1)
+            .trim();
+        if (!hash) {
+            return;
+        }
+
+        let parts = hash.split('&');
+        let params = {};
+        parts.forEach(part => {
+            let split = part.split('=');
+            let key = split.shift();
+            let value = split.join('=');
+            try {
+                value = decodeURIComponent(value);
+                params[key] = value;
+            } catch (err) {
+                return false;
+            }
+        });
+
+        return params.url;
+    };
+    let url = getUrl();
+    try {
+        let ipcRenderer = require('electron').ipcRenderer;
+        ipcRenderer.send('navigate', url);
+    } catch (err) {
+        alert(err.message);
+    }
+</script>

@@ -43,6 +43,17 @@
                         </button>
                     </div>
 
+                    <!-- attachments -->
+
+                    <div class="btn-group hidden emails-component">
+                        <button class="btn btn-default" id="emails-reload">
+                            <span class="icon icon-ccw"></span>
+                        </button>
+                        <button class="btn btn-default" id="emails-search">
+                            <span class="icon icon-search"></span>
+                        </button>
+                    </div>
+
                     <!-- general -->
 
                     <button class="btn btn-default btn-dropdown pull-right js-context-menu">
@@ -98,6 +109,31 @@
                             Searching for "<span id="attachments-search-term"></span>"
                         </div>
                     </div>
+
+                    <!-- emails -->
+
+                    <div class="btn-group hidden emails-component pull-right">
+                        <button class="btn btn-default" id="emails-page-prev">
+                            <span class="icon icon-left-circled"></span>
+                        </button>
+                        <button class="btn btn-default" id="emails-page-next">
+                            <span class="icon icon-right-circled"></span>
+                        </button>
+                    </div>
+
+                    <div class="hidden emails-component pull-right toolbar-text">
+                        Page <span id="emails-page-nr">0</span> of
+                        <span id="emails-page-total">0</span>
+                    </div>
+
+                    <div class=" pull-right hidden emails-component">
+                        <button class="btn btn-default pull-right hidden" id="emails-search-clear" style="margin-right:5px;">
+                            Clear Search
+                        </button>
+                        <div id="emails-search-block" class="pull-right hidden toolbar-text" style="margin-right:5px;">
+                            Searching for "<span id="emails-search-term"></span>"
+                        </div>
+                    </div>
                 </div>
             </header>
 
@@ -126,13 +162,20 @@
                     </div>
                     <div class="pane">
                         <div id="page-emails" class="hidden">
-                            <div class="padded-more">
-                                <h1>test 1</h1>
-                            </div>
+                            <table class="table-striped" style="table-layout: fixed;">
+                                <thead>
+                                    <tr>
+                                        <th width="15%" class="text-right">#</th>
+                                        <th width="35%">From</th>
+                                        <th width="50%">Subject</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="enumerable-list" id="emails-list"></tbody>
+                            </table>
                         </div>
 
                         <div id="page-attachments" class="hidden">
-                            <table class="table-striped" style="table-layout: fixed; ">
+                            <table class="table-striped" style="table-layout: fixed;">
                                 <thead>
                                     <tr>
                                         <th width="15%" class="text-right">#</th>
@@ -160,19 +203,20 @@
                         </div>
 
                         <div id="page-contacts" class="hidden">
-                            <table class="table-striped">
+                            <table class="table-striped" style="table-layout: fixed;">
                                 <thead>
                                     <tr>
-                                        <th width="8%" class="text-right">#</th>
+                                        <th width="10%" class="text-right">#</th>
                                         <th width="35%">Name</th>
-                                        <th>Address</th>
-                                        <th width="8%">Emails</th>
+                                        <th width="45%">Address</th>
+                                        <th width="10%">Emails</th>
                                     </tr>
                                 </thead>
                                 <tbody class="enumerable-list" id="contacts-list"></tbody>
                             </table>
                         </div>
                     </div>
+
                     <div class="pane attachments-component hidden">
                         <div class="padded-more">
                             <div id="attachment-info" class="hidden">
@@ -204,6 +248,42 @@
                             </div>
                         </div>
                     </div>
+
+                    <div class="pane emails-component hidden">
+                        <div id="email-info" class="full-height hidden">
+                            <div class="tab-group">
+                                <div class="tab-item active">
+                                    Rich text
+                                </div>
+                                <div class="tab-item">
+                                    Plain text
+                                </div>
+                                <div class="tab-item">
+                                    Headers
+                                </div>
+                            </div>
+                            <div class="padded-contain">
+                                <dl class="info-dl" id="email-info-list"></dl>
+
+                                <div class="center-block" style="margin-bottom: 5px;">
+                                    <div class="btn-group" id="email-action-buttons">
+                                        <button class="btn btn-default" id="email-action-pdf">Open PDF</button>
+                                        <button class="btn btn-default" id="email-action-save">Save original</button>
+                                        <button class="btn btn-default" id="email-action-external">Load external content</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="email-tab-content" class="padded-sides"></div>
+                        </div>
+
+                        <div id="email-missing" class="center-block hidden">
+                            <div class="padded-more">
+                                <div class="text-muted">
+                                    <small>No email currently selected</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -211,6 +291,9 @@
         <script src="../../js/renderer.js" charset="utf-8"></script>
         <script src="../../js/menu.js" charset="utf-8"></script>
         <script src="../../js/selectable.js" charset="utf-8"></script>
+
+        <script type="text/javascript" src="../../js/purify/purify.min.js"></script>
+        <script type="text/javascript" src="../../js/purify/config.js"></script>
 
         <script src="./import-page.js" charset="utf-8"></script>
         <script src="./contacts-page.js" charset="utf-8"></script>

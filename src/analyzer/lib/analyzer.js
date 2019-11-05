@@ -554,7 +554,7 @@ class Analyzer {
                     attachments.push(attachmentData);
 
                     let setThumb = async attachmentData => {
-                        let buf = await this.readBuffer(key);
+                        let buf = await this.readBuffer(attachmentData.key);
                         const thumbnail = await this.generateThumbnail(contentType, buf);
                         if (!thumbnail) {
                             return;
@@ -641,22 +641,24 @@ class Analyzer {
 
                             if (attachmentData.contentType === 'application/ms-tnef') {
                                 // post-process tnef
-                                return parseTnef(attachmentData.key, () => {
-                                    resolve(res);
+                                return new Promise(resolve => {
+                                    parseTnef(attachmentData.key, () => {
+                                        resolve(res);
+                                    });
                                 });
                             }
 
-                            if (/^image\//gi.test(attachmentData.contentType)) {
+                            if (/^image\//gi.test(attachmentData.contentType) || /^image\//gi.test(libmime.detectMimeType(attachmentData.filename))) {
                                 // post-process thumbnails
-                                return setThumb(attachmentData)
-                                    .catch(err => console.error(err))
-                                    .finally(() => resolve(res));
+                                return setThumb(attachmentData);
                             }
 
-                            resolve(res);
+                            //resolve(res);
                         })
                         .catch(reject)
-                        .finally(() => data.done());
+                        .finally(() => {
+                            data.done();
+                        });
 
                     return;
                 }
@@ -983,6 +985,14 @@ class Analyzer {
         return content;
     }
 
+    async getAttachmentBufferByCid(email, cid) {
+        let row = await this.sql.findOne(`SELECT id FROM attachments WHERE email=? AND content_id=?`, [email, cid]);
+        if (!row || !row.id) {
+            return false;
+        }
+        return this.getAttachmentBuffer(row.id, { dataUri: true });
+    }
+
     async getAttachmentStream(id) {
         let row = await this.sql.findOne(`SELECT key, content_type AS contentType FROM attachments WHERE id=?`, [id]);
         if (!row || !row.key) {
@@ -1065,6 +1075,7 @@ class Analyzer {
             `[attachments].[size] AS size`,
             `[attachments].[thumb_key] AS thumbKey`,
             `[attachments].[hash] AS hash`,
+            `[attachments].[key] AS key`,
 
             `[emails].[id] AS email`,
             `[emails].[subject] AS subject`,
@@ -1305,7 +1316,8 @@ class Analyzer {
             `[emails].[message_id] AS messageId`,
             `[emails].[idate] AS idate`,
             `[emails].[hdate] AS hdate`,
-            `[emails].[attachments] AS attachments`
+            `[emails].[attachments] AS attachments`,
+            `[emails].[key] AS key`
         ];
         let countFields = ['COUNT([emails].[id]) AS total'];
 
@@ -1506,6 +1518,65 @@ class Analyzer {
             });
         }
 
+        let loadMailText = async emailData => {
+            let headers = new Headers(
+                await this.level.get(`${emailData.key}:headers`, {
+                    valueEncoding: 'json'
+                })
+            );
+
+            emailData.headers = {
+                original: headers
+                    .build()
+                    .toString()
+                    .replace(/\r\n/g, '\n')
+                    .trim(),
+                structured: headers.getList().map(header => {
+                    let data = headers.libmime.decodeHeader(header.line);
+                    data.value = Buffer.from(data.value, 'binary').toString();
+                    return data;
+                })
+            };
+
+            let textParts = await this.level.get(`${emailData.key}:text`, {
+                valueEncoding: 'json'
+            });
+
+            let text = {};
+            let attachmentReferences = new Set();
+            textParts.forEach(textPart => {
+                let contentType = (textPart.contentType || '').toLowerCase();
+                let partKey = contentType.substr(contentType.indexOf('/') + 1);
+                if (!text[partKey]) {
+                    text[partKey] = [];
+                }
+
+                let content = textPart.text || '';
+                content = content.replace(/\n{3,}/g, '\n\n\n').replace(/^\n+/, '');
+
+                let cids = content.match(/\bcid:[^'"\s]+/g);
+                if (cids) {
+                    Array.from(cids).forEach(cid => {
+                        attachmentReferences.add('<' + cid.substr(4).replace(/[<>\s]/g, '') + '>');
+                    });
+                }
+
+                text[partKey].push(content);
+            });
+
+            Object.keys(text).forEach(key => {
+                text[key] = text[key].join('\n');
+            });
+
+            emailData.text = text;
+        };
+
+        await Promise.all(
+            emails.map(emailData => {
+                return loadMailText(emailData);
+            })
+        );
+
         let response = {
             page,
             pageSize,
@@ -1675,10 +1746,6 @@ class Analyzer {
     }
 
     async generateThumbnail(contentType, buffer) {
-        if (!/^image\//i.test(contentType)) {
-            return false;
-        }
-
         if (!this.thumbnailGenerator) {
             return false;
         }
@@ -1693,8 +1760,8 @@ class Analyzer {
     }
 
     async saveFile(id, path) {
-        let attachmentStream = await this.getAttachmentStream(id);
-        if (!attachmentStream) {
+        let sourceStream = await this.getAttachmentStream(id);
+        if (!sourceStream) {
             return false;
         }
 
@@ -1703,27 +1770,62 @@ class Analyzer {
             fs = fsCreateWriteStream(path);
         } catch (err) {
             // pump
-            attachmentStream.on('data', () => false);
-            attachmentStream.on('end', () => false);
-            attachmentStream.on('error', () => false);
+            sourceStream.on('data', () => false);
+            sourceStream.on('end', () => false);
+            sourceStream.on('error', () => false);
             console.error(err);
             throw new Error('Failed to save file to selected location');
         }
 
         await new Promise((resolve, reject) => {
-            attachmentStream.once('error', err => {
+            sourceStream.once('error', err => {
                 fs.end();
                 reject(err);
             });
-            attachmentStream.once('end', () => resolve());
+            sourceStream.once('end', () => resolve());
             fs.once('error', err => {
                 console.error(err);
-                attachmentStream.unpipe(fs);
+                sourceStream.unpipe(fs);
                 // pump
-                attachmentStream.on('data', () => false);
+                sourceStream.on('data', () => false);
                 reject(err);
             });
-            attachmentStream.pipe(fs);
+            sourceStream.pipe(fs);
+        });
+    }
+
+    async saveEmail(id, path) {
+        let sourceStream = await this.getMessageStream(id);
+        if (!sourceStream) {
+            return false;
+        }
+
+        let fs;
+        try {
+            fs = fsCreateWriteStream(path);
+        } catch (err) {
+            // pump
+            sourceStream.on('data', () => false);
+            sourceStream.on('end', () => false);
+            sourceStream.on('error', () => false);
+            console.error(err);
+            throw new Error('Failed to save file to selected location');
+        }
+
+        await new Promise((resolve, reject) => {
+            sourceStream.once('error', err => {
+                fs.end();
+                reject(err);
+            });
+            sourceStream.once('end', () => resolve());
+            fs.once('error', err => {
+                console.error(err);
+                sourceStream.unpipe(fs);
+                // pump
+                sourceStream.on('data', () => false);
+                reject(err);
+            });
+            sourceStream.pipe(fs);
         });
     }
 }

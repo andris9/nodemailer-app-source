@@ -137,6 +137,7 @@ async function thumbnailGenerator(src, width, height) {
         let cid = `${cs}:${++tbci}`;
         let time = Date.now();
         thumbnailQueue.set(cid, { resolve, reject, time });
+
         mainWindow.webContents.send(
             'resize',
             JSON.stringify({
@@ -169,6 +170,12 @@ ipcMain.on('resizeres', (event, arg) => {
         return handler.reject(new Error(payload.error));
     }
     handler.resolve(payload.src);
+});
+
+ipcMain.on('navigate', (event, url) => {
+    let curWin = event.sender.getOwnerBrowserWindow();
+    curWin.close();
+    shell.openExternal(url).catch(err => console.error(err));
 });
 
 function prepare(next) {

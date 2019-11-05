@@ -360,6 +360,10 @@ async function listAttachments(curWin, projects, analyzer, params) {
     return await analyzer.getAttachments(params);
 }
 
+async function listEmails(curWin, projects, analyzer, params) {
+    return await analyzer.getEmails(params);
+}
+
 async function searchContacts(curWin, projects, analyzer, params) {
     let term = await prompt(
         {
@@ -466,8 +470,32 @@ async function openAttachment(curWin, projects, analyzer, params) {
     let filePath = pathlib.join(app.getPath('temp'), fileName);
 
     await analyzer.saveFile(params.attachment, filePath);
-    console.log(filePath);
     await shell.openExternal('file://' + filePath);
+}
+
+async function getAttachment(curWin, projects, analyzer, params) {
+    return await analyzer.getAttachmentBufferByCid(params.email, params.cid);
+}
+
+async function saveEmail(curWin, projects, analyzer, params) {
+    let fileName = params.filename
+        // eslint-disable-next-line no-control-regex
+        .replace(/[/\\_\-?%*:|"'<>\x00-\x1F\x7F]+/g, '_')
+        .replace(/\.+/, '.')
+        .replace(/^[\s_.]+|[\s_.]+$|_+\s|\s_+/g, ' ');
+
+    let res = await dialog.showSaveDialog(curWin, {
+        title: 'Save email',
+        defaultPath: fileName
+    });
+    if (res.canceled) {
+        return false;
+    }
+    if (res.canceled || !res.filePath) {
+        return false;
+    }
+
+    await analyzer.saveEmail(params.attachment, res.filePath);
 }
 
 module.exports = async (curWin, projects, analyzer, data) => {
@@ -512,6 +540,9 @@ module.exports = async (curWin, projects, analyzer, data) => {
         case 'listAttachments':
             return await listAttachments(curWin, projects, analyzer, data.params);
 
+        case 'listEmails':
+            return await listEmails(curWin, projects, analyzer, data.params);
+
         case 'searchContacts':
             return await searchContacts(curWin, projects, analyzer, data.params);
 
@@ -520,6 +551,12 @@ module.exports = async (curWin, projects, analyzer, data) => {
 
         case 'openAttachment':
             return await openAttachment(curWin, projects, analyzer, data.params);
+
+        case 'getAttachment':
+            return await getAttachment(curWin, projects, analyzer, data.params);
+
+        case 'saveEmail':
+            return await saveEmail(curWin, projects, analyzer, data.params);
 
         default:
             throw new Error('Unknown command ' + JSON.stringify(data));
