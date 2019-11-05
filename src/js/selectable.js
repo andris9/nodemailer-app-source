@@ -98,6 +98,7 @@
         }
 
         disable() {
+            this.select();
             this.activated = false;
         }
 
@@ -153,6 +154,10 @@
                 return;
             }
             this.select(next);
+        }
+
+        getSelected() {
+            return this.active;
         }
 
         select(entry) {

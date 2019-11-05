@@ -326,7 +326,7 @@ class Projects {
             title: project.name,
 
             width: 1024,
-            height: 600,
+            height: 542,
             'min-width': 500,
             'min-height': 200,
             'accept-first-mouse': true,

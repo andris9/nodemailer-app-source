@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8" />
 
-        <link rel="stylesheet" href="../../css/photon.css" />
+        <link rel="stylesheet" href="../../css/photon.min.css" />
         <link rel="stylesheet" href="../../css/forensicat.css" />
         <link rel="stylesheet" href="../../css/file-icons/style.css" />
 
@@ -34,7 +34,7 @@
 
                     <!-- attachments -->
 
-                    <div class="btn-group hidden attachments-button-group">
+                    <div class="btn-group hidden attachments-component">
                         <button class="btn btn-default" id="attachments-reload">
                             <span class="icon icon-ccw"></span>
                         </button>
@@ -76,7 +76,7 @@
 
                     <!-- attachments -->
 
-                    <div class="btn-group hidden attachments-button-group pull-right">
+                    <div class="btn-group hidden attachments-component pull-right">
                         <button class="btn btn-default" id="attachments-page-prev">
                             <span class="icon icon-left-circled"></span>
                         </button>
@@ -85,12 +85,12 @@
                         </button>
                     </div>
 
-                    <div class="hidden attachments-button-group pull-right toolbar-text">
+                    <div class="hidden attachments-component pull-right toolbar-text">
                         Page <span id="attachments-page-nr">0</span> of
                         <span id="attachments-page-total">0</span>
                     </div>
 
-                    <div class=" pull-right hidden attachments-button-group">
+                    <div class=" pull-right hidden attachments-component">
                         <button class="btn btn-default pull-right hidden" id="attachments-search-clear" style="margin-right:5px;">
                             Clear Search
                         </button>
@@ -132,16 +132,12 @@
                         </div>
 
                         <div id="page-attachments" class="hidden">
-                            <table class="table-striped">
+                            <table class="table-striped" style="table-layout: fixed; ">
                                 <thead>
                                     <tr>
-                                        <th width="8%" class="text-right">#</th>
-                                        <th width="10%">Preview</th>
-                                        <th>Filename</th>
-                                        <th>From</th>
-                                        <th>Subject</th>
-                                        <th width="8%">Size</th>
-                                        <th width="8%">&nbsp;</th>
+                                        <th width="15%" class="text-right">#</th>
+                                        <th width="55%">Filename</th>
+                                        <th width="30%">Size</th>
                                     </tr>
                                 </thead>
                                 <tbody class="enumerable-list" id="attachments-list"></tbody>
@@ -175,6 +171,37 @@
                                 </thead>
                                 <tbody class="enumerable-list" id="contacts-list"></tbody>
                             </table>
+                        </div>
+                    </div>
+                    <div class="pane attachments-component hidden">
+                        <div class="padded-more">
+                            <div id="attachment-info" class="hidden">
+                                <div class="attachment-preview-container center-block hidden" id="attachment-icon">
+                                    <div class="file-icon file-icon--medium" data-file="webp"></div>
+                                </div>
+
+                                <div class="attachment-preview-container center-block hidden" id="attachment-preview">
+                                    <img
+                                        src="data:image/webp;base64,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"
+                                    />
+                                </div>
+
+                                <dl class="info-dl" id="attachment-info-list"></dl>
+
+                                <div class="center-block">
+                                    <div class="btn-group">
+                                        <button class="btn btn-default" id="attachment-action-show">Show message</button>
+                                        <button class="btn btn-default" id="attachment-action-open">Open file</button>
+                                        <button class="btn btn-default" id="attachment-action-save">Save file</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="attachment-missing" class="center-block hidden">
+                                <div class="text-muted">
+                                    <small>No attachment currently selected</small>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

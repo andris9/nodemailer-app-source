@@ -5,10 +5,11 @@
 
 (() => {
     const humanize = require('humanize');
+    const moment = require('moment');
 
     class AttachmentsPage {
         constructor() {
-            this.buttonGroupElms = Array.from(document.querySelectorAll('.attachments-button-group'));
+            this.buttonGroupElms = Array.from(document.querySelectorAll('.attachments-component'));
             this.pageElm = document.getElementById('page-attachments');
             this.pageMenuElm = document.getElementById('page-menu-attachments');
 
@@ -22,6 +23,8 @@
             this.rows = [];
 
             this.selectable = new window.Selectable(this.rows, (...args) => this.listAction(...args));
+
+            this.renderedData = false;
 
             this.term = '';
             this.page = 1;
@@ -43,6 +46,7 @@
             }
 
             this.selectable.activate();
+            this.paintInfoWindow();
         }
 
         async hide() {
@@ -60,67 +64,22 @@
             let cell01Elm = document.createElement('td');
             let cell02Elm = document.createElement('td');
             let cell03Elm = document.createElement('td');
-            let cell04Elm = document.createElement('td');
-            let cell05Elm = document.createElement('td');
-            let cell06Elm = document.createElement('td');
-            let cell07Elm = document.createElement('td');
 
             cell01Elm.classList.add('cell-01', 'text-right');
             cell02Elm.classList.add('cell-02');
-            cell03Elm.classList.add('cell-03');
-            cell04Elm.classList.add('cell-04');
-            cell05Elm.classList.add('cell-05');
-            cell06Elm.classList.add('cell-06', 'text-right');
-            cell07Elm.classList.add('cell-07', 'text-right');
+            cell03Elm.classList.add('cell-07', 'text-right');
 
             cell01Elm.textContent = humanize.numberFormat(nr, 0, '.', ' ');
 
-            //<div class="file-icon" data-file="webp"></div>
-
-            if (data.thumbnail) {
-                let thumbnail = document.createElement('img');
-                thumbnail.src = data.thumbnail;
-                thumbnail.style.display = 'block';
-                thumbnail.style.width = '30px';
-                thumbnail.style.height = '30px';
-                thumbnail.style.margin = '2px 0';
-                cell02Elm.appendChild(thumbnail);
-            } else {
-                let attachmentIconElm = document.createElement('div');
-                attachmentIconElm.classList.add('file-icon');
-                attachmentIconElm.setAttribute(
-                    'data-file',
-                    data.filename
-                        .split('.')
-                        .pop()
-                        .substr(0, 5) || 'bin'
-                );
-                cell02Elm.appendChild(attachmentIconElm);
-            }
-
-            cell03Elm.textContent = data.filename;
-
-            if (data.addresses && data.addresses.from && data.addresses.from[0]) {
-                cell04Elm.textContent = data.addresses.from[0].address;
-            }
-
-            cell05Elm.textContent = data.subject || '';
-            cell06Elm.textContent = humanize.filesize(data.size || 0, 1024, 0, '.', ' ');
-
-            let btn = document.createElement('button');
-            btn.classList.add('btn', 'btn-default');
-            let btnIcon = document.createElement('span');
-            btnIcon.classList.add('icon', 'icon-install');
-            btn.appendChild(btnIcon);
-            cell07Elm.appendChild(btn);
+            let fileNameElm = document.createElement('div');
+            fileNameElm.classList.add('contain-text');
+            fileNameElm.textContent = data.filename;
+            cell02Elm.appendChild(fileNameElm);
+            cell03Elm.textContent = humanize.filesize(data.size || 0, 1024, 0, '.', ' ');
 
             rowElm.appendChild(cell01Elm);
             rowElm.appendChild(cell02Elm);
             rowElm.appendChild(cell03Elm);
-            rowElm.appendChild(cell04Elm);
-            rowElm.appendChild(cell05Elm);
-            rowElm.appendChild(cell06Elm);
-            rowElm.appendChild(cell07Elm);
 
             this.rows.push({ data, elm: rowElm });
             this.rowListElm.appendChild(rowElm);
@@ -154,19 +113,165 @@
 
         listAction(action, row) {
             console.log(action, row);
+            switch (action) {
+                case 'active':
+                case 'deactivate':
+                    return this.paintInfoWindow();
+            }
+        }
+
+        paintInfoWindow() {
+            let active = this.selectable.getSelected();
+
+            if (!active) {
+                document.getElementById('attachment-info').classList.add('hidden');
+                document.getElementById('attachment-missing').classList.remove('hidden');
+                return;
+            } else {
+                document.getElementById('attachment-info').classList.remove('hidden');
+                document.getElementById('attachment-missing').classList.add('hidden');
+            }
+
+            let data = active.data;
+
+            let previewElm = document.getElementById('attachment-preview');
+            let iconElm = document.getElementById('attachment-icon');
+            let infoList = document.getElementById('attachment-info-list');
+
+            if (data.thumbnail) {
+                let thumbnail = document.createElement('img');
+                thumbnail.src = data.thumbnail;
+
+                previewElm.innerHTML = '';
+                previewElm.appendChild(thumbnail);
+                previewElm.classList.remove('hidden');
+                iconElm.classList.add('hidden');
+            } else {
+                iconElm.innerHTML = '';
+                let attachmentIconElm = document.createElement('div');
+                attachmentIconElm.classList.add('file-icon', 'file-icon--medium');
+                attachmentIconElm.setAttribute(
+                    'data-file',
+                    data.filename
+                        .split('.')
+                        .pop()
+                        .substr(0, 4) || 'bin'
+                );
+                iconElm.appendChild(attachmentIconElm);
+                previewElm.classList.add('hidden');
+                iconElm.classList.remove('hidden');
+            }
+
+            let dataList = [];
+
+            const formatAddressEntries = addr => {
+                let list = addr.map(a => {
+                    let baseElm = document.createElement('span');
+                    baseElm.classList.add('address-link');
+                    baseElm.title = a.address || a.name;
+                    baseElm.textContent = a.name || `<${a.address}>`;
+                    return baseElm;
+                });
+                let main = document.createDocumentFragment();
+                main.appendChild(list.shift());
+
+                while (list.length) {
+                    let sep = document.createElement('span');
+                    sep.textContent = ', ';
+                    main.appendChild(sep);
+                    main.appendChild(list.shift());
+                }
+                return main;
+            };
+
+            const formatTextEntry = (str, entry) => {
+                let main = document.createDocumentFragment();
+                let textElm = document.createElement('span');
+                let value = (str || '').toString().trim();
+                if (entry && entry.filesize) {
+                    value = humanize.filesize(Number(value) || 0, 1024, 0, '.', ' ');
+                }
+                textElm.textContent = value;
+                if (entry.contained) {
+                    textElm.title = value;
+                }
+                main.appendChild(textElm);
+                return main;
+            };
+
+            const formatDateEntry = str => {
+                let main = document.createDocumentFragment();
+                let dateElm = document.createElement('span');
+
+                let dateStr = (str || '').toString().trim();
+
+                dateElm.textContent = moment(dateStr).format('LLL');
+                main.appendChild(dateElm);
+                return main;
+            };
+
+            [
+                { key: 'filename', name: 'File name', type: 'text', contained: true },
+                { key: 'size', name: 'Size', type: 'text', filesize: true },
+                { key: 'contentType', name: 'Mime Type', type: 'text' },
+                { key: 'subject', name: 'Subject', type: 'text', contained: true },
+                { key: 'hdate', name: 'Date', type: 'date' },
+                { key: 'from', name: 'From', type: 'address' },
+                { key: 'to', name: 'To', type: 'address' },
+                { key: 'cc', name: 'Cc', type: 'address' },
+                { key: 'bcc', name: 'Bcc', type: 'address' }
+            ].forEach(entry => {
+                switch (entry.type) {
+                    case 'address':
+                        if (data.addresses && data.addresses[entry.key] && data.addresses[entry.key].length) {
+                            let addr = data.addresses[entry.key];
+                            dataList.push([entry.name, formatAddressEntries(addr)]);
+                        }
+                        break;
+                    case 'text':
+                        if (data[entry.key]) {
+                            dataList.push([entry.name, formatTextEntry(data[entry.key], entry), entry]);
+                        }
+                        break;
+                    case 'date':
+                        if (data[entry.key]) {
+                            dataList.push([entry.name, formatDateEntry(data[entry.key])]);
+                        }
+                        break;
+                }
+            });
+
+            infoList.innerHTML = '';
+            dataList.forEach(entry => {
+                let keyElm = document.createElement('dt');
+                keyElm.textContent = entry[0];
+                infoList.appendChild(keyElm);
+
+                let valElm = document.createElement('dd');
+                valElm.appendChild(entry[1]);
+                if (entry[2] && entry[2].contained) {
+                    valElm.classList.add('contain-text');
+                }
+                infoList.appendChild(valElm);
+            });
+
+            // keep reference for button actions
+            this.renderedData = data;
         }
 
         async reload() {
             await showLoader();
-            let list = await exec({
-                command: 'listAttachments',
-                params: {
-                    page: this.page
-                }
-            });
-
-            this.render(list);
-            await hideLoader();
+            try {
+                let list = await exec({
+                    command: 'listAttachments',
+                    params: {
+                        page: this.page
+                    }
+                });
+                this.render(list);
+            } finally {
+                await hideLoader();
+            }
         }
 
         async search() {
@@ -202,6 +307,44 @@
             searchClearElm.classList.add('hidden');
         }
 
+        async actionSave() {
+            if (!this.renderedData) {
+                return false;
+            }
+            await showLoader();
+            try {
+                let data = this.renderedData;
+                await exec({
+                    command: 'saveAttachment',
+                    params: {
+                        attachment: data.id,
+                        filename: data.filename
+                    }
+                });
+            } finally {
+                await hideLoader();
+            }
+        }
+
+        async actionOpen() {
+            if (!this.renderedData) {
+                return false;
+            }
+            await showLoader();
+            try {
+                let data = this.renderedData;
+                await exec({
+                    command: 'openAttachment',
+                    params: {
+                        attachment: data.id,
+                        filename: data.filename
+                    }
+                });
+            } finally {
+                await hideLoader();
+            }
+        }
+
         async init() {
             await this.reload();
 
@@ -214,6 +357,30 @@
                     })
                     .finally(() => {
                         refreshBtnElm.classList.remove('active');
+                    });
+            });
+
+            let actionSaveElm = document.getElementById('attachment-action-save');
+            actionSaveElm.addEventListener('click', () => {
+                actionSaveElm.classList.add('active');
+                this.actionSave()
+                    .catch(err => {
+                        alert(err.message);
+                    })
+                    .finally(() => {
+                        actionSaveElm.classList.remove('active');
+                    });
+            });
+
+            let actionOpenElm = document.getElementById('attachment-action-open');
+            actionOpenElm.addEventListener('click', () => {
+                actionOpenElm.classList.add('active');
+                this.actionOpen()
+                    .catch(err => {
+                        alert(err.message);
+                    })
+                    .finally(() => {
+                        actionOpenElm.classList.remove('active');
                     });
             });
 

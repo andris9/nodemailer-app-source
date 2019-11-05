@@ -2,7 +2,7 @@
 
 const fs = require('fs').promises;
 const fsCreateReadStream = require('fs').createReadStream;
-const { dialog } = require('electron');
+const { app, dialog, shell } = require('electron');
 const prompt = require('./prompt/prompt');
 const pathlib = require('path');
 const { eachMessage } = require('mbox-reader');
@@ -436,6 +436,40 @@ async function openProject(curWin, projects, analyzer, params) {
     return true;
 }
 
+async function saveAttachment(curWin, projects, analyzer, params) {
+    let fileName = params.filename
+        // eslint-disable-next-line no-control-regex
+        .replace(/[/\\_\-?%*:|"'<>\x00-\x1F\x7F]+/g, '_')
+        .replace(/\.+/, '.')
+        .replace(/^[\s_.]+|[\s_.]+$|_+\s|\s_+/g, ' ');
+
+    let res = await dialog.showSaveDialog(curWin, {
+        title: 'Save attachment',
+        defaultPath: fileName
+    });
+    if (res.canceled) {
+        return false;
+    }
+    if (res.canceled || !res.filePath) {
+        return false;
+    }
+
+    await analyzer.saveFile(params.attachment, res.filePath);
+}
+
+async function openAttachment(curWin, projects, analyzer, params) {
+    let fileName = params.filename
+        // eslint-disable-next-line no-control-regex
+        .replace(/[/\\_\-?%*:|"'<>\x00-\x1F\x7F]+/g, '_')
+        .replace(/\.+/, '.')
+        .replace(/^[\s_.]+|[\s_.]+$|_+\s|\s_+/g, ' ');
+    let filePath = pathlib.join(app.getPath('temp'), fileName);
+
+    await analyzer.saveFile(params.attachment, filePath);
+    console.log(filePath);
+    await shell.openExternal('file://' + filePath);
+}
+
 module.exports = async (curWin, projects, analyzer, data) => {
     switch (data.command) {
         case 'listProjects':
@@ -480,6 +514,12 @@ module.exports = async (curWin, projects, analyzer, data) => {
 
         case 'searchContacts':
             return await searchContacts(curWin, projects, analyzer, data.params);
+
+        case 'saveAttachment':
+            return await saveAttachment(curWin, projects, analyzer, data.params);
+
+        case 'openAttachment':
+            return await openAttachment(curWin, projects, analyzer, data.params);
 
         default:
             throw new Error('Unknown command ' + JSON.stringify(data));

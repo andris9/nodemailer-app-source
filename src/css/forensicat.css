@@ -57,3 +57,50 @@ thead tr.active {
         transform: rotate(360deg);
     }
 }
+
+dl.info-dl {
+    display: flex;
+    flex-flow: row wrap;
+}
+dl.info-dl dt {
+    flex-basis: 20%;
+    padding: 2px 4px;
+    text-align: left;
+    font-weight: bold;
+    line-height: 1.1rem;
+}
+
+dl.info-dl dt::after {
+    content: ':';
+}
+
+dl.info-dl dd {
+    flex-basis: 70%;
+    flex-grow: 1;
+    margin: 0;
+    padding: 2px 4px;
+    line-height: 1.1rem;
+}
+
+.contain-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.attachment-preview-container {
+    width: 120px;
+    height: 120px;
+    margin: 10px auto;
+    text-align: center;
+}
+
+.text-muted {
+    color: #999;
+}
+
+.center-block {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

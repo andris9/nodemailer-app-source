@@ -16,6 +16,7 @@ const crypto = require('crypto');
 const addressparser = require('nodemailer/lib/addressparser');
 const punycode = require('punycode');
 const human = require('humanparser');
+const fsCreateWriteStream = require('fs').createWriteStream;
 
 const Splitter = mailsplit.Splitter;
 const Joiner = mailsplit.Joiner;
@@ -1682,13 +1683,48 @@ class Analyzer {
             return false;
         }
 
-        let thumb = await this.thumbnailGenerator('data:' + contentType + ';base64,' + buffer.toString('base64'), 80, 80);
+        let thumb = await this.thumbnailGenerator('data:' + contentType + ';base64,' + buffer.toString('base64'), 120, 120);
         if (!thumb || typeof thumb !== 'string') {
             return false;
         }
 
         let comma = thumb.indexOf(',');
         return Buffer.from(thumb.substr(comma + 1), 'base64');
+    }
+
+    async saveFile(id, path) {
+        let attachmentStream = await this.getAttachmentStream(id);
+        if (!attachmentStream) {
+            return false;
+        }
+
+        let fs;
+        try {
+            fs = fsCreateWriteStream(path);
+        } catch (err) {
+            // pump
+            attachmentStream.on('data', () => false);
+            attachmentStream.on('end', () => false);
+            attachmentStream.on('error', () => false);
+            console.error(err);
+            throw new Error('Failed to save file to selected location');
+        }
+
+        await new Promise((resolve, reject) => {
+            attachmentStream.once('error', err => {
+                fs.end();
+                reject(err);
+            });
+            attachmentStream.once('end', () => resolve());
+            fs.once('error', err => {
+                console.error(err);
+                attachmentStream.unpipe(fs);
+                // pump
+                attachmentStream.on('data', () => false);
+                reject(err);
+            });
+            attachmentStream.pipe(fs);
+        });
     }
 }
 
