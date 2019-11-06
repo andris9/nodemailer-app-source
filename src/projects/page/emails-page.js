@@ -18,10 +18,18 @@
         }
 
         dl.info-dl {
+            text-align: left;
+            font-size: 13px;
+            font-family: Sans-Serif;
+            color: #0a244d;
             display: flex;
             flex-flow: row wrap;
         }
         dl.info-dl dt {
+            text-align: left;
+            font-size: 13px;
+            font-family: Sans-Serif;
+            color: #0a244d;
             flex-basis: 20%;
             padding: 2px 4px;
             text-align: left;
@@ -39,6 +47,11 @@
             margin: 0;
             padding: 2px 4px;
             line-height: 1.1rem;
+        }
+
+        blockquote {
+            border-left: 1px navy solid;
+            padding-left: 5px;
         }
     </style>`;
 
@@ -81,6 +94,11 @@
             margin: 0;
             padding: 2px 4px;
             line-height: 1.1rem;
+        }
+
+        blockquote {
+            border-left: 1px navy solid;
+            padding-left: 5px;
         }
     </style>`;
 

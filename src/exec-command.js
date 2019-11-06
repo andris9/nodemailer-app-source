@@ -516,7 +516,12 @@ async function createPdf(curWin, projects, analyzer, params) {
         return false;
     }
 
-    const windowToPDF = new BrowserWindow({ show: false });
+    const windowToPDF = new BrowserWindow({
+        show: false,
+        webPreferences: {
+            javascript: false
+        }
+    });
     let html = params.html;
 
     await windowToPDF.loadURL('data:text/html;charset=UTF-8;base64,' + Buffer.from(html).toString('base64'), {});
@@ -524,7 +529,7 @@ async function createPdf(curWin, projects, analyzer, params) {
     const data = await windowToPDF.webContents.printToPDF({
         landscape: false,
         marginsType: 0,
-        printBackground: true,
+        printBackground: false,
         printSelectionOnly: false,
         pageSize: 'A4'
     });
