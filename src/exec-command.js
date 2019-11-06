@@ -2,7 +2,7 @@
 
 const fs = require('fs').promises;
 const fsCreateReadStream = require('fs').createReadStream;
-const { app, dialog, shell } = require('electron');
+const { app, dialog, shell, BrowserWindow } = require('electron');
 const prompt = require('./prompt/prompt');
 const pathlib = require('path');
 const { eachMessage } = require('mbox-reader');
@@ -498,6 +498,40 @@ async function saveEmail(curWin, projects, analyzer, params) {
     await analyzer.saveEmail(params.attachment, res.filePath);
 }
 
+async function createPdf(curWin, projects, analyzer, params) {
+    let fileName = params.filename
+        // eslint-disable-next-line no-control-regex
+        .replace(/[/\\_\-?%*:|"'<>\x00-\x1F\x7F]+/g, '_')
+        .replace(/\.+/, '.')
+        .replace(/^[\s_.]+|[\s_.]+$|_+\s|\s_+/g, ' ');
+
+    let res = await dialog.showSaveDialog(curWin, {
+        title: 'Export pdf',
+        defaultPath: fileName
+    });
+    if (res.canceled) {
+        return false;
+    }
+    if (res.canceled || !res.filePath) {
+        return false;
+    }
+
+    const windowToPDF = new BrowserWindow({ show: false });
+    let html = params.html;
+
+    await windowToPDF.loadURL('data:text/html;charset=UTF-8;base64,' + Buffer.from(html).toString('base64'), {});
+
+    const data = await windowToPDF.webContents.printToPDF({
+        landscape: false,
+        marginsType: 0,
+        printBackground: true,
+        printSelectionOnly: false,
+        pageSize: 'A4'
+    });
+
+    await fs.writeFile(res.filePath, data);
+}
+
 module.exports = async (curWin, projects, analyzer, data) => {
     switch (data.command) {
         case 'listProjects':
@@ -557,6 +591,9 @@ module.exports = async (curWin, projects, analyzer, data) => {
 
         case 'saveEmail':
             return await saveEmail(curWin, projects, analyzer, data.params);
+
+        case 'createPdf':
+            return await createPdf(curWin, projects, analyzer, data.params);
 
         default:
             throw new Error('Unknown command ' + JSON.stringify(data));

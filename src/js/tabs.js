@@ -8,10 +8,7 @@
             this.prefix = prefix;
 
             this.groupElm = document.getElementById(this.prefix);
-            console.log(this.prefix, this.groupElm);
-
             this.tabElms = Array.from(this.groupElm.querySelectorAll('.tab-item'));
-
             this.active = false;
 
             this.init();
