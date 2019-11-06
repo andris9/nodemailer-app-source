@@ -4,3 +4,7 @@ body {
     white-space: pre-wrap;
     color: #0a244d;
 }
+
+body {
+    max-width: 600px;
+}

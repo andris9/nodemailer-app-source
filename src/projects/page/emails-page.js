@@ -233,6 +233,9 @@
                     font-family: Sans-Serif;
                     color: #0a244d;
                 }
+                body {
+                    max-width: 600px;
+                }
                 </style>`;
                 if (clean.match(/<\/head\b[^>]*>/i)) {
                     clean = clean.replace(/<\/head\b[^>]*>/i, m => styleTag + m);
@@ -371,6 +374,9 @@
             this.buttonGroupElms.forEach(elm => elm.classList.remove('hidden'));
             this.pageElm.classList.remove('hidden');
             this.pageMenuElm.classList.add('active');
+
+            document.getElementById('middle-pane').classList.add('fixed-pane');
+
             this.visible = true;
 
             if (this.page !== 1) {
@@ -389,6 +395,8 @@
             this.pageElm.classList.add('hidden');
             this.pageMenuElm.classList.remove('active');
             this.visible = false;
+
+            document.getElementById('middle-pane').classList.remove('fixed-pane');
 
             this.selectable.disable();
         }

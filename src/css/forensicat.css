@@ -137,3 +137,7 @@ hr {
     flex-direction: column;
     overflow: hidden;
 }
+
+.fixed-pane {
+    max-width: 480px;
+}
