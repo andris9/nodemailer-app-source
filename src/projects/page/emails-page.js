@@ -1,5 +1,5 @@
 /* eslint global-require: 0 */
-/* global window, document, alert, exec, showLoader, hideLoader, DOMPurify */
+/* global window, document, alert, exec, showLoader, hideLoader, DOMPurify, Tabs */
 
 'use strict';
 
@@ -27,6 +27,8 @@
             this.rows = [];
 
             this.selectable = new window.Selectable(this.rows, (...args) => this.listAction(...args));
+
+            this.viewTabs = new Tabs('email-tab');
 
             this.renderedData = false;
 
@@ -152,16 +154,21 @@
                 infoList.appendChild(valElm);
             });
 
-            let tabContentElm = document.getElementById('email-tab-content');
             if (this.actionExternalElm.parentNode) {
                 this.actionButtonsElm.removeChild(this.actionExternalElm);
             }
 
-            this.redrawWithExternal = false;
-            tabContentElm.innerHTML = '';
+            let tabHtmlContentElm = document.getElementById('email-tab-html-content');
+            let tabPlainContentElm = document.getElementById('email-tab-plain-content');
+            let tabHeadersContentElm = document.getElementById('email-tab-headers-content');
 
+            tabHtmlContentElm.innerHTML = '';
+            tabPlainContentElm.innerHTML = '';
+            tabHeadersContentElm.innerHTML = '';
+
+            this.redrawWithExternal = false;
             let drawHtml = async (html, keepExternalResources) => {
-                tabContentElm.innerHTML = '';
+                tabHtmlContentElm.innerHTML = '';
 
                 let purifyConfig = {
                     WHOLE_DOCUMENT: true,
@@ -212,7 +219,7 @@
                     if (!this.actionExternalElm.parentNode) {
                         this.actionButtonsElm.appendChild(this.actionExternalElm);
                     }
-                    this.redrawWithExternal = () => drawHtml(html, true).catch(err => alert(err.message));
+                    this.redrawWithExternal = () => drawHtml(html, true);
                 } else {
                     if (this.actionExternalElm.parentNode) {
                         this.actionButtonsElm.removeChild(this.actionExternalElm);
@@ -233,14 +240,70 @@
                     clean = styleTag + clean;
                 }
                 clean = clean.replace();
+
                 let iframe = document.createElement('iframe');
                 iframe.setAttribute('sandbox', 'allow-popups allow-same-origin');
                 iframe.srcdoc = clean;
-                tabContentElm.appendChild(iframe);
+                tabHtmlContentElm.appendChild(iframe);
             };
 
+            let drawPlain = text => {
+                let escapeElm = document.createElement('span');
+                escapeElm.textContent = text;
+                let escaped = escapeElm.innerHTML.trim();
+
+                let html = `<!doctype html><head><meta charset="utf-8"><link rel="stylesheet" type="text/css" href="plain.css"></head><body>${escaped}</body>`;
+
+                let iframe = document.createElement('iframe');
+                iframe.setAttribute('sandbox', 'allow-popups allow-same-origin');
+                iframe.srcdoc = html;
+                tabPlainContentElm.appendChild(iframe);
+            };
+
+            let drawHeaders = headers => {
+                let escapeElm = document.createElement('span');
+                escapeElm.textContent = headers.original;
+                let escaped = escapeElm.innerHTML.trim();
+
+                let html = `<!doctype html><head><meta charset="utf-8"><link rel="stylesheet" type="text/css" href="plain.css"></head><body>${escaped}</body>`;
+
+                let iframe = document.createElement('iframe');
+                iframe.setAttribute('sandbox', 'allow-popups allow-same-origin');
+                iframe.srcdoc = html;
+                tabHeadersContentElm.appendChild(iframe);
+            };
+
+            let activeTab = false;
             if (data.text.html) {
                 drawHtml(data.text.html, false).catch(err => alert(err.message));
+
+                this.viewTabs.show('html');
+                if (!activeTab) {
+                    this.viewTabs.activate('html');
+                    activeTab = 'html';
+                }
+            } else {
+                this.viewTabs.hide('html');
+            }
+
+            if (data.text.plain) {
+                drawPlain(data.text.plain);
+
+                this.viewTabs.show('plain');
+                if (!activeTab) {
+                    this.viewTabs.activate('plain');
+                    activeTab = 'plain';
+                }
+            } else {
+                this.viewTabs.hide('plain');
+            }
+
+            drawHeaders(data.headers);
+
+            this.viewTabs.show('headers');
+            if (!activeTab) {
+                this.viewTabs.activate('headers');
+                activeTab = 'headers';
             }
 
             // keep reference for button actions
@@ -454,7 +517,10 @@
 
             this.actionExternalElm.addEventListener('click', () => {
                 if (typeof this.redrawWithExternal === 'function') {
-                    this.redrawWithExternal();
+                    showLoader()
+                        .then(this.redrawWithExternal)
+                        .catch(err => console.error(err))
+                        .finally(hideLoader);
                 }
             });
 

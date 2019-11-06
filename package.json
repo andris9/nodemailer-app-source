@@ -20,7 +20,7 @@
   "config": {
     "forge": {
       "packagerConfig": {
-        "buildVersion": "16E3BEF146E",
+        "buildVersion": "16E3FDF2042",
         "icon": "./src/icons/mac/icon.icns",
         "appCopyright": "© 2019 Andris Reinman",
         "appCategoryType": "public.app-category.utilities",

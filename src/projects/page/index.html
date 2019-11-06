@@ -251,14 +251,14 @@
 
                     <div class="pane emails-component hidden">
                         <div id="email-info" class="full-height hidden">
-                            <div class="tab-group">
-                                <div class="tab-item active">
+                            <div id="email-tab" class="tab-group">
+                                <div id="email-tab-html" class="tab-item">
                                     Rich text
                                 </div>
-                                <div class="tab-item">
+                                <div id="email-tab-plain" class="tab-item">
                                     Plain text
                                 </div>
-                                <div class="tab-item">
+                                <div id="email-tab-headers" class="tab-item">
                                     Headers
                                 </div>
                             </div>
@@ -273,7 +273,9 @@
                                     </div>
                                 </div>
                             </div>
-                            <div id="email-tab-content" class="padded-sides"></div>
+                            <div id="email-tab-html-content" class="padded-sides hidden"></div>
+                            <div id="email-tab-plain-content" class="padded-sides hidden"></div>
+                            <div id="email-tab-headers-content" class="padded-sides hidden"></div>
                         </div>
 
                         <div id="email-missing" class="center-block hidden">
@@ -291,6 +293,7 @@
         <script src="../../js/renderer.js" charset="utf-8"></script>
         <script src="../../js/menu.js" charset="utf-8"></script>
         <script src="../../js/selectable.js" charset="utf-8"></script>
+        <script src="../../js/tabs.js" charset="utf-8"></script>
 
         <script type="text/javascript" src="../../js/purify/purify.min.js"></script>
         <script type="text/javascript" src="../../js/purify/config.js"></script>
