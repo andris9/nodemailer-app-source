@@ -4,13 +4,14 @@ const fs = require('fs').promises;
 const fsCreateReadStream = require('fs').createReadStream;
 const { app, dialog, shell, BrowserWindow } = require('electron');
 const prompt = require('./prompt/prompt');
+const postfixParser = require('./postfix/parser');
 const pathlib = require('path');
 const { eachMessage } = require('mbox-reader');
 const MaildirScan = require('maildir-scan');
 const util = require('util');
 const recursiveReaddir = require('recursive-readdir');
 
-async function createImportFromFile(curWin, projects, analyzer, params) {
+async function createImportFromMbox(curWin, projects, analyzer, params) {
     let res;
     if (params && params.filePaths) {
         res = {
@@ -338,6 +339,68 @@ async function createImportFromEml(curWin, projects, analyzer) {
     return importId;
 }
 
+async function createImportFromPostfix(curWin, projects, analyzer) {
+    let res = await dialog.showOpenDialog(curWin, {
+        title: 'Select Postfix queue files',
+        properties: ['openFile', 'multiSelections']
+    });
+    if (res.canceled) {
+        return false;
+    }
+    if (!res.filePaths || !res.filePaths.length) {
+        return false;
+    }
+
+    let paths = res.filePaths;
+    let totalsize = paths.length;
+
+    let importId = await projects.createImport(analyzer.id, {
+        totalsize,
+        source: {
+            format: 'folder',
+            filePaths: res.filePaths
+        }
+    });
+
+    let processImport = async () => {
+        for (let path of paths) {
+            try {
+                let messageData = await postfixParser(await fs.readFile(path));
+
+                let { size } = await analyzer.import(
+                    {
+                        source: {
+                            filename: path,
+                            importId,
+                            envelope: messageData.envelope
+                        },
+                        idate: messageData.envelope.arrivalTime,
+                        returnPath: messageData.envelope.sender
+                    },
+                    messageData.content
+                );
+
+                // increment counters
+                await projects.updateImport(analyzer.id, importId, { emails: 1, processed: 1, size });
+            } catch (err) {
+                // ignore for a single file
+                console.error(err);
+            }
+        }
+    };
+
+    setImmediate(() => {
+        projects._imports++;
+        processImport()
+            .catch(err => console.error(err))
+            .finally(() => {
+                projects._imports--;
+            });
+    });
+
+    return importId;
+}
+
 async function listProjects(curWin, projects) {
     let response = {
         data: await projects.list()
@@ -554,8 +617,8 @@ module.exports = async (curWin, projects, analyzer, data) => {
         case 'openProject':
             return await openProject(curWin, projects, analyzer, data.params);
 
-        case 'createImportFromFile':
-            return await createImportFromFile(curWin, projects, analyzer, data.params);
+        case 'createImportFromMbox':
+            return await createImportFromMbox(curWin, projects, analyzer, data.params);
 
         case 'createImportFromMaildir':
             return await createImportFromMaildir(curWin, projects, analyzer, data.params);
@@ -565,6 +628,9 @@ module.exports = async (curWin, projects, analyzer, data) => {
 
         case 'createImportFromEml':
             return await createImportFromEml(curWin, projects, analyzer, data.params);
+
+        case 'createImportFromPostfix':
+            return await createImportFromPostfix(curWin, projects, analyzer, data.params);
 
         case 'listImports':
             return await listImports(curWin, projects, analyzer, data.params);

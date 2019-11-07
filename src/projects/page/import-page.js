@@ -8,6 +8,8 @@
     const humanize = require('humanize');
     const { getCurrentWindow, Menu, MenuItem } = require('electron').remote;
 
+    window.__hasChanges = 0;
+
     class ImportPage {
         constructor() {
             this.importListElm = document.getElementById('import-list');
@@ -54,7 +56,7 @@
                         showLoader()
                             .then(() =>
                                 exec({
-                                    command: 'createImportFromFile'
+                                    command: 'createImportFromMbox'
                                 })
                             )
                             .then(res => {
@@ -131,6 +133,27 @@
                 })
             );
 
+            menu.append(
+                new MenuItem({
+                    label: 'Import Postfix queue files',
+                    click() {
+                        showLoader()
+                            .then(() =>
+                                exec({
+                                    command: 'createImportFromPostfix'
+                                })
+                            )
+                            .then(res => {
+                                if (res) {
+                                    alert('Import started');
+                                }
+                            })
+                            .catch(err => alert(err.message))
+                            .finally(() => hideLoader());
+                    }
+                })
+            );
+
             if (typeof process !== 'undefined' && process && process.env && process.env.USER) {
                 try {
                     let path = '/var/mail/' + process.env.USER;
@@ -143,7 +166,7 @@
                                     showLoader()
                                         .then(() =>
                                             exec({
-                                                command: 'createImportFromFile',
+                                                command: 'createImportFromMbox',
                                                 params: {
                                                     filePaths: [path]
                                                 }
@@ -179,6 +202,8 @@
                 if (importRow) {
                     importRow.data = data;
                     this.paintImportCell(importRow.elm, data);
+
+                    window.__hasChanges++;
                 }
             });
 

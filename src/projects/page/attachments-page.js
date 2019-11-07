@@ -24,6 +24,8 @@
 
             this.selectable = new window.Selectable(this.rows, (...args) => this.listAction(...args));
 
+            this.lastChanges = 0;
+
             this.renderedData = false;
 
             this.term = '';
@@ -42,6 +44,9 @@
                 this.page = 1;
                 this.term = '';
                 this.clearSearch();
+                await this.reload();
+            } else if (window.__hasChanges !== this.lastChanges) {
+                this.lastChanges = window.__hasChanges;
                 await this.reload();
             }
 
