@@ -77,6 +77,7 @@ async function createImportFromMbox(curWin, projects, analyzer, params) {
                     let { size } = await analyzer.import(
                         {
                             source: {
+                                format: 'mbox',
                                 filename,
                                 importId
                             },
@@ -169,6 +170,7 @@ async function createImportFromMaildir(curWin, projects, analyzer) {
                 let { size } = await analyzer.import(
                     {
                         source: {
+                            format: 'maildir',
                             filename: messageData.path,
                             importId
                         },
@@ -249,6 +251,7 @@ async function createImportFromFolder(curWin, projects, analyzer) {
                 let { size } = await analyzer.import(
                     {
                         source: {
+                            format: 'eml',
                             filename: path,
                             importId
                         }
@@ -297,7 +300,7 @@ async function createImportFromEml(curWin, projects, analyzer) {
     let importId = await projects.createImport(analyzer.id, {
         totalsize,
         source: {
-            format: 'folder',
+            format: 'eml',
             filePaths: res.filePaths
         }
     });
@@ -309,6 +312,7 @@ async function createImportFromEml(curWin, projects, analyzer) {
                 let { size } = await analyzer.import(
                     {
                         source: {
+                            format: 'eml',
                             filename: path,
                             importId
                         }
@@ -357,7 +361,7 @@ async function createImportFromPostfix(curWin, projects, analyzer) {
     let importId = await projects.createImport(analyzer.id, {
         totalsize,
         source: {
-            format: 'folder',
+            format: 'postfix',
             filePaths: res.filePaths
         }
     });
@@ -370,6 +374,7 @@ async function createImportFromPostfix(curWin, projects, analyzer) {
                 let { size } = await analyzer.import(
                     {
                         source: {
+                            format: 'postfix',
                             filename: path,
                             importId,
                             envelope: messageData.envelope

@@ -728,7 +728,7 @@ class Analyzer {
         }
 
         const queryParams = {
-            $source: metadata.source || null,
+            $source: JSON.stringify(metadata.source || {}),
             $return_path: returnPath || null,
             $text: ftsText.join('\n'),
             $key: key,
