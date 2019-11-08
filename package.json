@@ -7,7 +7,7 @@
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
-    "make": "node build.js && electron-forge make",
+    "make": "node build.js && electron-forge make && node teardown.js",
     "publish": "electron-forge publish",
     "test": "grunt"
   },
@@ -20,8 +20,8 @@
   "config": {
     "forge": {
       "packagerConfig": {
-        "buildVersion": "16E3FDF2042",
-        "icon": "./src/icons/mac/icon.icns",
+        "buildVersion": "",
+        "icon": "",
         "appCopyright": "© 2019 Andris Reinman",
         "appCategoryType": "public.app-category.utilities",
         "win32metadata": {
