@@ -31,7 +31,7 @@ exec('git rev-parse HEAD', (err, stdout) => {
         icon = './src/icons/mac/icon.icns';
     } else if (opsys === 'win32' || opsys === 'win64') {
         icon = './src/icons/win/icon.ico';
-    } else if (opsys === 'linux') {
+    } else {
         icon = './src/icons/png/128x128.png';
     }
 

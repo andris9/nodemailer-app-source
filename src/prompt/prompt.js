@@ -63,8 +63,9 @@ function electronPrompt(options, parentWindow) {
             icon: pathlib.join(__dirname, '..', 'icons/png/64x64.png')
         });
 
-        // promptWindow.setMenu(null);
-        // promptWindow.setMenuBarVisibility(opts.menuBarVisible);
+        promptWindow.removeMenu();
+        promptWindow.setMenu(null);
+        promptWindow.setMenuBarVisibility(false);
 
         const getOptionsListener = event => {
             event.returnValue = JSON.stringify(opts);
