@@ -233,7 +233,7 @@ const importFromEmlMenuItem = {
 
 const importFromFolderMenuItem = {
     id: 'import-folder',
-    label: 'Scan folder recursively for EML files…',
+    label: 'Scan folder recursively for *.eml files…',
     enabled: false,
     click: () => {
         let focused = BrowserWindow.getFocusedWindow();

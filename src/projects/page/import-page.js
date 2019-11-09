@@ -115,7 +115,7 @@
 
             menu.append(
                 new MenuItem({
-                    label: 'Import from MBOX',
+                    label: 'Import from MBOX…',
                     click() {
                         this.createImportFromMbox();
                     }
@@ -124,7 +124,7 @@
 
             menu.append(
                 new MenuItem({
-                    label: 'Import from MAILDIR',
+                    label: 'Import from MAILDIR…',
                     click() {
                         this.createImportFromMaildir();
                     }
@@ -133,7 +133,7 @@
 
             menu.append(
                 new MenuItem({
-                    label: 'Import selected EML files',
+                    label: 'Import from EML files…',
                     click() {
                         this.createImportFromEml();
                     }
@@ -142,7 +142,7 @@
 
             menu.append(
                 new MenuItem({
-                    label: 'Scan folder for EML files',
+                    label: 'Scan folder recursively for *.eml files…',
                     click() {
                         this.createImportFromFolder();
                     }
@@ -151,7 +151,7 @@
 
             menu.append(
                 new MenuItem({
-                    label: 'Import Postfix queue files',
+                    label: 'Import from Postfix queue files…',
                     click() {
                         this.createImportFromPostfix();
                     }
