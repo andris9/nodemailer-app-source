@@ -12,11 +12,13 @@ exec('git rev-parse HEAD', (err, stdout) => {
         console.error(err);
         return process.exit(1);
     }
-    let hash = (stdout || '')
-        .toString()
-        .trim()
-        .toUpperCase()
-        .substr(0, 8);
+    let hash = parseInt(
+        (stdout || '')
+            .toString()
+            .trim()
+            .substr(0, 6),
+        16
+    );
     if (!hash) {
         hash = Date.now()
             .toString(16)
