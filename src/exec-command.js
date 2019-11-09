@@ -10,6 +10,7 @@ const { eachMessage } = require('mbox-reader');
 const MaildirScan = require('maildir-scan');
 const util = require('util');
 const recursiveReaddir = require('recursive-readdir');
+const zlib = require('zlib');
 
 async function createImportFromMbox(curWin, projects, analyzer, params) {
     let res;
@@ -32,6 +33,10 @@ async function createImportFromMbox(curWin, projects, analyzer, params) {
     }
 
     for (let path of res.filePaths) {
+        if (pathlib.parse(path).ext.toLowerCase() === '.gz') {
+            // skip format validation
+            continue;
+        }
         let buffer = Buffer.alloc(5);
         try {
             let fd = await fs.open(path, 'r');
@@ -72,6 +77,17 @@ async function createImportFromMbox(curWin, projects, analyzer, params) {
         try {
             for (let filename of res.filePaths) {
                 let input = fsCreateReadStream(filename);
+
+                if (pathlib.parse(filename).ext.toLowerCase() === '.gz') {
+                    // process as gz stream
+                    let gz = zlib.createGunzip();
+                    input.pipe(gz);
+                    input.on('error', err => {
+                        gz.emit('error', err);
+                    });
+                    input = gz;
+                }
+
                 let lastSize = 0;
                 for await (let messageData of eachMessage(input)) {
                     let { size } = await analyzer.import(

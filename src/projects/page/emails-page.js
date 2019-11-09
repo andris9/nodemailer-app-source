@@ -14,7 +14,7 @@
             color: #0a244d;
         }
         body {
-            max-width: 600px;
+            max-width: 600px; /* body_max_width */
         }
 
         dl.info-dl {
@@ -68,7 +68,7 @@
         }
         
         body {
-            max-width: 600px;
+            max-width: 600px; /* body_max_width */
         }
         
 
@@ -219,8 +219,7 @@
                 { key: 'from', name: 'From', type: 'address' },
                 { key: 'to', name: 'To', type: 'address' },
                 { key: 'cc', name: 'Cc', type: 'address' },
-                { key: 'bcc', name: 'Bcc', type: 'address' },
-                { key: 'messageId', name: 'Message-ID', type: 'text', contained: true }
+                { key: 'bcc', name: 'Bcc', type: 'address' }
             ].forEach(entry => {
                 switch (entry.type) {
                     case 'address':
@@ -429,6 +428,9 @@
             } else {
                 html = infoHtml + '<hr />' + html;
             }
+
+            // remove max body width definition for PDF
+            html = html.replace(/^.*body_max_width.*$/gm, '');
 
             await showLoader();
             try {

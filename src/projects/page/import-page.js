@@ -116,7 +116,7 @@
             menu.append(
                 new MenuItem({
                     label: 'Import from MBOX…',
-                    click() {
+                    click: () => {
                         this.createImportFromMbox();
                     }
                 })
@@ -125,7 +125,7 @@
             menu.append(
                 new MenuItem({
                     label: 'Import from MAILDIR…',
-                    click() {
+                    click: () => {
                         this.createImportFromMaildir();
                     }
                 })
@@ -134,7 +134,7 @@
             menu.append(
                 new MenuItem({
                     label: 'Import from EML files…',
-                    click() {
+                    click: () => {
                         this.createImportFromEml();
                     }
                 })
@@ -143,7 +143,7 @@
             menu.append(
                 new MenuItem({
                     label: 'Scan folder recursively for *.eml files…',
-                    click() {
+                    click: () => {
                         this.createImportFromFolder();
                     }
                 })
@@ -152,7 +152,7 @@
             menu.append(
                 new MenuItem({
                     label: 'Import from Postfix queue files…',
-                    click() {
+                    click: () => {
                         this.createImportFromPostfix();
                     }
                 })
@@ -166,7 +166,7 @@
                         menu.append(
                             new MenuItem({
                                 label: 'Import local mail account',
-                                click() {
+                                click: () => {
                                     showLoader()
                                         .then(() =>
                                             exec({
