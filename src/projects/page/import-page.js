@@ -225,6 +225,21 @@
                         return this.createImportFromPostfix();
                 }
             });
+
+            let dropElm = document.getElementById('middle-pane');
+            dropElm.ondragover = () => false;
+            dropElm.ondragleave = () => false;
+            dropElm.ondragend = () => false;
+            dropElm.ondrop = e => {
+                e.preventDefault();
+
+                for (let f of e.dataTransfer.files) {
+                    // TODO: import files
+                    console.log('File(s) you dragged here: ', f.path);
+                }
+
+                return false;
+            };
         }
 
         paintImportCell(rowElm, importData) {
