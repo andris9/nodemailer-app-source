@@ -8,7 +8,7 @@ const mkdirp = util.promisify(require('mkdirp'));
 const rimraf = util.promisify(require('rimraf'));
 const fs = require('fs').promises;
 const Analyzer = require('../analyzer/lib/analyzer.js');
-const { BrowserWindow } = require('electron');
+const { BrowserWindow, Menu } = require('electron');
 
 const VERSION = 1;
 
@@ -380,6 +380,30 @@ class Projects {
             // in an array if your app supports multi windows, this is the time
             // when you should delete the corresponding element.
             projectWindow = null;
+        });
+
+        projectWindow.on('blur', () => {
+            let menu = Menu.getApplicationMenu();
+            if (menu) {
+                ['import-mbox', 'import-maildir', 'import-eml', 'import-folder', 'import-postfix'].forEach(key => {
+                    let menuItem = menu.getMenuItemById(key);
+                    if (menuItem) {
+                        menuItem.enabled = false;
+                    }
+                });
+            }
+        });
+
+        projectWindow.on('focus', () => {
+            let menu = Menu.getApplicationMenu();
+            if (menu) {
+                ['import-mbox', 'import-maildir', 'import-eml', 'import-folder', 'import-postfix'].forEach(key => {
+                    let menuItem = menu.getMenuItemById(key);
+                    if (menuItem) {
+                        menuItem.enabled = true;
+                    }
+                });
+            }
         });
     }
 

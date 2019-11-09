@@ -44,28 +44,36 @@
         let selected = 'imports';
         await pages.imports.show();
 
+        let activateView = target => {
+            if (!pages[target] || target === selected) {
+                // nothing to do here
+                return;
+            }
+            pages[selected]
+                .hide()
+                .then(() => {})
+                .catch(err => console.error(err))
+                .finally(() => {
+                    pages[target]
+                        .show()
+                        .then(() => {})
+                        .catch(err => console.error(err))
+                        .finally(() => {
+                            selected = target;
+                        });
+                });
+        };
+
+        Object.keys(pages).forEach(target => {
+            pages[target].focus = () => activateView(target);
+        });
+
         let menuItems = Array.from(document.querySelectorAll('.page-menu'));
         for (let menuItem of menuItems) {
             let target = menuItem.dataset.target;
 
             menuItem.addEventListener('click', () => {
-                if (!pages[target] || target === selected) {
-                    // nothing to do here
-                    return;
-                }
-                pages[selected]
-                    .hide()
-                    .then(() => {})
-                    .catch(err => console.error(err))
-                    .finally(() => {
-                        pages[target]
-                            .show()
-                            .then(() => {})
-                            .catch(err => console.error(err))
-                            .finally(() => {
-                                selected = target;
-                            });
-                    });
+                activateView(target);
             });
         }
 

@@ -28,6 +28,10 @@
             console.log(action, row);
         }
 
+        async focus() {
+            // overriden by main
+        }
+
         async show() {
             this.buttonGroupElms.forEach(elm => elm.classList.remove('hidden'));
             this.pageElm.classList.remove('hidden');
@@ -46,6 +50,66 @@
             this.selectable.disable();
         }
 
+        createImportFromMbox() {
+            showLoader()
+                .then(() =>
+                    exec({
+                        command: 'createImportFromMbox'
+                    })
+                )
+                .then(() => this.focus())
+                .catch(() => false)
+                .finally(() => hideLoader());
+        }
+
+        createImportFromMaildir() {
+            showLoader()
+                .then(() =>
+                    exec({
+                        command: 'createImportFromMaildir'
+                    })
+                )
+                .then(() => this.focus())
+                .catch(() => false)
+                .finally(() => hideLoader());
+        }
+
+        createImportFromEml() {
+            showLoader()
+                .then(() =>
+                    exec({
+                        command: 'createImportFromEml'
+                    })
+                )
+                .then(() => this.focus())
+                .catch(() => false)
+                .finally(() => hideLoader());
+        }
+
+        createImportFromFolder() {
+            showLoader()
+                .then(() =>
+                    exec({
+                        command: 'createImportFromFolder'
+                    })
+                )
+                .then(() => this.focus())
+                .catch(() => false)
+                .finally(() => hideLoader());
+        }
+
+        createImportFromPostfix() {
+            showLoader()
+                .then(() =>
+                    exec({
+                        command: 'createImportFromPostfix'
+                    })
+                )
+                .then(() => this.focus())
+                .catch(() => false)
+                .finally(() => hideLoader());
+        }
+
         async init() {
             const menu = new Menu();
 
@@ -53,15 +117,7 @@
                 new MenuItem({
                     label: 'Import from MBOX',
                     click() {
-                        showLoader()
-                            .then(() =>
-                                exec({
-                                    command: 'createImportFromMbox'
-                                })
-                            )
-                            .then(() => false)
-                            .catch(() => false)
-                            .finally(() => hideLoader());
+                        this.createImportFromMbox();
                     }
                 })
             );
@@ -70,15 +126,7 @@
                 new MenuItem({
                     label: 'Import from MAILDIR',
                     click() {
-                        showLoader()
-                            .then(() =>
-                                exec({
-                                    command: 'createImportFromMaildir'
-                                })
-                            )
-                            .then(() => false)
-                            .catch(() => false)
-                            .finally(() => hideLoader());
+                        this.createImportFromMaildir();
                     }
                 })
             );
@@ -87,15 +135,7 @@
                 new MenuItem({
                     label: 'Import selected EML files',
                     click() {
-                        showLoader()
-                            .then(() =>
-                                exec({
-                                    command: 'createImportFromEml'
-                                })
-                            )
-                            .then(() => false)
-                            .catch(() => false)
-                            .finally(() => hideLoader());
+                        this.createImportFromEml();
                     }
                 })
             );
@@ -104,15 +144,7 @@
                 new MenuItem({
                     label: 'Scan folder for EML files',
                     click() {
-                        showLoader()
-                            .then(() =>
-                                exec({
-                                    command: 'createImportFromFolder'
-                                })
-                            )
-                            .then(() => false)
-                            .catch(() => false)
-                            .finally(() => hideLoader());
+                        this.createImportFromFolder();
                     }
                 })
             );
@@ -121,15 +153,7 @@
                 new MenuItem({
                     label: 'Import Postfix queue files',
                     click() {
-                        showLoader()
-                            .then(() =>
-                                exec({
-                                    command: 'createImportFromPostfix'
-                                })
-                            )
-                            .then(() => false)
-                            .catch(() => false)
-                            .finally(() => hideLoader());
+                        this.createImportFromPostfix();
                     }
                 })
             );
@@ -152,7 +176,7 @@
                                                 }
                                             })
                                         )
-                                        .then(() => false)
+                                        .then(() => this.focus())
                                         .catch(() => false)
                                         .finally(() => hideLoader());
                                 }
@@ -185,6 +209,21 @@
 
             window.events.subscribe('import-list', data => {
                 this.renderImports(data);
+            });
+
+            window.events.subscribe('menu-click', data => {
+                switch (data.type) {
+                    case 'import-mbox':
+                        return this.createImportFromMbox();
+                    case 'import-maildir':
+                        return this.createImportFromMaildir();
+                    case 'import-eml':
+                        return this.createImportFromEml();
+                    case 'import-folder':
+                        return this.createImportFromFolder();
+                    case 'import-postfix':
+                        return this.createImportFromPostfix();
+                }
             });
         }
 

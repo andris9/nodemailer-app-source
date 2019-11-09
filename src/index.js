@@ -151,13 +151,15 @@ const renameProjectMenuItem = {
     label: 'Rename Project',
     enabled: false,
     click: () => {
-        BrowserWindow.getFocusedWindow().webContents.send(
-            'menu-click',
-            JSON.stringify({
-                id: 'static',
-                type: 'rename-project'
-            })
-        );
+        let focused = BrowserWindow.getFocusedWindow();
+        focused &&
+            focused.webContents.send(
+                'menu-click',
+                JSON.stringify({
+                    id: 'static',
+                    type: 'rename-project'
+                })
+            );
     }
 };
 
@@ -166,15 +168,103 @@ const deleteProjectMenuItem = {
     label: 'Delete Project',
     enabled: false,
     click: () => {
-        BrowserWindow.getFocusedWindow().webContents.send(
-            'menu-click',
-            JSON.stringify({
-                id: 'static',
-                type: 'delete-project'
-            })
-        );
+        let focused = BrowserWindow.getFocusedWindow();
+        focused &&
+            focused.webContents.send(
+                'menu-click',
+                JSON.stringify({
+                    id: 'static',
+                    type: 'delete-project'
+                })
+            );
     }
 };
+
+const importFromMboxMenuItem = {
+    id: 'import-mbox',
+    label: 'From MBOX…',
+    enabled: false,
+    click: () => {
+        let focused = BrowserWindow.getFocusedWindow();
+        focused &&
+            focused.webContents.send(
+                'menu-click',
+                JSON.stringify({
+                    id: 'static',
+                    type: 'import-mbox'
+                })
+            );
+    }
+};
+
+const importFromMaildirMenuItem = {
+    id: 'import-maildir',
+    label: 'From MAILDIR…',
+    enabled: false,
+    click: () => {
+        let focused = BrowserWindow.getFocusedWindow();
+        focused &&
+            focused.webContents.send(
+                'menu-click',
+                JSON.stringify({
+                    id: 'static',
+                    type: 'import-maildir'
+                })
+            );
+    }
+};
+
+const importFromEmlMenuItem = {
+    id: 'import-eml',
+    label: 'From EML files…',
+    enabled: false,
+    click: () => {
+        let focused = BrowserWindow.getFocusedWindow();
+        focused &&
+            focused.webContents.send(
+                'menu-click',
+                JSON.stringify({
+                    id: 'static',
+                    type: 'import-eml'
+                })
+            );
+    }
+};
+
+const importFromFolderMenuItem = {
+    id: 'import-folder',
+    label: 'Scan folder recursively for EML files…',
+    enabled: false,
+    click: () => {
+        let focused = BrowserWindow.getFocusedWindow();
+        focused &&
+            focused.webContents.send(
+                'menu-click',
+                JSON.stringify({
+                    id: 'static',
+                    type: 'import-folder'
+                })
+            );
+    }
+};
+
+const importFromPostfixMenuItem = {
+    id: 'import-postfix',
+    label: 'From Postfix queue files…',
+    enabled: false,
+    click: () => {
+        let focused = BrowserWindow.getFocusedWindow();
+        focused &&
+            focused.webContents.send(
+                'menu-click',
+                JSON.stringify({
+                    id: 'static',
+                    type: 'import-postfix'
+                })
+            );
+    }
+};
+
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
 
@@ -227,6 +317,10 @@ const template = [
                   ]
                 : [{ role: 'delete' }, { type: 'separator' }, { role: 'selectAll' }])
         ]
+    },
+    {
+        label: 'Import',
+        submenu: [importFromMboxMenuItem, importFromMaildirMenuItem, importFromEmlMenuItem, importFromPostfixMenuItem, importFromFolderMenuItem]
     },
     // { role: 'viewMenu' }
     {

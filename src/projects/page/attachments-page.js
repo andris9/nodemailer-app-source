@@ -34,6 +34,10 @@
             this.visible = false;
         }
 
+        async focus() {
+            // overriden by main
+        }
+
         async show() {
             this.buttonGroupElms.forEach(elm => elm.classList.remove('hidden'));
             this.pageElm.classList.remove('hidden');
