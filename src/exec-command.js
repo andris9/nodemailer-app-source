@@ -75,10 +75,10 @@ async function createImportFromMbox(curWin, projects, analyzer, params) {
     let processImport = async () => {
         let errored = false;
         try {
-            for (let filename of res.filePaths) {
-                let input = fsCreateReadStream(filename);
+            for (let path of res.filePaths) {
+                let input = fsCreateReadStream(path);
 
-                if (pathlib.parse(filename).ext.toLowerCase() === '.gz') {
+                if (pathlib.parse(path).ext.toLowerCase() === '.gz') {
                     // process as gz stream
                     let gz = zlib.createGunzip();
                     input.pipe(gz);
@@ -94,7 +94,7 @@ async function createImportFromMbox(curWin, projects, analyzer, params) {
                         {
                             source: {
                                 format: 'mbox',
-                                filename,
+                                filename: path,
                                 importId
                             },
                             idate: messageData.time,
@@ -183,6 +183,18 @@ async function createImportFromMaildir(curWin, projects, analyzer) {
         let errored = false;
         try {
             for (let messageData of messages) {
+                let input = fsCreateReadStream(messageData.fullpath);
+
+                if (pathlib.parse(messageData.fullpath).ext.toLowerCase() === '.gz') {
+                    // process as gz stream
+                    let gz = zlib.createGunzip();
+                    input.pipe(gz);
+                    input.on('error', err => {
+                        gz.emit('error', err);
+                    });
+                    input = gz;
+                }
+
                 let { size } = await analyzer.import(
                     {
                         source: {
@@ -194,7 +206,7 @@ async function createImportFromMaildir(curWin, projects, analyzer) {
                         flags: messageData.flags && messageData.flags.length ? messageData.flags : null,
                         labels: messageData.folder ? [messageData.folder] : null
                     },
-                    fsCreateReadStream(messageData.fullpath)
+                    input
                 );
 
                 // increment counters
@@ -237,7 +249,7 @@ async function createImportFromFolder(curWin, projects, analyzer) {
         try {
             let list = await recursiveReaddir(path, [
                 (file, stats) => {
-                    if (stats.isDirectory() || pathlib.extname(file).toLowerCase() === '.eml') {
+                    if (stats.isDirectory() || ['.eml', '.eml.gz'].includes(pathlib.extname(file).toLowerCase())) {
                         return false;
                     }
                     return true;
@@ -264,6 +276,18 @@ async function createImportFromFolder(curWin, projects, analyzer) {
         let errored = false;
         try {
             for (let path of paths) {
+                let input = fsCreateReadStream(path);
+
+                if (pathlib.parse(path).ext.toLowerCase() === '.gz') {
+                    // process as gz stream
+                    let gz = zlib.createGunzip();
+                    input.pipe(gz);
+                    input.on('error', err => {
+                        gz.emit('error', err);
+                    });
+                    input = gz;
+                }
+
                 let { size } = await analyzer.import(
                     {
                         source: {
@@ -272,7 +296,7 @@ async function createImportFromFolder(curWin, projects, analyzer) {
                             importId
                         }
                     },
-                    fsCreateReadStream(path)
+                    input
                 );
 
                 // increment counters
@@ -325,6 +349,18 @@ async function createImportFromEml(curWin, projects, analyzer) {
         let errored = false;
         try {
             for (let path of paths) {
+                let input = fsCreateReadStream(path);
+
+                if (pathlib.parse(path).ext.toLowerCase() === '.gz') {
+                    // process as gz stream
+                    let gz = zlib.createGunzip();
+                    input.pipe(gz);
+                    input.on('error', err => {
+                        gz.emit('error', err);
+                    });
+                    input = gz;
+                }
+
                 let { size } = await analyzer.import(
                     {
                         source: {
@@ -333,7 +369,7 @@ async function createImportFromEml(curWin, projects, analyzer) {
                             importId
                         }
                     },
-                    fsCreateReadStream(path)
+                    input
                 );
 
                 // increment counters
