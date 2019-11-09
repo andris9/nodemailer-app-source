@@ -26,8 +26,10 @@
             case 'open':
                 openProject(row.data.id);
                 break;
+
             case 'active':
                 projectEditGroupElm.classList.remove('hidden');
+
                 exec({
                     command: 'updateMenu',
                     params: {
@@ -36,8 +38,10 @@
                     }
                 }).catch(() => false);
                 break;
+
             case 'deactivate':
                 projectEditGroupElm.classList.add('hidden');
+
                 exec({
                     command: 'updateMenu',
                     params: {
@@ -144,12 +148,38 @@
             return redrawList();
         });
 
+        window.events.subscribe('focus-change', data => {
+            switch (data.type) {
+                case 'blur':
+                    return exec({
+                        command: 'updateMenu',
+                        params: {
+                            id: ['rename-project', 'delete-project'],
+                            enabled: false
+                        }
+                    }).catch(() => false);
+                case 'focus':
+                    {
+                        let active = selectable.getSelected();
+                        if (active) {
+                            return exec({
+                                command: 'updateMenu',
+                                params: {
+                                    id: ['rename-project', 'delete-project'],
+                                    enabled: true
+                                }
+                            }).catch(() => false);
+                        }
+                    }
+                    break;
+            }
+        });
+
         window.events.subscribe('menu-click', data => {
             switch (data.type) {
                 case 'rename-project': {
-                    let active = elements.find(elm => elm.elm.classList.contains('active'));
+                    let active = selectable.getSelected();
                     if (!active) {
-                        editActiveBtn.classList.remove('active');
                         return;
                     }
 
@@ -169,9 +199,8 @@
                 }
 
                 case 'delete-project': {
-                    let active = elements.find(elm => elm.elm.classList.contains('active'));
+                    let active = selectable.getSelected();
                     if (!active) {
-                        editActiveBtn.classList.remove('active');
                         return;
                     }
                     if (!confirm(`Are you sure you want to delete "${active.data.name}"?`)) {

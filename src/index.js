@@ -64,6 +64,26 @@ const createWindow = () => {
         // when you should delete the corresponding element.
         mainWindow = null;
     });
+
+    mainWindow.on('blur', () => {
+        mainWindow.webContents.send(
+            'focus-change',
+            JSON.stringify({
+                id: 'static',
+                type: 'blur'
+            })
+        );
+    });
+
+    mainWindow.on('focus', () => {
+        mainWindow.webContents.send(
+            'focus-change',
+            JSON.stringify({
+                id: 'static',
+                type: 'focus'
+            })
+        );
+    });
 };
 
 // This method will be called when Electron has finished
