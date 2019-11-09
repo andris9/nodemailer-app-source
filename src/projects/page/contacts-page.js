@@ -1,5 +1,5 @@
 /* eslint global-require: 0 */
-/* global window, document, exec, alert, showLoader, hideLoader */
+/* global window, document, exec, showLoader, hideLoader */
 
 'use strict';
 
@@ -170,9 +170,7 @@
             refreshBtnElm.addEventListener('click', () => {
                 refreshBtnElm.classList.add('active');
                 this.reload()
-                    .catch(err => {
-                        alert(err.message);
-                    })
+                    .catch(() => false)
                     .finally(() => {
                         refreshBtnElm.classList.remove('active');
                     });
@@ -183,9 +181,7 @@
                     this.page++;
                     this.pageNextElm.classList.add('active');
                     this.reload()
-                        .catch(err => {
-                            alert(err.message);
-                        })
+                        .catch(() => false)
                         .finally(() => {
                             this.pageNextElm.classList.remove('active');
                         });
@@ -197,9 +193,7 @@
                     this.page--;
                     this.pagePrevElm.classList.add('active');
                     this.reload()
-                        .catch(err => {
-                            alert(err.message);
-                        })
+                        .catch(() => false)
                         .finally(() => {
                             this.pagePrevElm.classList.remove('active');
                         });
@@ -210,9 +204,7 @@
             searchBtnElm.addEventListener('click', () => {
                 searchBtnElm.classList.add('active');
                 this.search()
-                    .catch(err => {
-                        alert(err.message);
-                    })
+                    .catch(() => false)
                     .finally(() => {
                         searchBtnElm.classList.remove('active');
                     });
@@ -222,9 +214,7 @@
             searchClearElm.addEventListener('click', () => {
                 this.clearSearch();
 
-                this.reload().catch(err => {
-                    alert(err.message);
-                });
+                this.reload().catch(() => false);
             });
         }
     }

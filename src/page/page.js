@@ -28,9 +28,23 @@
                 break;
             case 'active':
                 projectEditGroupElm.classList.remove('hidden');
+                exec({
+                    command: 'updateMenu',
+                    params: {
+                        id: ['rename-project', 'delete-project'],
+                        enabled: true
+                    }
+                }).catch(() => false);
                 break;
             case 'deactivate':
                 projectEditGroupElm.classList.add('hidden');
+                exec({
+                    command: 'updateMenu',
+                    params: {
+                        id: ['rename-project', 'delete-project'],
+                        enabled: false
+                    }
+                }).catch(() => false);
                 break;
         }
     });
@@ -46,15 +60,6 @@
         imgElm.setAttribute('width', '32');
         imgElm.setAttribute('height', '32');
         liElm.appendChild(imgElm);
-
-        // menu buttons
-        /*
-        <div class="btn-group pull-right">
-            <button class="btn btn-default">
-                <span class="icon icon-export"></span>
-            </button>
-        </div>
-        */
 
         let menuBtnOpenElm = document.createElement('button');
         menuBtnOpenElm.classList.add('btn', 'btn-default', 'pull-right');
@@ -139,6 +144,55 @@
             return redrawList();
         });
 
+        window.events.subscribe('menu-click', data => {
+            switch (data.type) {
+                case 'rename-project': {
+                    let active = elements.find(elm => elm.elm.classList.contains('active'));
+                    if (!active) {
+                        editActiveBtn.classList.remove('active');
+                        return;
+                    }
+
+                    return exec({
+                        command: 'renameProject',
+                        params: {
+                            name: active.data.name,
+                            id: active.data.id
+                        }
+                    })
+                        .then(result => {
+                            if (result) {
+                                return redrawList();
+                            }
+                        })
+                        .catch(() => false);
+                }
+
+                case 'delete-project': {
+                    let active = elements.find(elm => elm.elm.classList.contains('active'));
+                    if (!active) {
+                        editActiveBtn.classList.remove('active');
+                        return;
+                    }
+                    if (!confirm(`Are you sure you want to delete "${active.data.name}"?`)) {
+                        return;
+                    }
+                    return exec({
+                        command: 'deleteProject',
+                        params: {
+                            id: active.data.id
+                        }
+                    })
+                        .then(result => {
+                            if (result) {
+                                return redrawList();
+                            }
+                        })
+                        .catch(() => false);
+                }
+            }
+        });
+
         window.events.subscribe('project-update', data => {
             let projectRow = elements.find(row => row.data.id === data.id);
 
@@ -221,9 +275,7 @@
             .then(() => {
                 alert(`"${active.data.name}" was successfully deleted`);
             })
-            .catch(err => {
-                alert(err.message);
-            })
+            .catch(() => false)
             .finally(() => {
                 deleteActiveBtn.classList.remove('active');
             });

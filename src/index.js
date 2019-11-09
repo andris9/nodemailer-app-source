@@ -43,9 +43,6 @@ const createWindow = () => {
     // and load the index.html of the app.
     mainWindow.loadURL(windowUrl);
 
-    // Open the DevTools.
-    //mainWindow.webContents.openDevTools();
-
     mainWindow.on('close', e => {
         if (projects._imports) {
             let choice = dialog.showMessageBoxSync(mainWindow, {
@@ -96,6 +93,150 @@ app.on('will-quit', () => {
     }
 });
 
+const newProjectMenuItem = {
+    id: 'new-project',
+    label: 'New Project…',
+    click: async () => {
+        mainWindow.webContents.focus();
+        try {
+            let project = await execCommand(mainWindow, projects, false, {
+                command: 'createProject',
+                params: {
+                    name: ''
+                }
+            });
+
+            if (project) {
+                await execCommand(mainWindow, projects, false, {
+                    command: 'openProject',
+                    params: {
+                        id: project
+                    }
+                });
+            }
+        } catch (err) {
+            dialog.showMessageBox(mainWindow, {
+                title: 'Error',
+                buttons: ['Dismiss'],
+                type: 'warning',
+                message: 'Failed to process command\n' + err.message
+            });
+        }
+    }
+};
+
+const renameProjectMenuItem = {
+    id: 'rename-project',
+    label: 'Rename Project',
+    enabled: false,
+    click: () => {
+        BrowserWindow.getFocusedWindow().webContents.send(
+            'menu-click',
+            JSON.stringify({
+                id: 'static',
+                type: 'rename-project'
+            })
+        );
+    }
+};
+
+const deleteProjectMenuItem = {
+    id: 'delete-project',
+    label: 'Delete Project',
+    enabled: false,
+    click: () => {
+        BrowserWindow.getFocusedWindow().webContents.send(
+            'menu-click',
+            JSON.stringify({
+                id: 'static',
+                type: 'delete-project'
+            })
+        );
+    }
+};
+// In this file you can include the rest of your app's specific main process
+// code. You can also put them in separate files and import them here.
+
+const isMac = process.platform === 'darwin';
+const template = [
+    // { role: 'appMenu' }
+    ...(isMac
+        ? [
+              {
+                  label: app.name,
+                  submenu: [
+                      { role: 'about' },
+                      { type: 'separator' },
+                      { role: 'services' },
+                      { type: 'separator' },
+                      { role: 'hide' },
+                      { role: 'hideothers' },
+                      { role: 'unhide' },
+                      { type: 'separator' },
+                      { role: 'quit' }
+                  ]
+              }
+          ]
+        : []),
+    // { role: 'fileMenu' }
+    {
+        label: 'File',
+        submenu: [newProjectMenuItem, renameProjectMenuItem, deleteProjectMenuItem, isMac ? { role: 'close' } : { role: 'quit' }]
+    },
+    // { role: 'editMenu' }
+    {
+        label: 'Edit',
+        submenu: [
+            { role: 'undo' },
+            { role: 'redo' },
+            { type: 'separator' },
+            { role: 'cut' },
+            { role: 'copy' },
+            { role: 'paste' },
+            ...(isMac
+                ? [
+                      { role: 'pasteAndMatchStyle' },
+                      { role: 'delete' },
+                      { role: 'selectAll' },
+                      { type: 'separator' },
+                      {
+                          label: 'Speech',
+                          submenu: [{ role: 'startspeaking' }, { role: 'stopspeaking' }]
+                      }
+                  ]
+                : [{ role: 'delete' }, { type: 'separator' }, { role: 'selectAll' }])
+        ]
+    },
+    // { role: 'viewMenu' }
+    {
+        label: 'View',
+        submenu: [{ role: 'toggledevtools' }, { type: 'separator' }, { type: 'separator' }, { role: 'togglefullscreen' }]
+    },
+    // { role: 'windowMenu' }
+    {
+        label: 'Window',
+        submenu: [
+            { role: 'minimize' },
+            { role: 'zoom' },
+            ...(isMac ? [{ type: 'separator' }, { role: 'front' }, { type: 'separator' }, { role: 'window' }] : [{ role: 'close' }])
+        ]
+    },
+    {
+        role: 'help',
+        submenu: [
+            {
+                label: 'Learn More',
+                click: async () => {
+                    await shell.openExternal('https://forensicat.com');
+                }
+            }
+        ]
+    }
+];
+
+const menu = Menu.buildFromTemplate(template);
+Menu.setApplicationMenu(menu);
+
 ipcMain.on('cmdreq', (event, arg) => {
     let payload;
     try {
@@ -111,7 +252,7 @@ ipcMain.on('cmdreq', (event, arg) => {
     let curWin = event.sender.getOwnerBrowserWindow();
     let analyzer = projects.getProjectAnalyzer(curWin.id);
 
-    execCommand(curWin, projects, analyzer, payload.data)
+    execCommand(curWin, projects, analyzer, payload.data, menu)
         .then(data => {
             let responsePayload = {
                 cid: payload.cid,
@@ -120,11 +261,18 @@ ipcMain.on('cmdreq', (event, arg) => {
             event.reply('cmdres', JSON.stringify(responsePayload));
         })
         .catch(err => {
-            console.error(err);
             let responsePayload = {
                 cid: payload.cid,
                 error: err.message
             };
+
+            dialog.showMessageBox(curWin, {
+                title: 'Error',
+                buttons: ['Dismiss'],
+                type: 'error',
+                message: 'Failed to process request.\n' + err.message
+            });
+
             event.reply('cmdres', JSON.stringify(responsePayload));
         });
 });
@@ -182,6 +330,7 @@ function prepare(next) {
     if (projects) {
         return next();
     }
+
     projects = new Projects({
         appDataPath: app.getPath('userData'),
         thumbnailGenerator
@@ -195,119 +344,3 @@ function prepare(next) {
             app.quit();
         });
 }
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and import them here.
-
-const isMac = process.platform === 'darwin';
-const template = [
-    // { role: 'appMenu' }
-    ...(isMac
-        ? [
-              {
-                  label: app.name,
-                  submenu: [
-                      { role: 'about' },
-                      { type: 'separator' },
-                      { role: 'services' },
-                      { type: 'separator' },
-                      { role: 'hide' },
-                      { role: 'hideothers' },
-                      { role: 'unhide' },
-                      { type: 'separator' },
-                      { role: 'quit' }
-                  ]
-              }
-          ]
-        : []),
-    // { role: 'fileMenu' }
-    {
-        label: 'File',
-        submenu: [
-            {
-                label: 'New Project...',
-                click: async () => {
-                    mainWindow.webContents.focus();
-                    let project = await execCommand(mainWindow, projects, false, {
-                        command: 'createProject',
-                        params: {
-                            name: ''
-                        }
-                    });
-
-                    if (project) {
-                        await execCommand(mainWindow, projects, false, {
-                            command: 'openProject',
-                            params: {
-                                id: project
-                            }
-                        });
-                    }
-                }
-            },
-            isMac ? { role: 'close' } : { role: 'quit' }
-        ]
-    },
-    // { role: 'editMenu' }
-    {
-        label: 'Edit',
-        submenu: [
-            { role: 'undo' },
-            { role: 'redo' },
-            { type: 'separator' },
-            { role: 'cut' },
-            { role: 'copy' },
-            { role: 'paste' },
-            ...(isMac
-                ? [
-                      { role: 'pasteAndMatchStyle' },
-                      { role: 'delete' },
-                      { role: 'selectAll' },
-                      { type: 'separator' },
-                      {
-                          label: 'Speech',
-                          submenu: [{ role: 'startspeaking' }, { role: 'stopspeaking' }]
-                      }
-                  ]
-                : [{ role: 'delete' }, { type: 'separator' }, { role: 'selectAll' }])
-        ]
-    },
-    // { role: 'viewMenu' }
-    {
-        label: 'View',
-        submenu: [
-            { role: 'reload' },
-            { role: 'forcereload' },
-            { role: 'toggledevtools' },
-            { type: 'separator' },
-            { role: 'resetzoom' },
-            { role: 'zoomin' },
-            { role: 'zoomout' },
-            { type: 'separator' },
-            { role: 'togglefullscreen' }
-        ]
-    },
-    // { role: 'windowMenu' }
-    {
-        label: 'Window',
-        submenu: [
-            { role: 'minimize' },
-            { role: 'zoom' },
-            ...(isMac ? [{ type: 'separator' }, { role: 'front' }, { type: 'separator' }, { role: 'window' }] : [{ role: 'close' }])
-        ]
-    },
-    {
-        role: 'help',
-        submenu: [
-            {
-                label: 'Learn More',
-                click: async () => {
-                    await shell.openExternal('https://electronjs.org');
-                }
-            }
-        ]
-    }
-];
-
-const menu = Menu.buildFromTemplate(template);
-Menu.setApplicationMenu(menu);

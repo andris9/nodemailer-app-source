@@ -1,5 +1,5 @@
 /* eslint global-require: 0 */
-/* global window, document, exec, alert, showLoader, hideLoader */
+/* global window, document, exec, showLoader, hideLoader */
 
 'use strict';
 
@@ -59,12 +59,8 @@
                                     command: 'createImportFromMbox'
                                 })
                             )
-                            .then(res => {
-                                if (res) {
-                                    alert('Import started');
-                                }
-                            })
-                            .catch(err => alert(err.message))
+                            .then(() => false)
+                            .catch(() => false)
                             .finally(() => hideLoader());
                     }
                 })
@@ -80,12 +76,8 @@
                                     command: 'createImportFromMaildir'
                                 })
                             )
-                            .then(res => {
-                                if (res) {
-                                    alert('Import started');
-                                }
-                            })
-                            .catch(err => alert(err.message))
+                            .then(() => false)
+                            .catch(() => false)
                             .finally(() => hideLoader());
                     }
                 })
@@ -101,12 +93,8 @@
                                     command: 'createImportFromEml'
                                 })
                             )
-                            .then(res => {
-                                if (res) {
-                                    alert('Import started');
-                                }
-                            })
-                            .catch(err => alert(err.message))
+                            .then(() => false)
+                            .catch(() => false)
                             .finally(() => hideLoader());
                     }
                 })
@@ -122,12 +110,8 @@
                                     command: 'createImportFromFolder'
                                 })
                             )
-                            .then(res => {
-                                if (res) {
-                                    alert('Import started');
-                                }
-                            })
-                            .catch(err => alert(err.message))
+                            .then(() => false)
+                            .catch(() => false)
                             .finally(() => hideLoader());
                     }
                 })
@@ -143,12 +127,8 @@
                                     command: 'createImportFromPostfix'
                                 })
                             )
-                            .then(res => {
-                                if (res) {
-                                    alert('Import started');
-                                }
-                            })
-                            .catch(err => alert(err.message))
+                            .then(() => false)
+                            .catch(() => false)
                             .finally(() => hideLoader());
                     }
                 })
@@ -172,12 +152,8 @@
                                                 }
                                             })
                                         )
-                                        .then(res => {
-                                            if (res) {
-                                                alert('Import started');
-                                            }
-                                        })
-                                        .catch(err => alert(err.message))
+                                        .then(() => false)
+                                        .catch(() => false)
                                         .finally(() => hideLoader());
                                 }
                             })

@@ -605,7 +605,16 @@ async function createPdf(curWin, projects, analyzer, params) {
     await fs.writeFile(res.filePath, data);
 }
 
-module.exports = async (curWin, projects, analyzer, data) => {
+async function updateMenu(curWin, projects, analyzer, params, menu) {
+    [].concat(params.id || []).forEach(id => {
+        let item = menu.getMenuItemById(id);
+        if (item) {
+            item.enabled = params.enabled;
+        }
+    });
+}
+
+module.exports = async (curWin, projects, analyzer, data, menu) => {
     switch (data.command) {
         case 'listProjects':
             return await listProjects(curWin, projects, analyzer, data.params);
@@ -640,10 +649,6 @@ module.exports = async (curWin, projects, analyzer, data) => {
         case 'listImports':
             return await listImports(curWin, projects, analyzer, data.params);
 
-        case 'openDevTools':
-            curWin.webContents.openDevTools();
-            return true;
-
         case 'listContacts':
             return await listContacts(curWin, projects, analyzer, data.params);
 
@@ -670,6 +675,9 @@ module.exports = async (curWin, projects, analyzer, data) => {
 
         case 'createPdf':
             return await createPdf(curWin, projects, analyzer, data.params);
+
+        case 'updateMenu':
+            return await updateMenu(curWin, projects, analyzer, data.params, menu);
 
         default:
             throw new Error('Unknown command ' + JSON.stringify(data));

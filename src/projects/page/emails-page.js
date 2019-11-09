@@ -1,5 +1,5 @@
 /* eslint global-require: 0 */
-/* global window, document, alert, exec, showLoader, hideLoader, DOMPurify, Tabs */
+/* global window, document, exec, showLoader, hideLoader, DOMPurify, Tabs */
 
 'use strict';
 
@@ -146,7 +146,7 @@
                 case 'deactivate':
                     return this.paintInfoWindow();
                 case 'open':
-                    this.actionOpen().catch(err => alert(err.message));
+                    this.actionOpen().catch(() => false);
                     return;
             }
         }
@@ -380,7 +380,7 @@
 
             let activeTab = false;
             if (data.text.html) {
-                drawHtml(data.text.html, false).catch(err => alert(err.message));
+                drawHtml(data.text.html, false).catch(() => false);
 
                 this.viewTabs.show('html');
                 if (!activeTab) {
@@ -610,9 +610,7 @@
             refreshBtnElm.addEventListener('click', () => {
                 refreshBtnElm.classList.add('active');
                 this.reload()
-                    .catch(err => {
-                        alert(err.message);
-                    })
+                    .catch(() => false)
                     .finally(() => {
                         refreshBtnElm.classList.remove('active');
                     });
@@ -623,9 +621,7 @@
                     this.page++;
                     this.pageNextElm.classList.add('active');
                     this.reload()
-                        .catch(err => {
-                            alert(err.message);
-                        })
+                        .catch(() => false)
                         .finally(() => {
                             this.pageNextElm.classList.remove('active');
                         });
@@ -637,9 +633,7 @@
                     this.page--;
                     this.pagePrevElm.classList.add('active');
                     this.reload()
-                        .catch(err => {
-                            alert(err.message);
-                        })
+                        .catch(() => false)
                         .finally(() => {
                             this.pagePrevElm.classList.remove('active');
                         });
@@ -650,9 +644,7 @@
             actionPdfElm.addEventListener('click', () => {
                 actionPdfElm.classList.add('active');
                 this.actionPdf()
-                    .catch(err => {
-                        alert(err.message);
-                    })
+                    .catch(() => false)
                     .finally(() => {
                         actionPdfElm.classList.remove('active');
                     });
@@ -662,9 +654,7 @@
             actionSaveElm.addEventListener('click', () => {
                 actionSaveElm.classList.add('active');
                 this.actionSave()
-                    .catch(err => {
-                        alert(err.message);
-                    })
+                    .catch(() => false)
                     .finally(() => {
                         actionSaveElm.classList.remove('active');
                     });
@@ -683,9 +673,7 @@
             searchBtnElm.addEventListener('click', () => {
                 searchBtnElm.classList.add('active');
                 this.search()
-                    .catch(err => {
-                        alert(err.message);
-                    })
+                    .catch(() => false)
                     .finally(() => {
                         searchBtnElm.classList.remove('active');
                     });
@@ -695,9 +683,7 @@
             searchClearElm.addEventListener('click', () => {
                 this.clearSearch();
 
-                this.reload().catch(err => {
-                    alert(err.message);
-                });
+                this.reload().catch(() => false);
             });
         }
     }

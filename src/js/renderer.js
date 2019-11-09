@@ -33,8 +33,9 @@ window.events = {
     let ci = 0;
     let execQueue = new Map();
 
-    ['project-update', 'import-update', 'import-list', 'project-created'].forEach(channel => {
+    ['project-update', 'import-update', 'import-list', 'project-created', 'menu-click'].forEach(channel => {
         ipcRenderer.on(channel, (event, arg) => {
+            console.log(arg);
             let payload;
             try {
                 payload = JSON.parse(arg);

@@ -1,5 +1,5 @@
 /* eslint global-require: 0 */
-/* global window, document, exec, alert, showLoader, hideLoader */
+/* global window, document, exec, showLoader, hideLoader */
 
 'use strict';
 
@@ -38,6 +38,9 @@
             this.buttonGroupElms.forEach(elm => elm.classList.remove('hidden'));
             this.pageElm.classList.remove('hidden');
             this.pageMenuElm.classList.add('active');
+
+            document.getElementById('middle-pane').classList.add('fixed-pane');
+
             this.visible = true;
 
             if (this.page !== 1) {
@@ -59,6 +62,8 @@
             this.pageElm.classList.add('hidden');
             this.pageMenuElm.classList.remove('active');
             this.visible = false;
+
+            document.getElementById('middle-pane').classList.remove('fixed-pane');
 
             this.selectable.disable();
         }
@@ -122,7 +127,7 @@
                 case 'deactivate':
                     return this.paintInfoWindow();
                 case 'open':
-                    this.actionOpen().catch(err => alert(err.message));
+                    this.actionOpen().catch(() => false);
                     return;
             }
         }
@@ -359,9 +364,7 @@
             refreshBtnElm.addEventListener('click', () => {
                 refreshBtnElm.classList.add('active');
                 this.reload()
-                    .catch(err => {
-                        alert(err.message);
-                    })
+                    .catch(() => false)
                     .finally(() => {
                         refreshBtnElm.classList.remove('active');
                     });
@@ -371,9 +374,7 @@
             actionSaveElm.addEventListener('click', () => {
                 actionSaveElm.classList.add('active');
                 this.actionSave()
-                    .catch(err => {
-                        alert(err.message);
-                    })
+                    .catch(() => false)
                     .finally(() => {
                         actionSaveElm.classList.remove('active');
                     });
@@ -383,9 +384,7 @@
             actionOpenElm.addEventListener('click', () => {
                 actionOpenElm.classList.add('active');
                 this.actionOpen()
-                    .catch(err => {
-                        alert(err.message);
-                    })
+                    .catch(() => false)
                     .finally(() => {
                         actionOpenElm.classList.remove('active');
                     });
@@ -396,9 +395,7 @@
                     this.page++;
                     this.pageNextElm.classList.add('active');
                     this.reload()
-                        .catch(err => {
-                            alert(err.message);
-                        })
+                        .catch(() => false)
                         .finally(() => {
                             this.pageNextElm.classList.remove('active');
                         });
@@ -410,9 +407,7 @@
                     this.page--;
                     this.pagePrevElm.classList.add('active');
                     this.reload()
-                        .catch(err => {
-                            alert(err.message);
-                        })
+                        .catch(() => false)
                         .finally(() => {
                             this.pagePrevElm.classList.remove('active');
                         });
@@ -423,9 +418,7 @@
             searchBtnElm.addEventListener('click', () => {
                 searchBtnElm.classList.add('active');
                 this.search()
-                    .catch(err => {
-                        alert(err.message);
-                    })
+                    .catch(() => false)
                     .finally(() => {
                         searchBtnElm.classList.remove('active');
                     });
@@ -435,9 +428,7 @@
             searchClearElm.addEventListener('click', () => {
                 this.clearSearch();
 
-                this.reload().catch(err => {
-                    alert(err.message);
-                });
+                this.reload().catch(() => false);
             });
         }
     }
