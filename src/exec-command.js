@@ -262,7 +262,7 @@ async function createImport(curWin, projects, analyzer, params) {
     if (!params || !params.filePaths || !params.filePaths.length) {
         let res = await dialog.showOpenDialog(curWin, {
             title: 'Select Mail Source',
-            properties: ['openFile', 'openDirectory', 'multiSelections']
+            properties: ['openFile', 'multiSelections']
         });
         if (res.canceled) {
             return false;
