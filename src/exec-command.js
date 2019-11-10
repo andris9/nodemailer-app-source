@@ -13,6 +13,25 @@ const util = require('util');
 const recursiveReaddir = require('recursive-readdir');
 const zlib = require('zlib');
 
+async function isGz(path) {
+    let buffer = Buffer.alloc(2);
+    let fd = await fs.open(path, 'r');
+    try {
+        await fd.read(buffer, 0, buffer.length, 0);
+    } finally {
+        try {
+            await fd.close();
+        } catch (err) {
+            console.error(err);
+            // ignore
+        }
+    }
+    if (buffer[0] === 0x1f && buffer[1] === 0x8b) {
+        return true;
+    }
+    return false;
+}
+
 async function processMboxImport(curWin, projects, analyzer, paths) {
     let totalsize = 0;
     for (let filename of paths) {
@@ -31,16 +50,17 @@ async function processMboxImport(curWin, projects, analyzer, paths) {
         let errored = false;
         try {
             for (let path of paths) {
-                let input = fsCreateReadStream(path);
+                let gz = await isGz(path);
 
-                if (pathlib.parse(path).ext.toLowerCase() === '.gz') {
+                let input = fsCreateReadStream(path);
+                if (gz) {
                     // process as gz stream
-                    let gz = zlib.createGunzip();
-                    input.pipe(gz);
+                    let gunzip = zlib.createGunzip();
+                    input.pipe(gunzip);
                     input.on('error', err => {
-                        gz.emit('error', err);
+                        gunzip.emit('error', err);
                     });
-                    input = gz;
+                    input = gunzip;
                 }
 
                 let lastSize = 0;
@@ -127,16 +147,17 @@ async function processMaildirImport(curWin, projects, analyzer, folderPaths) {
         let errored = false;
         try {
             for (let messageData of messages) {
-                let input = fsCreateReadStream(messageData.fullpath);
+                let gz = await isGz(messageData.fullpath);
 
-                if (pathlib.parse(messageData.fullpath).ext.toLowerCase() === '.gz') {
+                let input = fsCreateReadStream(messageData.fullpath);
+                if (gz) {
                     // process as gz stream
-                    let gz = zlib.createGunzip();
-                    input.pipe(gz);
+                    let gunzip = zlib.createGunzip();
+                    input.pipe(gunzip);
                     input.on('error', err => {
-                        gz.emit('error', err);
+                        gunzip.emit('error', err);
                     });
-                    input = gz;
+                    input = gunzip;
                 }
 
                 let { size } = await analyzer.import(
@@ -209,16 +230,17 @@ async function processFolderImport(curWin, projects, analyzer, folderPaths) {
         let errored = false;
         try {
             for (let path of paths) {
-                let input = fsCreateReadStream(path);
+                let gz = await isGz(path);
 
-                if (pathlib.parse(path).ext.toLowerCase() === '.gz') {
+                let input = fsCreateReadStream(path);
+                if (gz) {
                     // process as gz stream
-                    let gz = zlib.createGunzip();
-                    input.pipe(gz);
+                    let gunzip = zlib.createGunzip();
+                    input.pipe(gunzip);
                     input.on('error', err => {
-                        gz.emit('error', err);
+                        gunzip.emit('error', err);
                     });
-                    input = gz;
+                    input = gunzip;
                 }
 
                 let { size } = await analyzer.import(
@@ -351,16 +373,17 @@ async function processEmlImport(curWin, projects, analyzer, paths) {
         let errored = false;
         try {
             for (let path of paths) {
-                let input = fsCreateReadStream(path);
+                let gz = await isGz(path);
 
-                if (pathlib.parse(path).ext.toLowerCase() === '.gz') {
+                let input = fsCreateReadStream(path);
+                if (gz) {
                     // process as gz stream
-                    let gz = zlib.createGunzip();
-                    input.pipe(gz);
+                    let gunzip = zlib.createGunzip();
+                    input.pipe(gunzip);
                     input.on('error', err => {
-                        gz.emit('error', err);
+                        gunzip.emit('error', err);
                     });
-                    input = gz;
+                    input = gunzip;
                 }
 
                 let { size } = await analyzer.import(
