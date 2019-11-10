@@ -15,7 +15,6 @@ const gunzip = buffer => {
         let chunklen = 0;
 
         let fin = () => {
-            console.log('gzip: %s, %s', chunklen, Buffer.concat(chunks, chunklen).toString());
             resolve(Buffer.concat(chunks, chunklen));
         };
 
