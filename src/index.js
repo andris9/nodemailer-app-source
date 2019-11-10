@@ -180,9 +180,9 @@ const deleteProjectMenuItem = {
     }
 };
 
-const importFromMboxMenuItem = {
-    id: 'import-mbox',
-    label: 'From MBOX…',
+const importMenuItem = {
+    id: 'import-files',
+    label: 'From email files…',
     enabled: false,
     click: () => {
         let focused = BrowserWindow.getFocusedWindow();
@@ -191,7 +191,7 @@ const importFromMboxMenuItem = {
                 'menu-click',
                 JSON.stringify({
                     id: 'static',
-                    type: 'import-mbox'
+                    type: 'import-create'
                 })
             );
     }
@@ -199,7 +199,7 @@ const importFromMboxMenuItem = {
 
 const importFromMaildirMenuItem = {
     id: 'import-maildir',
-    label: 'From MAILDIR…',
+    label: 'From Maildir…',
     enabled: false,
     click: () => {
         let focused = BrowserWindow.getFocusedWindow();
@@ -209,23 +209,6 @@ const importFromMaildirMenuItem = {
                 JSON.stringify({
                     id: 'static',
                     type: 'import-maildir'
-                })
-            );
-    }
-};
-
-const importFromEmlMenuItem = {
-    id: 'import-eml',
-    label: 'From EML files…',
-    enabled: false,
-    click: () => {
-        let focused = BrowserWindow.getFocusedWindow();
-        focused &&
-            focused.webContents.send(
-                'menu-click',
-                JSON.stringify({
-                    id: 'static',
-                    type: 'import-eml'
                 })
             );
     }
@@ -243,23 +226,6 @@ const importFromFolderMenuItem = {
                 JSON.stringify({
                     id: 'static',
                     type: 'import-folder'
-                })
-            );
-    }
-};
-
-const importFromPostfixMenuItem = {
-    id: 'import-postfix',
-    label: 'From Postfix queue files…',
-    enabled: false,
-    click: () => {
-        let focused = BrowserWindow.getFocusedWindow();
-        focused &&
-            focused.webContents.send(
-                'menu-click',
-                JSON.stringify({
-                    id: 'static',
-                    type: 'import-postfix'
                 })
             );
     }
@@ -320,7 +286,7 @@ const template = [
     },
     {
         label: 'Import',
-        submenu: [importFromMboxMenuItem, importFromMaildirMenuItem, importFromEmlMenuItem, importFromPostfixMenuItem, importFromFolderMenuItem]
+        submenu: [importMenuItem, importFromMaildirMenuItem, importFromFolderMenuItem]
     },
     // { role: 'viewMenu' }
     {

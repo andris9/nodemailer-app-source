@@ -35,7 +35,6 @@ window.events = {
 
     ['project-update', 'import-update', 'import-list', 'project-created', 'menu-click', 'focus-change'].forEach(channel => {
         ipcRenderer.on(channel, (event, arg) => {
-            console.log(arg);
             let payload;
             try {
                 payload = JSON.parse(arg);

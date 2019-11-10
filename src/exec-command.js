@@ -5,6 +5,7 @@ const fsCreateReadStream = require('fs').createReadStream;
 const { app, dialog, shell, BrowserWindow } = require('electron');
 const prompt = require('./prompt/prompt');
 const postfixParser = require('./postfix/parser');
+const detectFormat = require('./detect-format/detect-format');
 const pathlib = require('path');
 const { eachMessage } = require('mbox-reader');
 const MaildirScan = require('maildir-scan');
@@ -12,55 +13,9 @@ const util = require('util');
 const recursiveReaddir = require('recursive-readdir');
 const zlib = require('zlib');
 
-async function createImportFromMbox(curWin, projects, analyzer, params) {
-    let res;
-    if (params && params.filePaths) {
-        res = {
-            filePaths: params.filePaths,
-            canceled: false
-        };
-    } else {
-        res = await dialog.showOpenDialog(curWin, {
-            title: 'Select Mail Source',
-            properties: ['openFile', 'multiSelections']
-        });
-    }
-    if (res.canceled) {
-        return false;
-    }
-    if (!res.filePaths || !res.filePaths.length) {
-        return false;
-    }
-
-    for (let path of res.filePaths) {
-        if (pathlib.parse(path).ext.toLowerCase() === '.gz') {
-            // skip format validation
-            continue;
-        }
-        let buffer = Buffer.alloc(5);
-        try {
-            let fd = await fs.open(path, 'r');
-            try {
-                await fd.read(buffer, 0, buffer.length, 0);
-            } finally {
-                try {
-                    await fd.close();
-                } catch (err) {
-                    console.error(err);
-                    // ignore
-                }
-            }
-        } catch (err) {
-            console.error(err);
-            throw new Error(`Failed to process file "${pathlib.basename(path)}"`);
-        }
-        if (buffer.toString() !== 'From ') {
-            throw new Error(`"${pathlib.basename(path)}" does not seem to be a MBOX file`);
-        }
-    }
-
+async function processMboxImport(curWin, projects, analyzer, paths) {
     let totalsize = 0;
-    for (let filename of res.filePaths) {
+    for (let filename of paths) {
         totalsize += (await fs.stat(filename)).size;
     }
 
@@ -68,14 +23,14 @@ async function createImportFromMbox(curWin, projects, analyzer, params) {
         totalsize,
         source: {
             format: 'mbox',
-            filePaths: res.filePaths
+            filePaths: paths
         }
     });
 
     let processImport = async () => {
         let errored = false;
         try {
-            for (let path of res.filePaths) {
+            for (let path of paths) {
                 let input = fsCreateReadStream(path);
 
                 if (pathlib.parse(path).ext.toLowerCase() === '.gz') {
@@ -131,24 +86,13 @@ async function createImportFromMbox(curWin, projects, analyzer, params) {
     return importId;
 }
 
-async function createImportFromMaildir(curWin, projects, analyzer) {
-    let res = await dialog.showOpenDialog(curWin, {
-        title: 'Select Mail Source',
-        properties: ['openDirectory', 'multiSelections']
-    });
-    if (res.canceled) {
-        return false;
-    }
-    if (!res.filePaths || !res.filePaths.length) {
-        return false;
-    }
-
+async function processMaildirImport(curWin, projects, analyzer, folderPaths) {
     let scanner = new MaildirScan();
     let scan = util.promisify(scanner.scan.bind(scanner));
 
     let paths = [];
     let messages = [];
-    for (let path of res.filePaths) {
+    for (let path of folderPaths) {
         try {
             let list = await scan(path);
             paths.push({
@@ -175,7 +119,7 @@ async function createImportFromMaildir(curWin, projects, analyzer) {
         totalsize,
         source: {
             format: 'maildir',
-            filePaths: res.filePaths
+            filePaths: folderPaths
         }
     });
 
@@ -232,20 +176,9 @@ async function createImportFromMaildir(curWin, projects, analyzer) {
     return importId;
 }
 
-async function createImportFromFolder(curWin, projects, analyzer) {
-    let res = await dialog.showOpenDialog(curWin, {
-        title: 'Select Mail Source',
-        properties: ['openDirectory', 'multiSelections']
-    });
-    if (res.canceled) {
-        return false;
-    }
-    if (!res.filePaths || !res.filePaths.length) {
-        return false;
-    }
-
+async function processFolderImport(curWin, projects, analyzer, folderPaths) {
     let paths = [];
-    for (let path of res.filePaths) {
+    for (let path of folderPaths) {
         try {
             let list = await recursiveReaddir(path, [
                 (file, stats) => {
@@ -268,7 +201,7 @@ async function createImportFromFolder(curWin, projects, analyzer) {
         totalsize,
         source: {
             format: 'folder',
-            filePaths: res.filePaths
+            filePaths: folderPaths
         }
     });
 
@@ -322,26 +255,95 @@ async function createImportFromFolder(curWin, projects, analyzer) {
     return importId;
 }
 
-async function createImportFromEml(curWin, projects, analyzer) {
-    let res = await dialog.showOpenDialog(curWin, {
-        title: 'Select Mail Source',
-        properties: ['openFile', 'multiSelections']
-    });
-    if (res.canceled) {
-        return false;
-    }
-    if (!res.filePaths || !res.filePaths.length) {
-        return false;
+// try to detect automatically
+async function createImport(curWin, projects, analyzer, params) {
+    let filePaths = params.filePaths;
+
+    if (!params || !params.filePaths || !params.filePaths.length) {
+        let res = await dialog.showOpenDialog(curWin, {
+            title: 'Select Mail Source',
+            properties: ['openFile', 'openDirectory', 'multiSelections']
+        });
+        if (res.canceled) {
+            return false;
+        }
+        if (!res.filePaths || !res.filePaths.length) {
+            return false;
+        }
+        filePaths = res.filePaths;
     }
 
-    let paths = res.filePaths;
+    let importGroups = {};
+
+    for (let path of filePaths) {
+        let format = await detectFormat(path);
+        if (!format) {
+            continue;
+        }
+
+        if (!importGroups[format]) {
+            importGroups[format] = [];
+        }
+
+        importGroups[format].push(path);
+    }
+
+    let ids = [];
+    for (let format of Object.keys(importGroups)) {
+        switch (format) {
+            case 'eml':
+                {
+                    let id = await processEmlImport(curWin, projects, analyzer, importGroups[format]);
+                    if (id) {
+                        ids.push(id);
+                    }
+                }
+                break;
+            case 'folder':
+                {
+                    let id = await processFolderImport(curWin, projects, analyzer, importGroups[format]);
+                    if (id) {
+                        ids.push(id);
+                    }
+                }
+                break;
+            case 'postfix':
+                {
+                    let id = await processPostfixImport(curWin, projects, analyzer, importGroups[format]);
+                    if (id) {
+                        ids.push(id);
+                    }
+                }
+                break;
+            case 'maildir':
+                {
+                    let id = await processMaildirImport(curWin, projects, analyzer, importGroups[format]);
+                    if (id) {
+                        ids.push(id);
+                    }
+                }
+                break;
+            case 'mbox':
+                {
+                    let id = await processMboxImport(curWin, projects, analyzer, importGroups[format]);
+                    if (id) {
+                        ids.push(id);
+                    }
+                }
+                break;
+        }
+    }
+    return ids;
+}
+
+async function processEmlImport(curWin, projects, analyzer, paths) {
     let totalsize = paths.length;
 
     let importId = await projects.createImport(analyzer.id, {
         totalsize,
         source: {
             format: 'eml',
-            filePaths: res.filePaths
+            filePaths: paths
         }
     });
 
@@ -395,26 +397,14 @@ async function createImportFromEml(curWin, projects, analyzer) {
     return importId;
 }
 
-async function createImportFromPostfix(curWin, projects, analyzer) {
-    let res = await dialog.showOpenDialog(curWin, {
-        title: 'Select Postfix queue files',
-        properties: ['openFile', 'multiSelections']
-    });
-    if (res.canceled) {
-        return false;
-    }
-    if (!res.filePaths || !res.filePaths.length) {
-        return false;
-    }
-
-    let paths = res.filePaths;
+async function processPostfixImport(curWin, projects, analyzer, paths) {
     let totalsize = paths.length;
 
     let importId = await projects.createImport(analyzer.id, {
         totalsize,
         source: {
             format: 'postfix',
-            filePaths: res.filePaths
+            filePaths: paths
         }
     });
 
@@ -456,6 +446,44 @@ async function createImportFromPostfix(curWin, projects, analyzer) {
     });
 
     return importId;
+}
+
+async function createImportFromMaildir(curWin, projects, analyzer) {
+    let res = await dialog.showOpenDialog(curWin, {
+        title: 'Select Mail Source',
+        properties: ['openDirectory', 'multiSelections']
+    });
+    if (res.canceled) {
+        return false;
+    }
+    if (!res.filePaths || !res.filePaths.length) {
+        return false;
+    }
+
+    let folderPaths = [];
+    for (let path of res.filePaths) {
+        let format = await detectFormat(path);
+        if (format === 'maildir') {
+            folderPaths.push(path);
+        }
+    }
+
+    return await processMaildirImport(curWin, projects, analyzer, folderPaths);
+}
+
+async function createImportFromFolder(curWin, projects, analyzer) {
+    let res = await dialog.showOpenDialog(curWin, {
+        title: 'Select Mail Source',
+        properties: ['openDirectory', 'multiSelections']
+    });
+    if (res.canceled) {
+        return false;
+    }
+    if (!res.filePaths || !res.filePaths.length) {
+        return false;
+    }
+
+    return await processFolderImport(curWin, projects, analyzer, res.filePaths);
 }
 
 async function listProjects(curWin, projects) {
@@ -683,20 +711,14 @@ module.exports = async (curWin, projects, analyzer, data, menu) => {
         case 'openProject':
             return await openProject(curWin, projects, analyzer, data.params);
 
-        case 'createImportFromMbox':
-            return await createImportFromMbox(curWin, projects, analyzer, data.params);
-
         case 'createImportFromMaildir':
             return await createImportFromMaildir(curWin, projects, analyzer, data.params);
 
         case 'createImportFromFolder':
             return await createImportFromFolder(curWin, projects, analyzer, data.params);
 
-        case 'createImportFromEml':
-            return await createImportFromEml(curWin, projects, analyzer, data.params);
-
-        case 'createImportFromPostfix':
-            return await createImportFromPostfix(curWin, projects, analyzer, data.params);
+        case 'createImport':
+            return await createImport(curWin, projects, analyzer, data.params);
 
         case 'listImports':
             return await listImports(curWin, projects, analyzer, data.params);

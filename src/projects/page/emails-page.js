@@ -284,7 +284,7 @@
 
                 let hasExternalResources = !keepExternalResources && window.__purifyRef.has(purifyConfig.externalResourcesRef);
 
-                let cidMatches = Array.from(new Set(clean.match(/\[\[CID\/cid:(.*)\/CID\]\]/g)));
+                let cidMatches = Array.from(new Set(clean.match(/\[\[CID\/cid:(.*?)\/CID\]\]/g)));
                 let cidAttachments = new Map();
 
                 let fetchCidImage = async match => {
@@ -309,7 +309,7 @@
                 await Promise.all(cidMatches.map(cid => fetchCidImage(cid)));
 
                 if (cidAttachments.size) {
-                    clean = clean.replace(/\[\[CID\/cid:(.*)\/CID\]\]/g, match => {
+                    clean = clean.replace(/\[\[CID\/cid:(.*?)\/CID\]\]/g, match => {
                         if (cidAttachments.has(match)) {
                             return cidAttachments.get(match);
                         } else {

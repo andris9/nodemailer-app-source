@@ -50,11 +50,14 @@
             this.selectable.disable();
         }
 
-        createImportFromMbox() {
+        createImport(filePaths) {
             showLoader()
                 .then(() =>
                     exec({
-                        command: 'createImportFromMbox'
+                        command: 'createImport',
+                        params: {
+                            filePaths: filePaths || false
+                        }
                     })
                 )
                 .then(() => this.focus())
@@ -74,18 +77,6 @@
                 .finally(() => hideLoader());
         }
 
-        createImportFromEml() {
-            showLoader()
-                .then(() =>
-                    exec({
-                        command: 'createImportFromEml'
-                    })
-                )
-                .then(() => this.focus())
-                .catch(() => false)
-                .finally(() => hideLoader());
-        }
-
         createImportFromFolder() {
             showLoader()
                 .then(() =>
@@ -98,44 +89,23 @@
                 .finally(() => hideLoader());
         }
 
-        createImportFromPostfix() {
-            showLoader()
-                .then(() =>
-                    exec({
-                        command: 'createImportFromPostfix'
-                    })
-                )
-                .then(() => this.focus())
-                .catch(() => false)
-                .finally(() => hideLoader());
-        }
-
         async init() {
             const menu = new Menu();
 
             menu.append(
                 new MenuItem({
-                    label: 'Import from MBOX…',
+                    label: 'Import from email files…',
                     click: () => {
-                        this.createImportFromMbox();
+                        this.createImport();
                     }
                 })
             );
 
             menu.append(
                 new MenuItem({
-                    label: 'Import from MAILDIR…',
+                    label: 'Import from Maildir…',
                     click: () => {
                         this.createImportFromMaildir();
-                    }
-                })
-            );
-
-            menu.append(
-                new MenuItem({
-                    label: 'Import from EML files…',
-                    click: () => {
-                        this.createImportFromEml();
                     }
                 })
             );
@@ -145,15 +115,6 @@
                     label: 'Scan folder recursively for *.eml files…',
                     click: () => {
                         this.createImportFromFolder();
-                    }
-                })
-            );
-
-            menu.append(
-                new MenuItem({
-                    label: 'Import from Postfix queue files…',
-                    click: () => {
-                        this.createImportFromPostfix();
                     }
                 })
             );
@@ -170,7 +131,7 @@
                                     showLoader()
                                         .then(() =>
                                             exec({
-                                                command: 'createImportFromMbox',
+                                                command: 'createImport',
                                                 params: {
                                                     filePaths: [path]
                                                 }
@@ -213,16 +174,12 @@
 
             window.events.subscribe('menu-click', data => {
                 switch (data.type) {
-                    case 'import-mbox':
-                        return this.createImportFromMbox();
+                    case 'import-create':
+                        return this.createImport();
                     case 'import-maildir':
                         return this.createImportFromMaildir();
-                    case 'import-eml':
-                        return this.createImportFromEml();
                     case 'import-folder':
                         return this.createImportFromFolder();
-                    case 'import-postfix':
-                        return this.createImportFromPostfix();
                 }
             });
 
@@ -233,9 +190,13 @@
             dropElm.ondrop = e => {
                 e.preventDefault();
 
+                let filePaths = [];
                 for (let f of e.dataTransfer.files) {
-                    // TODO: import files
-                    console.log('File(s) you dragged here: ', f.path);
+                    filePaths.push(f.path);
+                }
+
+                if (filePaths.length) {
+                    this.createImport(filePaths);
                 }
 
                 return false;

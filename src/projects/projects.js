@@ -385,7 +385,7 @@ class Projects {
         projectWindow.on('blur', () => {
             let menu = Menu.getApplicationMenu();
             if (menu) {
-                ['import-mbox', 'import-maildir', 'import-eml', 'import-folder', 'import-postfix'].forEach(key => {
+                ['import-files', 'import-maildir', 'import-folder'].forEach(key => {
                     let menuItem = menu.getMenuItemById(key);
                     if (menuItem) {
                         menuItem.enabled = false;
@@ -397,7 +397,7 @@ class Projects {
         projectWindow.on('focus', () => {
             let menu = Menu.getApplicationMenu();
             if (menu) {
-                ['import-mbox', 'import-maildir', 'import-eml', 'import-folder', 'import-postfix'].forEach(key => {
+                ['import-files', 'import-maildir', 'import-folder'].forEach(key => {
                     let menuItem = menu.getMenuItemById(key);
                     if (menuItem) {
                         menuItem.enabled = true;
