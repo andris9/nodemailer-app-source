@@ -340,11 +340,13 @@ class Analyzer {
         let partNr = 0;
         let size = 0;
         let hash = crypto.createHash(HASH_ALGO);
+        let now = Date.now();
         return await new Promise((resolve, reject) => {
             let reading = false;
             let finished = false;
 
             let finish = () => {
+                console.log('LEVELSTREAM', key, size, Date.now() - now);
                 resolve({ key, size, hash: hash.digest('hex') });
             };
 
@@ -560,9 +562,11 @@ class Analyzer {
                             return;
                         }
                         let thumbKey = attachmentData.key.replace(/:file$/, ':thumb');
+                        let now = Date.now();
                         await this.level.put(thumbKey, thumbnail, {
                             valueEncoding: 'binary'
                         });
+                        console.log('LEVELTHUMB', thumbKey, thumbnail.length, Date.now() - now);
                         attachmentData.thumbKey = thumbKey;
                     };
 
@@ -708,6 +712,7 @@ class Analyzer {
             });
         }
 
+        let now = Date.now();
         await this.level.put(`${key}:text`, textParts, {
             valueEncoding: 'json'
         });
@@ -715,6 +720,7 @@ class Analyzer {
         await this.level.put(`${key}:headers`, headers ? headers.getList() : [], {
             valueEncoding: 'json'
         });
+        console.log('LEVELTEXT', key, Date.now() - now);
 
         let returnPath = metadata.returnPath;
         if (!returnPath) {
