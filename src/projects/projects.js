@@ -461,19 +461,26 @@ class Projects {
             queryParams.$processed = Number(options.processed) || 0;
         }
 
-        if (options.emails || options.size) {
-            let query = 'UPDATE projects SET [emails] = [emails] + $emails, [size] = [size] + $size WHERE [id] = $id';
-            await this.sql.run(query, {
-                $id: id,
-                $emails: Number(options.emails) || 0,
-                $size: Number(options.size) || 0
-            });
+        await this.sql.run('BEGIN TRANSACTION');
+        try {
+            if (options.emails || options.size) {
+                let query = 'UPDATE projects SET [emails] = [emails] + $emails, [size] = [size] + $size WHERE [id] = $id';
+                await this.sql.run(query, {
+                    $id: id,
+                    $emails: Number(options.emails) || 0,
+                    $size: Number(options.size) || 0
+                });
+            }
+
+            if (sets.length) {
+                let query = `UPDATE imports SET ${sets.join(',')} WHERE [id] = $importId`;
+                await this.sql.run(query, queryParams);
+            }
+        } finally {
+            await this.sql.run('COMMIT TRANSACTION');
         }
 
         if (sets.length) {
-            let query = `UPDATE imports SET ${sets.join(',')} WHERE [id] = $importId`;
-            await this.sql.run(query, queryParams);
-
             let projectData = await this.sql.findOne('SELECT id, emails, size FROM projects WHERE id=?', [id]);
             // push info to main window
             this.mainWindow.webContents.send(
