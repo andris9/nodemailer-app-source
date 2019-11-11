@@ -301,9 +301,6 @@
                     return redrawList();
                 }
             })
-            .then(() => {
-                alert(`"${active.data.name}" was successfully deleted`);
-            })
             .catch(() => false)
             .finally(() => {
                 deleteActiveBtn.classList.remove('active');
