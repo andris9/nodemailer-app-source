@@ -826,125 +826,131 @@ class Analyzer {
                 });
         });
 
-        let emailId = await this.sql.run(
-            `INSERT INTO emails 
+        let emailId;
+        await this.sql.run('BEGIN TRANSACTION');
+        try {
+            emailId = await this.sql.run(
+                `INSERT INTO emails 
                 ([return_path], [source], [hdate], [idate], [from], [to], [cc], [bcc], [reply_to], [subject], [text], [message_id], [key], [attachments], [flags], [labels], [size], [hash]) 
                 VALUES ($return_path, $source, $hdate, $idate, $from, $to, $cc, $bcc, $reply_to, $subject, $text, $message_id, $key, $attachments, $flags, $labels, $size, $hash)`,
-            queryParams
-        );
+                queryParams
+            );
 
-        if (!emailId) {
-            return false;
-        }
-
-        for (let headerData of headers.getList()) {
-            let header = libmime.decodeHeader(headerData.line);
-            if (!header || !header.value) {
-                continue;
+            if (!emailId) {
+                return false;
             }
 
-            await this.sql.run(
-                `INSERT INTO headers 
+            for (let headerData of headers.getList()) {
+                let header = libmime.decodeHeader(headerData.line);
+                if (!header || !header.value) {
+                    continue;
+                }
+
+                await this.sql.run(
+                    `INSERT INTO headers 
                         ([email], [key], [value]) 
                         VALUES ($email, $key, $value)`,
-                {
-                    $email: emailId,
-                    $key: headerData.key || null,
-                    $value: header.value || null
-                }
-            );
-        }
+                    {
+                        $email: emailId,
+                        $key: headerData.key || null,
+                        $value: header.value || null
+                    }
+                );
+            }
 
-        for (let attachmentData of attachments) {
-            await this.sql.run(
-                `INSERT INTO attachments 
+            for (let attachmentData of attachments) {
+                await this.sql.run(
+                    `INSERT INTO attachments 
                     ([email], [content_type],[content_id], [disposition], [filename], [real_filename], [size], [thumb_key], [key], [hash]) 
                     VALUES ($email, $content_type, $content_id, $disposition, $filename, $real_filename, $size, $thumb_key, $key, $hash)`,
-                {
-                    $email: emailId,
-                    $content_type: attachmentData.contentType || null,
-                    $content_id: attachmentData.contentId || null,
-                    $disposition: attachmentData.disposition || null,
-                    $filename: attachmentData.filename || null,
-                    $real_filename: attachmentData.realFilename || null,
-                    $size: 'size' in attachmentData ? attachmentData.size : null,
-                    $thumb_key: attachmentData.thumbKey || null,
-                    $key: attachmentData.key,
-                    $hash: attachmentData.hash || null
-                }
-            );
-        }
+                    {
+                        $email: emailId,
+                        $content_type: attachmentData.contentType || null,
+                        $content_id: attachmentData.contentId || null,
+                        $disposition: attachmentData.disposition || null,
+                        $filename: attachmentData.filename || null,
+                        $real_filename: attachmentData.realFilename || null,
+                        $size: 'size' in attachmentData ? attachmentData.size : null,
+                        $thumb_key: attachmentData.thumbKey || null,
+                        $key: attachmentData.key,
+                        $hash: attachmentData.hash || null
+                    }
+                );
+            }
 
-        for (let addressData of addresses) {
-            const attrs = human.parseName(addressData.name);
+            for (let addressData of addresses) {
+                const attrs = human.parseName(addressData.name);
 
-            let contact;
+                let contact;
 
-            if (addressData.address) {
-                let query = `INSERT INTO contacts 
+                if (addressData.address) {
+                    let query = `INSERT INTO contacts 
                 ([name], [address], [normalized_address], [first_name], [last_name], [middle_name]) 
                 VALUES ($name, $address, $normalized_address, $first_name, $last_name, $middle_name)`;
 
-                if (addressData.name) {
-                    // override name values if set
-                    query = `${query} ON CONFLICT(normalized_address) DO UPDATE
+                    if (addressData.name) {
+                        // override name values if set
+                        query = `${query} ON CONFLICT(normalized_address) DO UPDATE
                         SET name = $name, first_name = $first_name, last_name = $last_name, middle_name = $middle_name`;
-                }
+                    }
 
-                let normalizedAddress = normalizeAddress(addressData.address);
-                try {
-                    await this.sql.run(query, {
-                        $name: addressData.name || null,
-                        $address: addressData.address || null,
-                        $normalized_address: normalizedAddress,
-                        $first_name: attrs.firstName || null,
-                        $last_name: attrs.lastName || null,
-                        $middle_name: attrs.middleName || null
-                    });
-                } catch (err) {
-                    // ignore unique key conflicts
-                    if (err.code !== 'SQLITE_CONSTRAINT') {
-                        throw err;
+                    let normalizedAddress = normalizeAddress(addressData.address);
+                    try {
+                        await this.sql.run(query, {
+                            $name: addressData.name || null,
+                            $address: addressData.address || null,
+                            $normalized_address: normalizedAddress,
+                            $first_name: attrs.firstName || null,
+                            $last_name: attrs.lastName || null,
+                            $middle_name: attrs.middleName || null
+                        });
+                    } catch (err) {
+                        // ignore unique key conflicts
+                        if (err.code !== 'SQLITE_CONSTRAINT') {
+                            throw err;
+                        }
+                    }
+
+                    // assuming we have INSERTed or UPSERTed normalized_address
+                    let row = await this.sql.findOne('SELECT id, address FROM contacts WHERE normalized_address = ? LIMIT 1', [normalizedAddress]);
+                    if (row && row.id) {
+                        contact = row.id;
                     }
                 }
 
-                // assuming we have INSERTed or UPSERTed normalized_address
-                let row = await this.sql.findOne('SELECT id, address FROM contacts WHERE normalized_address = ? LIMIT 1', [normalizedAddress]);
-                if (row && row.id) {
-                    contact = row.id;
-                }
-            }
-
-            await this.sql.run(
-                `INSERT INTO addresses 
+                await this.sql.run(
+                    `INSERT INTO addresses 
                     ([email], [type], [name], [address], [first_name], [last_name], [middle_name], [contact]) 
                     VALUES ($email, $type, $name, $address, $first_name, $last_name, $middle_name, $contact)`,
-                {
-                    $email: emailId,
-                    $type: addressData.type,
-                    $name: addressData.name || null,
-                    $address: addressData.address || null,
+                    {
+                        $email: emailId,
+                        $type: addressData.type,
+                        $name: addressData.name || null,
+                        $address: addressData.address || null,
 
-                    $first_name: attrs.firstName || null,
-                    $last_name: attrs.lastName || null,
-                    $middle_name: attrs.middleName || null,
+                        $first_name: attrs.firstName || null,
+                        $last_name: attrs.lastName || null,
+                        $middle_name: attrs.middleName || null,
 
-                    $contact: contact || null
-                }
-            );
-        }
+                        $contact: contact || null
+                    }
+                );
+            }
 
-        for (let graphData of graph) {
-            await this.sql.run(
-                `INSERT INTO graph 
+            for (let graphData of graph) {
+                await this.sql.run(
+                    `INSERT INTO graph 
                     ([email], [type], [message_id]) 
                     VALUES ($email, $type, $message_id)`,
-                {
-                    $email: emailId,
-                    $type: graphData.type,
-                    $message_id: graphData.messageId
-                }
-            );
+                    {
+                        $email: emailId,
+                        $type: graphData.type,
+                        $message_id: graphData.messageId
+                    }
+                );
+            }
+        } finally {
+            await this.sql.run('COMMIT TRANSACTION');
         }
 
         return {
