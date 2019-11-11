@@ -53,6 +53,8 @@ class Projects {
             await mkdirp(this.appDataPath);
             this.sql = new SQL({ db: this.sqlPath });
 
+            await this.sql.run(`PRAGMA journal_mode=WAL`);
+
             await this.sql.run(`CREATE TABLE IF NOT EXISTS projects (
                 [id] INTEGER PRIMARY KEY,
                 [version] INTEGER,

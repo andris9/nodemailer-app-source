@@ -70,6 +70,8 @@ class Analyzer {
             await mkdirp(this.dataPath);
             this.sql = new SQL({ db: this.sqlPath });
 
+            await this.sql.run(`PRAGMA journal_mode=WAL`);
+
             await this.sql.run(`CREATE TABLE IF NOT EXISTS emails (
                 [id] INTEGER PRIMARY KEY,
                 [idate] DATETIME,
