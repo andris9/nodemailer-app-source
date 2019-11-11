@@ -17,11 +17,13 @@ class SQL {
         if (this._prepared || this._preparing) {
             return;
         }
+        let now = Date.now();
         this._preparing = true;
         await new Promise((resolve, reject) => {
             // eslint-disable-next-line no-bitwise
             let mode = this.options.mode || sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE;
             this.db = new sqlite3.Database(this.options.db || ':memory:', mode, err => {
+                console.log('SQL PREPARE', Date.now() - now);
                 this._preparing = false;
                 if (err) {
                     return reject(err);
@@ -57,11 +59,18 @@ class SQL {
     }
 
     async run(sql, params) {
+        let now = Date.now();
+        if (!this.qid) {
+            this.qid = 0;
+        }
+        let rid = ++this.qid;
         await this.lock();
+        console.log('SQLRUN: LOCK ACQUIRED', rid, Date.now() - now, sql);
         try {
             return await new Promise((resolve, reject) => {
                 // can not use lambda function as we need bound `this`
                 this.db.run(sql, params || [], function(err) {
+                    console.log('SQLRUN: REQ DONE', rid, Date.now() - now);
                     if (err) {
                         return reject(err);
                     }
@@ -81,12 +90,15 @@ class SQL {
             });
         } finally {
             this.release();
+            console.log('SQLRUN: LOCK RELEASED', rid, Date.now() - now);
         }
     }
 
     async findOne(sql, params) {
+        let now = Date.now();
         return new Promise((resolve, reject) => {
             this.db.get(sql, params || [], (err, row) => {
+                console.log('SQLFO: REQ DONE', Date.now() - now, sql);
                 if (err) {
                     reject(err);
                 } else {
@@ -97,8 +109,10 @@ class SQL {
     }
 
     async findMany(sql, params) {
+        let now = Date.now();
         return new Promise((resolve, reject) => {
             this.db.all(sql, params || [], (err, rows) => {
+                console.log('SQLFM: REQ DONE', Date.now() - now, sql);
                 if (err) {
                     reject(err);
                 } else {
