@@ -565,24 +565,25 @@ async function createExportMbox(curWin, projects, analyzer, params) {
                 },
                 params.query || {}
             );
+
             let data = await analyzer.getEmails(query);
             for (let messageData of data.data) {
                 let returnPath = messageData.returnPath;
                 if (!returnPath && messageData.addresses.from && messageData.addresses.from.length) {
                     returnPath = messageData.addresses.from[0].address;
                 }
-                console.log(`Exporting ${messageData.id} to ${res.filePath}...`);
+
                 try {
                     await analyzer.writeEmailToMboxStream(messageData.id, output, {
                         from: returnPath,
                         date: messageData.idate || messageData.hdate
                     });
                 } catch (err) {
-                    console.log(err);
+                    console.error(err);
                     throw err;
                 }
             }
-            if (data.pages >= page) {
+            if (data.pages <= page) {
                 // no more results
                 break;
             } else {
@@ -590,7 +591,6 @@ async function createExportMbox(curWin, projects, analyzer, params) {
             }
         }
     } finally {
-        console.log('All processed');
         output.end();
     }
 

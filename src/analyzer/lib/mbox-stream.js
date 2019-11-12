@@ -5,7 +5,7 @@ const Transform = require('stream').Transform;
 class MboxStream extends Transform {
     constructor(options) {
         super();
-        this.options = options;
+        this.options = options || {};
 
         this.from = options.from || 'MAILER-DAEMON';
         let date;
@@ -126,11 +126,10 @@ class MboxStream extends Transform {
                                 this.expecting = [0x3e /* > */, 0x46 /* F */];
                             } else if (this.expecting.length) {
                                 this.expecting = [];
+                                this.state = 'normal';
                             }
 
                             len++;
-
-                            this.state = 'normal';
                         }
                     }
                     break;
@@ -202,3 +201,12 @@ function asctime(date) {
 }
 
 module.exports = MboxStream;
+/*
+let path = '/Users/andrisreinman/Desktop/input.txt';
+let output = new MboxStream({});
+
+let y = require('fs')
+    .createReadStream(path)
+    .pipe(output)
+    .pipe(process.stdout);
+*/
