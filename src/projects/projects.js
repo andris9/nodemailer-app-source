@@ -10,7 +10,13 @@ const fs = require('fs').promises;
 const Analyzer = require('../analyzer/lib/analyzer.js');
 const { BrowserWindow, Menu } = require('electron');
 
-const VERSION = 1;
+const MAIN_VERSION = 1;
+const PROJECT_VERSION = 1;
+
+const MAIN_UPDATES = [
+    // update to 1
+    ['ALTER TABLE [imports] ADD [updated] DATETIME']
+];
 
 class Projects {
     constructor(options) {
@@ -36,6 +42,30 @@ class Projects {
         this.thumbnailGenerator = options.thumbnailGenerator;
     }
 
+    async applyUpdates(version) {
+        version = Number(version) || 1;
+        console.log('main update', version);
+
+        if (!MAIN_UPDATES[version - 1]) {
+            return;
+        }
+        for (let update of MAIN_UPDATES[version - 1]) {
+            if (!update) {
+                continue;
+            }
+            try {
+                console.log(`Running update (${version}): "${update}"`);
+                await this.sql.run(update);
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        await this.sql.run(`INSERT INTO appmeta ([key], [value]) VALUES ($key, $value) ON CONFLICT([key]) DO UPDATE SET [value] = $value`, {
+            $key: 'version',
+            $value: version
+        });
+    }
+
     async prepare() {
         if (this.prepared) {
             return false;
@@ -55,6 +85,11 @@ class Projects {
 
             await this.sql.run(`PRAGMA journal_mode=WAL`);
 
+            await this.sql.run(`CREATE TABLE IF NOT EXISTS appmeta (
+                [key] TEXT PRIMARY KEY,
+                [value] TEXT
+            );`);
+
             await this.sql.run(`CREATE TABLE IF NOT EXISTS projects (
                 [id] INTEGER PRIMARY KEY,
                 [version] INTEGER,
@@ -70,6 +105,7 @@ class Projects {
                 [project] INTEGER,
                 [created] DATETIME,
                 [finished] DATETIME,
+                [updated] DATETIME,
                 [errored] TEXT,
                 [source] TEXT,
                 [emails] INTEGER DEFAULT 0,
@@ -96,6 +132,13 @@ class Projects {
             await this.sql.run(`CREATE INDEX IF NOT EXISTS [import_finished] ON imports (
                 [finished]
             )`);
+
+            let row = await this.sql.findOne('SELECT [value] FROM [appmeta] WHERE [key] = ?', ['version']);
+            let storedVersion = Number(row && row.value) || 0;
+
+            for (let i = storedVersion + 1; i <= MAIN_VERSION; i++) {
+                await this.applyUpdates(i);
+            }
 
             await this.sql.run(`UPDATE [imports] SET finished=$finished, errored=$errored WHERE finished IS NULL`, {
                 $errored: 'Unfinished import',
@@ -213,7 +256,7 @@ class Projects {
         let queryParams = {
             $name: name,
             $folder_name: folderName,
-            $version: VERSION,
+            $version: PROJECT_VERSION,
             $created: formatDate(new Date())
         };
 
@@ -411,11 +454,12 @@ class Projects {
 
     async createImport(id, options) {
         options = options || {};
-
-        let query = 'INSERT INTO imports ([project], [created], [source], [totalsize]) VALUES ($project, $created, $source, $totalsize)';
+        let now = new Date();
+        let query = 'INSERT INTO imports ([project], [created], [updated], [source], [totalsize]) VALUES ($project, $created, $updated, $source, $totalsize)';
         let queryParams = {
             $project: id,
-            $created: formatDate(new Date()),
+            $created: formatDate(now),
+            $updated: formatDate(now),
             $source: JSON.stringify(options.source || {}),
             $totalsize: options.totalsize || 0
         };
@@ -434,6 +478,7 @@ class Projects {
 
     async updateImport(id, importId, options) {
         let sets = [];
+        let now = new Date();
         let queryParams = {
             $importId: importId
         };
@@ -450,7 +495,7 @@ class Projects {
 
         if (options.finished) {
             sets.push('[finished] = $finished');
-            queryParams.$finished = formatDate(new Date());
+            queryParams.$finished = formatDate(now);
         }
 
         if (options.errored) {
@@ -475,6 +520,11 @@ class Projects {
             }
 
             if (sets.length) {
+                if (!options.finished) {
+                    sets.push('[updated] = $updated');
+                    queryParams.$updated = formatDate(now);
+                }
+
                 let query = `UPDATE imports SET ${sets.join(',')} WHERE [id] = $importId`;
                 await this.sql.run(query, queryParams);
             }
@@ -494,7 +544,9 @@ class Projects {
                 })
             );
 
-            let item = await this.sql.findOne('SELECT id, emails, size, errored, finished, created, processed, totalsize FROM imports WHERE id=?', [importId]);
+            let item = await this.sql.findOne('SELECT id, emails, size, errored, finished, created, updated, processed, totalsize FROM imports WHERE id=?', [
+                importId
+            ]);
             let source;
             try {
                 source = JSON.parse(item.source);
@@ -512,7 +564,8 @@ class Projects {
                 totalsize: item.totalsize || 0,
                 errored: item.errored,
                 finished: item.finished ? new Date(item.finished + 'Z').toISOString() : null,
-                created: new Date(item.created + 'Z').toISOString()
+                created: new Date(item.created + 'Z').toISOString(),
+                updated: new Date(item.updated + 'Z').toISOString()
             });
         }
     }
@@ -533,7 +586,7 @@ class Projects {
     async listImports(id) {
         await this.prepare();
         let list = await this.sql.findMany(
-            'SELECT id, emails, source, errored, finished, created, processed, size, totalsize FROM imports WHERE project=? ORDER BY created DESC',
+            'SELECT id, emails, source, errored, finished, created, updated, processed, size, totalsize FROM imports WHERE project=? ORDER BY created DESC',
             [id]
         );
         if (!list) {
@@ -557,7 +610,8 @@ class Projects {
                 totalsize: item.totalsize || 0,
                 errored: item.errored,
                 finished: item.finished ? new Date(item.finished + 'Z').toISOString() : null,
-                created: new Date(item.created + 'Z').toISOString()
+                created: new Date(item.created + 'Z').toISOString(),
+                updated: new Date(item.updated + 'Z').toISOString()
             };
         });
     }

@@ -63,10 +63,12 @@
             return promptError(error);
         }
 
-        if (promptOptions.useHtmlLabel) {
-            document.querySelector('#label').innerHTML = promptOptions.label;
-        } else {
-            document.querySelector('#label').textContent = promptOptions.label;
+        if (promptOptions.label) {
+            if (promptOptions.useHtmlLabel) {
+                document.querySelector('#label').innerHTML = promptOptions.label;
+            } else {
+                document.querySelector('#label').textContent = promptOptions.label;
+            }
         }
 
         try {
@@ -87,36 +89,37 @@
         document.querySelector('#cancel').addEventListener('click', () => promptCancel());
 
         let dataEl = document.querySelector('#data');
+        if (dataEl) {
+            if (promptOptions.value) {
+                dataEl.value = promptOptions.value;
+            } else {
+                dataEl.value = '';
+            }
 
-        if (promptOptions.value) {
-            dataEl.value = promptOptions.value;
-        } else {
-            dataEl.value = '';
-        }
+            if (promptOptions.inputAttrs && typeof promptOptions.inputAttrs === 'object') {
+                for (const k in promptOptions.inputAttrs) {
+                    if (!Object.prototype.hasOwnProperty.call(promptOptions.inputAttrs, k)) {
+                        continue;
+                    }
 
-        if (promptOptions.inputAttrs && typeof promptOptions.inputAttrs === 'object') {
-            for (const k in promptOptions.inputAttrs) {
-                if (!Object.prototype.hasOwnProperty.call(promptOptions.inputAttrs, k)) {
-                    continue;
+                    dataEl.setAttribute(k, promptOptions.inputAttrs[k]);
+                }
+            }
+
+            dataEl.addEventListener('keyup', e => {
+                if (e.key === 'Enter') {
+                    promptSubmit();
                 }
 
-                dataEl.setAttribute(k, promptOptions.inputAttrs[k]);
-            }
-        }
+                if (e.key === 'Escape') {
+                    promptCancel();
+                }
+            });
 
-        dataEl.addEventListener('keyup', e => {
-            if (e.key === 'Enter') {
-                promptSubmit();
+            dataEl.focus();
+            if (promptOptions.type === 'input') {
+                dataEl.select();
             }
-
-            if (e.key === 'Escape') {
-                promptCancel();
-            }
-        });
-
-        dataEl.focus();
-        if (promptOptions.type === 'input') {
-            dataEl.select();
         }
     });
 })();

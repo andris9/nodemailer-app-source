@@ -1,0 +1,39 @@
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Forensicat</title>
+
+        <link rel="stylesheet" href="../../css/photon.min.css" />
+        <link rel="stylesheet" href="../../css/forensicat.css" />
+
+        <meta http-equiv="Content-Security-Policy" content="script-src 'self';" />
+    </head>
+    <body>
+        <div class="window">
+            <div class="window-content">
+                <div class="pane" style="padding: 20px 20px 0px;">
+                    <form id="form">
+                        <div class="form-group">
+                            <label id="label-filename"></label>
+                            <input type="text" class="form-control" id="data-filename" />
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <footer class="toolbar toolbar-footer">
+                <div class="toolbar-actions">
+                    <button class="btn btn-primary pull-right" id="ok">
+                        OK
+                    </button>
+
+                    <button class="btn btn-default pull-right" id="cancel">
+                        Cancel
+                    </button>
+                </div>
+            </footer>
+        </div>
+
+        <script src="page.js"></script>
+    </body>
+</html>

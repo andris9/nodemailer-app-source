@@ -553,6 +553,31 @@ async function searchContacts(curWin, projects, analyzer, params) {
     return term;
 }
 
+async function searchAttachments(curWin, projects, analyzer, params) {
+    let term = await prompt(
+        {
+            title: 'Attachment search',
+
+            label: false,
+            value: params.term || '',
+
+            inputAttrs: {
+                type: 'text'
+            },
+            type: 'input',
+
+            pagename: 'attachments',
+
+            width: 600,
+            height: 400
+        },
+        curWin
+    );
+
+    term = (term || '').toString().trim();
+    return term;
+}
+
 async function createProject(curWin, projects) {
     let name = await prompt(
         {
@@ -757,6 +782,9 @@ module.exports = async (curWin, projects, analyzer, data, menu) => {
 
         case 'searchContacts':
             return await searchContacts(curWin, projects, analyzer, data.params);
+
+        case 'searchAttachments':
+            return await searchAttachments(curWin, projects, analyzer, data.params);
 
         case 'saveAttachment':
             return await saveAttachment(curWin, projects, analyzer, data.params);

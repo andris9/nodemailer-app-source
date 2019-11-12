@@ -1060,6 +1060,39 @@ class Analyzer {
         };
     }
 
+    /*
+        {
+            term, // message text
+            subject,
+            headers: {
+                key: value
+            },
+            graph: messageId,
+            messageId,
+            from,
+            to,
+            cc,
+            bcc,
+            returnPath,
+            deliveredTo,
+
+            hash, // attachment hash
+            contentId,
+            contentType,
+            filename,
+
+            size: { // attachment size
+                start,
+                end
+            },
+
+            date: {
+                start,
+                end
+            }
+        }
+    */
+
     async getAttachments(options) {
         let now = Date.now();
         options = options || {};
@@ -1190,11 +1223,6 @@ class Analyzer {
                     }
                 }
             });
-        }
-
-        if (options.hash && typeof options.hash === 'string') {
-            whereTerms.push(`[emails].[hash] = $hash`);
-            queryParams.$hash = options.hash;
         }
 
         if (options.messageId && typeof options.messageId === 'string') {

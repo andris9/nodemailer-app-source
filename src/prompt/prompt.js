@@ -42,6 +42,8 @@ function electronPrompt(options, parentWindow) {
             return reject(new Error('"selectOptions" must be an object'));
         }
 
+        const pagename = opts.pagename || 'prompt';
+
         let promptWindow = new BrowserWindow({
             width: opts.width,
             height: opts.height,
@@ -58,9 +60,7 @@ function electronPrompt(options, parentWindow) {
 
             webPreferences: {
                 nodeIntegration: true
-            },
-
-            icon: pathlib.join(__dirname, '..', 'icons/png/64x64.png')
+            }
         });
 
         promptWindow.removeMenu();
@@ -98,6 +98,7 @@ function electronPrompt(options, parentWindow) {
         ipcMain.on('prompt-get-options:' + id, getOptionsListener);
         ipcMain.on('prompt-post-data:' + id, postDataListener);
         ipcMain.on('prompt-error:' + id, errorListener);
+
         promptWindow.on('unresponsive', unresponsiveListener);
 
         promptWindow.on('closed', () => {
@@ -110,7 +111,7 @@ function electronPrompt(options, parentWindow) {
         const promptUrl = url.format({
             protocol: 'file',
             slashes: true,
-            pathname: pathlib.join(__dirname, 'page', 'prompt.html'),
+            pathname: pathlib.join(__dirname, 'page', pagename + '.html'),
             hash: id
         });
 
