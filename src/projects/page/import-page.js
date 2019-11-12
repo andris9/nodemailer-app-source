@@ -262,8 +262,8 @@
         }
 
         paintImportCell(rowElm, importData) {
-            let progress = (importData.totalsize ? Math.round((importData.processed / importData.totalsize) * 100) : 0);
-            if(importData.finished && !){
+            let progress = importData.totalsize ? Math.round((importData.processed / importData.totalsize) * 100) : 0;
+            if (importData.finished && !importData.errored) {
                 progress = 100;
             }
             // could be higher when importing gz files where exact size is not known
