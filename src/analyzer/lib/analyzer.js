@@ -1491,6 +1491,14 @@ class Analyzer {
             });
         }
 
+        if (options.contact && Number(options.contact)) {
+            queryParams.$contact = Number(options.contact);
+            whereTerms.push(`[emails].[id] in (
+                SELECT [email] FROM [addresses]
+                    WHERE [contact]=$contact
+                )`);
+        }
+
         ['from', 'to', 'cc', 'bcc', 'returnPath', 'deliveredTo'].forEach(key => {
             let hkey = key.replace(/[A-Z]/g, c => '-' + c.toLowerCase());
             let lkey = hkey.replace(/-/g, '_');

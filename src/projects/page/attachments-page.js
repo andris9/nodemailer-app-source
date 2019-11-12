@@ -34,7 +34,7 @@
             this.visible = false;
 
             // overriden by main
-            this.pages = false;
+            this.pageViews = false;
         }
 
         async focus() {
@@ -50,10 +50,9 @@
 
             this.visible = true;
 
-            if (this.page !== 1) {
-                this.page = 1;
-                this.term = '';
+            if (this.page !== 1 || this.query) {
                 this.clearSearch();
+                this.lastChanges = window.__hasChanges;
                 await this.reload();
             } else if (window.__hasChanges !== this.lastChanges) {
                 this.lastChanges = window.__hasChanges;
@@ -236,6 +235,7 @@
                 { key: 'subject', name: 'Subject', type: 'text', contained: true },
                 { key: 'hdate', name: 'Date', type: 'date' },
                 { key: 'from', name: 'From', type: 'address' },
+                { key: 'replyTo', name: 'Reply-To', type: 'address' },
                 { key: 'to', name: 'To', type: 'address' },
                 { key: 'cc', name: 'Cc', type: 'address' },
                 { key: 'bcc', name: 'Bcc', type: 'address' }
@@ -351,10 +351,10 @@
             }
             let data = this.renderedData;
 
-            await this.pages.emails.focus();
+            await this.pageViews.emails.focus();
             try {
-                await this.pages.emails.search({ id: data.email }, `"message:${data.email}"`);
-                this.pages.emails.selectable.focus();
+                await this.pageViews.emails.search({ id: data.email }, `"message:${data.email}"`);
+                this.pageViews.emails.selectable.focus();
             } catch (err) {
                 console.error(err);
             }

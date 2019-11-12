@@ -31,7 +31,7 @@
             this.visible = false;
 
             // overriden by main
-            this.pages = false;
+            this.pageViews = false;
         }
 
         async focus() {
@@ -44,10 +44,9 @@
             this.pageMenuElm.classList.add('active');
             this.visible = true;
 
-            if (this.page !== 1) {
-                this.page = 1;
-                this.term = '';
+            if (this.page !== 1 || this.term) {
                 this.clearSearch();
+                this.lastChanges = window.__hasChanges;
                 await this.reload();
             } else if (window.__hasChanges !== this.lastChanges) {
                 this.lastChanges = window.__hasChanges;
@@ -157,7 +156,31 @@
         }
 
         listAction(action, row) {
-            console.log(action, row);
+            switch (action) {
+                case 'open':
+                    this.actionOpen(row).catch(() => false);
+                    return;
+            }
+        }
+
+        async actionOpen(row) {
+            // TODO: filter messages related to specific person
+            console.log(row.data);
+            console.log(1);
+            if (row && row.data && row.data.id) {
+                console.log(2);
+                try {
+                    console.log(3);
+                    await this.pageViews.emails.focus();
+                    console.log(4);
+                    await this.pageViews.emails.search({ contact: row.data.id }, `"contact:${row.data.address}"`);
+                    console.log(5);
+                    this.pageViews.emails.selectable.focus();
+                    console.log(6);
+                } catch (err) {
+                    console.error(err);
+                }
+            }
         }
 
         clearSearch() {

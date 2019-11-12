@@ -142,7 +142,7 @@
             this.visible = false;
 
             // overriden by main
-            this.pages = false;
+            this.pageViews = false;
         }
 
         listAction(action) {
@@ -222,6 +222,7 @@
                 { key: 'subject', name: 'Subject', type: 'text', contained: true },
                 { key: 'hdate', name: 'Date', type: 'date' },
                 { key: 'from', name: 'From', type: 'address' },
+                { key: 'replyTo', name: 'Reply-To', type: 'address' },
                 { key: 'to', name: 'To', type: 'address' },
                 { key: 'cc', name: 'Cc', type: 'address' },
                 { key: 'bcc', name: 'Bcc', type: 'address' }
@@ -522,7 +523,13 @@
 
             this.visible = true;
 
-            if (window.__hasChanges !== this.lastChanges) {
+            console.log(1);
+            if (this.page !== 1 || this.query) {
+                console.log(2);
+                this.clearSearch();
+                this.lastChanges = window.__hasChanges;
+                await this.reload();
+            } else if (window.__hasChanges !== this.lastChanges) {
                 this.lastChanges = window.__hasChanges;
                 await this.reload();
             }

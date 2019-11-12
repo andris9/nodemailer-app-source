@@ -552,7 +552,6 @@ async function listAttachments(curWin, projects, analyzer, params) {
 }
 
 async function listEmails(curWin, projects, analyzer, params) {
-    console.log(params);
     return await analyzer.getEmails(params);
 }
 

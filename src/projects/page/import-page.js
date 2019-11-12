@@ -24,7 +24,7 @@
             this.visible = false;
 
             // overriden by main
-            this.pages = false;
+            this.pageViews = false;
         }
 
         listAction(action, row) {
@@ -37,10 +37,10 @@
 
         async actionOpen(row) {
             if (row && row.data && row.data.id) {
-                await this.pages.emails.focus();
+                await this.pageViews.emails.focus();
                 try {
-                    await this.pages.emails.search({ import: row.data.id }, `"import:${row.data.id}"`);
-                    this.pages.emails.selectable.focus();
+                    await this.pageViews.emails.search({ import: row.data.id }, `"import:${row.data.id}"`);
+                    this.pageViews.emails.selectable.focus();
                 } catch (err) {
                     console.error(err);
                 }

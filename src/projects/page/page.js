@@ -29,7 +29,7 @@
     window.hideLoader = hideLoader;
 
     async function main() {
-        let pages = {
+        let pageViews = {
             imports: new ImportPage(),
             contacts: new ContactsPage(),
             attachments: new AttachmentsPage(),
@@ -38,35 +38,35 @@
 
         await showLoader();
 
-        await Promise.all([pages.imports.init(), pages.contacts.init(), pages.attachments.init(), pages.emails.init()]);
+        await Promise.all([pageViews.imports.init(), pageViews.contacts.init(), pageViews.attachments.init(), pageViews.emails.init()]);
 
         // show import page by default
         let selected = 'imports';
-        await pages.imports.show();
+        await pageViews.imports.show();
 
-        let activateView = target => {
-            if (!pages[target] || target === selected) {
+        let activateView = async target => {
+            if (!pageViews[target] || target === selected) {
                 // nothing to do here
                 return;
             }
-            pages[selected]
-                .hide()
-                .then(() => {})
-                .catch(err => console.error(err))
-                .finally(() => {
-                    pages[target]
-                        .show()
-                        .then(() => {})
-                        .catch(err => console.error(err))
-                        .finally(() => {
-                            selected = target;
-                        });
-                });
+
+            try {
+                await pageViews[selected].hide();
+            } catch (err) {
+                console.error(err);
+            }
+
+            try {
+                await pageViews[target].show();
+                selected = target;
+            } catch (err) {
+                console.error(err);
+            }
         };
 
-        Object.keys(pages).forEach(target => {
-            pages[target].pages = pages;
-            pages[target].focus = () => activateView(target);
+        Object.keys(pageViews).forEach(target => {
+            pageViews[target].pageViews = pageViews;
+            pageViews[target].focus = async () => await activateView(target);
         });
 
         let menuItems = Array.from(document.querySelectorAll('.page-menu'));
@@ -74,7 +74,7 @@
             let target = menuItem.dataset.target;
 
             menuItem.addEventListener('click', () => {
-                activateView(target);
+                activateView(target).catch(err => console.error(err));
             });
         }
 
