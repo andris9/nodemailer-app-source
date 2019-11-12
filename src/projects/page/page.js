@@ -26,6 +26,7 @@
             document.body.removeChild(loaderElm);
         }
     }
+
     window.hideLoader = hideLoader;
 
     async function main() {

@@ -515,7 +515,8 @@ class Analyzer {
                     return data.done();
                 }
 
-                if ((!data.node.disposition || data.node.disposition === 'inline') && ['text/html', 'text/plain'].includes(data.node.contentType)) {
+                let isTextNode = ['text/html', 'text/plain'].includes(data.node.contentType) || (data.node.root && !data.node.contentType);
+                if ((!data.node.disposition || data.node.disposition === 'inline') && isTextNode) {
                     // text
                     let decoder = data.decoder;
 
