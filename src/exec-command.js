@@ -1,7 +1,10 @@
+/* eslint no-constant-condition: 0 */
+
 'use strict';
 
 const fs = require('fs').promises;
 const fsCreateReadStream = require('fs').createReadStream;
+const fsCreateWriteStream = require('fs').createWriteStream;
 const { app, dialog, shell, BrowserWindow } = require('electron');
 const prompt = require('./prompt/prompt');
 const postfixParser = require('./postfix/parser');
@@ -529,6 +532,71 @@ async function createImportFromFolder(curWin, projects, analyzer) {
     return await processFolderImport(curWin, projects, analyzer, res.filePaths);
 }
 
+async function createExportMbox(curWin, projects, analyzer, params) {
+    let fileName = params.filename
+        // eslint-disable-next-line no-control-regex
+        .replace(/[/\\_\-?%*:|"'<>\x00-\x1F\x7F]+/g, '_')
+        .replace(/\.+/, '.')
+        .replace(/^[\s_.]+|[\s_.]+$|_+\s|\s_+/g, ' ');
+
+    let res = await dialog.showSaveDialog(curWin, {
+        title: 'Export emails',
+        defaultPath: fileName
+    });
+    if (res.canceled) {
+        return false;
+    }
+
+    if (res.canceled || !res.filePath) {
+        return false;
+    }
+
+    let output = fsCreateWriteStream(res.filePath);
+
+    try {
+        let page = 1;
+        let pageSize = 100;
+
+        while (true) {
+            let query = Object.assign(
+                {
+                    page,
+                    pageSize
+                },
+                params.query || {}
+            );
+            let data = await analyzer.getEmails(query);
+            for (let messageData of data.data) {
+                let returnPath = messageData.returnPath;
+                if (!returnPath && messageData.addresses.from && messageData.addresses.from.length) {
+                    returnPath = messageData.addresses.from[0].address;
+                }
+                console.log(`Exporting ${messageData.id} to ${res.filePath}...`);
+                try {
+                    await analyzer.writeEmailToMboxStream(messageData.id, output, {
+                        from: returnPath,
+                        date: messageData.idate || messageData.hdate
+                    });
+                } catch (err) {
+                    console.log(err);
+                    throw err;
+                }
+            }
+            if (data.pages >= page) {
+                // no more results
+                break;
+            } else {
+                page++;
+            }
+        }
+    } finally {
+        console.log('All processed');
+        output.end();
+    }
+
+    return false;
+}
+
 async function listProjects(curWin, projects) {
     let response = {
         data: await projects.list()
@@ -787,6 +855,9 @@ module.exports = async (curWin, projects, analyzer, data, menu) => {
 
         case 'createImport':
             return await createImport(curWin, projects, analyzer, data.params);
+
+        case 'createExportMbox':
+            return await createExportMbox(curWin, projects, analyzer, data.params);
 
         case 'listImports':
             return await listImports(curWin, projects, analyzer, data.params);

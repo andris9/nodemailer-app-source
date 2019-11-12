@@ -427,7 +427,7 @@ class Projects {
         projectWindow.on('blur', () => {
             let menu = Menu.getApplicationMenu();
             if (menu) {
-                ['import-files', 'import-maildir', 'import-folder'].forEach(key => {
+                ['import-files', 'import-maildir', 'import-folder', 'export-mbox'].forEach(key => {
                     let menuItem = menu.getMenuItemById(key);
                     if (menuItem) {
                         menuItem.enabled = false;
@@ -439,7 +439,7 @@ class Projects {
         projectWindow.on('focus', () => {
             let menu = Menu.getApplicationMenu();
             if (menu) {
-                ['import-files', 'import-maildir', 'import-folder'].forEach(key => {
+                ['import-files', 'import-maildir', 'import-folder', 'export-mbox'].forEach(key => {
                     let menuItem = menu.getMenuItemById(key);
                     if (menuItem) {
                         menuItem.enabled = true;

@@ -625,6 +625,22 @@
             }
         }
 
+        createExportMbox() {
+            showLoader()
+                .then(() => this.focus())
+                .then(() =>
+                    exec({
+                        command: 'createExportMbox',
+                        params: {
+                            query: this.query,
+                            filename: 'export.mbox'
+                        }
+                    })
+                )
+                .catch(() => false)
+                .finally(() => hideLoader());
+        }
+
         async init() {
             await this.reload();
 
@@ -706,6 +722,13 @@
                 this.clearSearch();
 
                 this.reload().catch(() => false);
+            });
+
+            window.events.subscribe('menu-click', data => {
+                switch (data.type) {
+                    case 'export-mbox':
+                        return this.createExportMbox();
+                }
             });
         }
     }

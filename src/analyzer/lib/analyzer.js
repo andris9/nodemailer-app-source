@@ -23,6 +23,7 @@ const Joiner = mailsplit.Joiner;
 const Streamer = mailsplit.Streamer;
 const HeaderSplitter = require('./header-splitter');
 const Newlines = require('./newlines');
+const MboxStream = require('./mbox-stream');
 const PassThrough = require('stream').PassThrough;
 const Headers = mailsplit.Headers;
 
@@ -1444,6 +1445,7 @@ class Analyzer {
 
         let selectFields = [
             `[emails].[id] AS id`,
+            `[emails].[return_path] AS returnPath`,
             `[emails].[subject] AS subject`,
             `[emails].[message_id] AS messageId`,
             `[emails].[idate] AS idate`,
@@ -2002,6 +2004,51 @@ class Analyzer {
                 // remove 0x0D, keep 0x0A
                 .pipe(new Newlines())
                 .pipe(fs);
+        });
+    }
+
+    async writeEmailToMboxStream(id, outputStream, mboxOptions) {
+        let sourceStream = await this.getMessageStream(id);
+        if (!sourceStream) {
+            return false;
+        }
+
+        await new Promise((resolve, reject) => {
+            let headerSplitter = new HeaderSplitter();
+
+            let newlines = new Newlines();
+            let mboxStream = new MboxStream(mboxOptions || {});
+
+            sourceStream.once('error', err => {
+                sourceStream.unpipe(headerSplitter);
+                mboxStream.unpipe(outputStream);
+                reject(err);
+            });
+
+            mboxStream.once('end', () => resolve());
+
+            headerSplitter.on('headers', data => {
+                // update headers
+                data.headers.add('X-Forensicat-ID', [this.project, id].join(':'), Infinity);
+
+                // remove MBOX headers
+                data.headers.remove('Content-Length');
+                data.headers.remove('X-Status');
+                data.headers.remove('Status');
+                data.headers.remove('X-GM-THRID');
+                data.headers.remove('X-Gmail-Labels');
+
+                return data.done();
+            });
+
+            sourceStream
+                .pipe(headerSplitter)
+                // remove 0x0D, keep 0x0A
+                .pipe(newlines)
+                .pipe(mboxStream)
+                .pipe(outputStream, {
+                    end: false
+                });
         });
     }
 }

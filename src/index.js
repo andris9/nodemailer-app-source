@@ -231,6 +231,23 @@ const importFromFolderMenuItem = {
     }
 };
 
+const exportMenuItem = {
+    id: 'export-mbox',
+    label: 'Export active listing as Mbox…',
+    enabled: false,
+    click: () => {
+        let focused = BrowserWindow.getFocusedWindow();
+        focused &&
+            focused.webContents.send(
+                'menu-click',
+                JSON.stringify({
+                    id: 'static',
+                    type: 'export-mbox'
+                })
+            );
+    }
+};
+
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
 
@@ -287,6 +304,10 @@ const template = [
     {
         label: 'Import',
         submenu: [importMenuItem, importFromMaildirMenuItem, importFromFolderMenuItem]
+    },
+    {
+        label: 'Export',
+        submenu: [exportMenuItem]
     },
     // { role: 'viewMenu' }
     {
