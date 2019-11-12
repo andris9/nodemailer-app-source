@@ -105,6 +105,9 @@ class Analyzer {
 
             await this.sql.run(`PRAGMA journal_mode=WAL`);
 
+            let tableEmailsExistsRow = await this.sql.findOne(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`, ['emails']);
+            let isNew = !tableEmailsExistsRow;
+
             await this.sql.run(`CREATE TABLE IF NOT EXISTS appmeta (
                 [key] TEXT PRIMARY KEY,
                 [value] TEXT
@@ -320,11 +323,24 @@ class Analyzer {
                 INSERT INTO emails_fts([rowid], [subject], [text]) VALUES (new.rowid, new.subject, new.text);
             END;`);
 
-            let row = await this.sql.findOne('SELECT [value] FROM [appmeta] WHERE [key] = ?', ['version']);
-            let storedVersion = Number(row && row.value) || 0;
+            if (isNew) {
+                // make sure we have correct version number setting set
+                try {
+                    await this.sql.run(`INSERT INTO appmeta ([key], [value]) VALUES ($key, $value)`, {
+                        $key: 'version',
+                        $value: PROJECT_VERSION
+                    });
+                } catch (err) {
+                    // ignore
+                }
+            } else {
+                // handle migrations if needed
+                let row = await this.sql.findOne('SELECT [value] FROM [appmeta] WHERE [key] = ?', ['version']);
+                let storedVersion = Number(row && row.value) || 0;
 
-            for (let i = storedVersion + 1; i <= PROJECT_VERSION; i++) {
-                await this.applyUpdates(i);
+                for (let i = storedVersion + 1; i <= PROJECT_VERSION; i++) {
+                    await this.applyUpdates(i);
+                }
             }
 
             await this.sql.run(`PRAGMA foreign_keys=ON`);

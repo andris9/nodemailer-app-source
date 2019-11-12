@@ -262,11 +262,18 @@
         }
 
         paintImportCell(rowElm, importData) {
+            let progress = (importData.totalsize ? Math.round((importData.processed / importData.totalsize) * 100) : 0);
+            if(importData.finished && !){
+                progress = 100;
+            }
+            // could be higher when importing gz files where exact size is not known
+            progress = Math.min(progress, 100);
+
             let runTime = new Date(importData.updated).getTime() - new Date(importData.created).getTime();
             rowElm.querySelector('td.cell-01').textContent = humanize.date('Y-m-d H:i', new Date(importData.created));
             rowElm.querySelector('td.cell-02').textContent = humanize.numberFormat(importData.emails, 0, '.', ' ');
             rowElm.querySelector('td.cell-03').textContent = humanize.filesize(importData.size || 0, 1024, 0, '.', ' ');
-            rowElm.querySelector('td.cell-04').textContent = (importData.totalsize ? Math.round((importData.processed / importData.totalsize) * 100) : 0) + '%';
+            rowElm.querySelector('td.cell-04').textContent = progress + '%';
             rowElm.querySelector('td.cell-05').textContent = this.formatRunTime(runTime);
             rowElm.querySelector('td.cell-06').textContent = !importData.finished ? 'Importing…' : importData.errored ? 'Failed' : 'Finished';
         }
