@@ -557,7 +557,7 @@
                     command: 'listEmails',
                     params
                 });
-                this.render(list);
+                await this.render(list);
             } finally {
                 await hideLoader();
             }
