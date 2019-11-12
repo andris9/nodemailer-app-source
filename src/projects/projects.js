@@ -292,7 +292,8 @@ class Projects {
             projectName: row.name, //'testikas_1571740887371'
             appDataPath: this.appDataPath,
             folderName: row.folderName,
-            thumbnailGenerator: this.thumbnailGenerator
+            thumbnailGenerator: this.thumbnailGenerator,
+            project: row.id
         });
 
         analyzer.id = id;

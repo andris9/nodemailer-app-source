@@ -616,7 +616,7 @@
                 await exec({
                     command: 'saveEmail',
                     params: {
-                        attachment: data.id,
+                        email: data.id,
                         filename: 'message_' + data.id + '.eml'
                     }
                 });

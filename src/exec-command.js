@@ -711,7 +711,7 @@ async function saveEmail(curWin, projects, analyzer, params) {
         return false;
     }
 
-    await analyzer.saveEmail(params.attachment, res.filePath);
+    await analyzer.saveEmail(params.email, res.filePath);
 }
 
 async function createPdf(curWin, projects, analyzer, params) {

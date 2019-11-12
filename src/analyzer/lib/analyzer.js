@@ -21,6 +21,8 @@ const fsCreateWriteStream = require('fs').createWriteStream;
 const Splitter = mailsplit.Splitter;
 const Joiner = mailsplit.Joiner;
 const Streamer = mailsplit.Streamer;
+const HeaderSplitter = require('./header-splitter');
+const Newlines = require('./newlines');
 const PassThrough = require('stream').PassThrough;
 const Headers = mailsplit.Headers;
 
@@ -41,6 +43,8 @@ const PROJECT_UPDATES = [
 class Analyzer {
     constructor(options) {
         this.options = options || {};
+
+        this.project = options.project;
 
         this.level = false;
         this.sql = false;
@@ -1959,19 +1963,45 @@ class Analyzer {
         }
 
         await new Promise((resolve, reject) => {
+            let headerSplitter = new HeaderSplitter();
+
             sourceStream.once('error', err => {
                 fs.end();
                 reject(err);
             });
-            sourceStream.once('end', () => resolve());
+
+            fs.once('close', () => resolve());
             fs.once('error', err => {
                 console.error(err);
-                sourceStream.unpipe(fs);
+                sourceStream.unpipe(headerSplitter);
                 // pump
-                sourceStream.on('data', () => false);
+                sourceStream.on('readable', () => {
+                    while (sourceStream.read() !== null) {
+                        // ignore
+                    }
+                });
                 reject(err);
             });
-            sourceStream.pipe(fs);
+
+            headerSplitter.on('headers', data => {
+                // update headers
+                data.headers.add('X-Forensicat-ID', [this.project, id].join(':'), Infinity);
+
+                // remove MBOX headers
+                data.headers.remove('Content-Length');
+                data.headers.remove('X-Status');
+                data.headers.remove('Status');
+                data.headers.remove('X-GM-THRID');
+                data.headers.remove('X-Gmail-Labels');
+
+                return data.done();
+            });
+
+            sourceStream
+                .pipe(headerSplitter)
+                // remove 0x0D, keep 0x0A
+                .pipe(new Newlines())
+                .pipe(fs);
         });
     }
 }
