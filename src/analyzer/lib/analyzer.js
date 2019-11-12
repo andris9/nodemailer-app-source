@@ -27,6 +27,17 @@ const Headers = mailsplit.Headers;
 const MAX_HTML_PARSE_LENGTH = 2 * 1024 * 1024; // do not parse HTML messages larger than 2MB to plaintext
 const HASH_ALGO = 'sha1';
 
+const PROJECT_VERSION = 1;
+const PROJECT_UPDATES = [
+    // update to 1
+    [
+        'ALTER TABLE [emails] ADD [import] INTEGER',
+        `CREATE INDEX IF NOT EXISTS [email_import] ON emails (
+            [import]
+        )`
+    ]
+];
+
 class Analyzer {
     constructor(options) {
         this.options = options || {};
@@ -53,6 +64,28 @@ class Analyzer {
         this.thumbnailGenerator = options.thumbnailGenerator;
     }
 
+    async applyUpdates(version) {
+        version = Number(version) || 1;
+        if (!PROJECT_UPDATES[version - 1]) {
+            return;
+        }
+        for (let update of PROJECT_UPDATES[version - 1]) {
+            if (!update) {
+                continue;
+            }
+            try {
+                console.log(`Running update (${version}): "${update}"`);
+                await this.sql.run(update);
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        await this.sql.run(`INSERT INTO appmeta ([key], [value]) VALUES ($key, $value) ON CONFLICT([key]) DO UPDATE SET [value] = $value`, {
+            $key: 'version',
+            $value: version
+        });
+    }
+
     async prepare() {
         if (this.prepared) {
             return false;
@@ -72,8 +105,15 @@ class Analyzer {
 
             await this.sql.run(`PRAGMA journal_mode=WAL`);
 
+            await this.sql.run(`CREATE TABLE IF NOT EXISTS appmeta (
+                [key] TEXT PRIMARY KEY,
+                [value] TEXT
+            );`);
+
             await this.sql.run(`CREATE TABLE IF NOT EXISTS emails (
                 [id] INTEGER PRIMARY KEY,
+                [import] INTEGER,
+
                 [idate] DATETIME,
                 [hdate] DATETIME,
                 [source] TEXT,
@@ -165,6 +205,15 @@ class Analyzer {
                 FOREIGN KEY ([email])
                     REFERENCES emails ([id]) ON DELETE CASCADE
             );`);
+
+            try {
+                // may fail on non-updated dbs
+                await this.sql.run(`CREATE INDEX IF NOT EXISTS [email_import] ON emails (
+                    [import]
+                )`);
+            } catch (err) {
+                // ignore
+            }
 
             await this.sql.run(`CREATE INDEX IF NOT EXISTS [hdate] ON emails (
                 [hdate]
@@ -270,6 +319,13 @@ class Analyzer {
                 INSERT INTO emails_fts([emails_fts], [rowid], [subject], [text]) VALUES('delete', old.rowid, old.subject, old.text);
                 INSERT INTO emails_fts([rowid], [subject], [text]) VALUES (new.rowid, new.subject, new.text);
             END;`);
+
+            let row = await this.sql.findOne('SELECT [value] FROM [appmeta] WHERE [key] = ?', ['version']);
+            let storedVersion = Number(row && row.value) || 0;
+
+            for (let i = storedVersion + 1; i <= PROJECT_VERSION; i++) {
+                await this.applyUpdates(i);
+            }
 
             await this.sql.run(`PRAGMA foreign_keys=ON`);
             await this.sql.run(`PRAGMA case_sensitive_like=OFF`);
@@ -428,6 +484,24 @@ class Analyzer {
         let headers;
         let textParts = [];
         let attachments = [];
+
+        if (typeof sourceStream === 'string') {
+            sourceStream = Buffer.from(sourceStream);
+        }
+
+        if (Buffer.isBuffer(sourceStream)) {
+            // check hash for duplicates
+            let hash = crypto
+                .createHash(HASH_ALGO)
+                .update(sourceStream)
+                .digest('hex');
+
+            let row = await this.sql.findOne('SELECT id FROM emails WHERE hash=? LIMIT 1', [hash]);
+            if (row && row.id) {
+                // message alrwayd exists
+                return { duplicate: true };
+            }
+        }
 
         let eml = await new Promise((resolve, reject) => {
             let streamer = new Streamer(() => true);
@@ -730,6 +804,7 @@ class Analyzer {
         }
 
         const queryParams = {
+            $import: (metadata.source && metadata.source.importId) || null,
             $source: JSON.stringify(metadata.source || {}),
             $return_path: returnPath || null,
             $text: ftsText.join('\n'),
@@ -827,8 +902,8 @@ class Analyzer {
         try {
             emailId = await this.sql.run(
                 `INSERT INTO emails 
-                ([return_path], [source], [hdate], [idate], [from], [to], [cc], [bcc], [reply_to], [subject], [text], [message_id], [key], [attachments], [flags], [labels], [size], [hash]) 
-                VALUES ($return_path, $source, $hdate, $idate, $from, $to, $cc, $bcc, $reply_to, $subject, $text, $message_id, $key, $attachments, $flags, $labels, $size, $hash)`,
+                ([import], [return_path], [source], [hdate], [idate], [from], [to], [cc], [bcc], [reply_to], [subject], [text], [message_id], [key], [attachments], [flags], [labels], [size], [hash]) 
+                VALUES ($import, $return_path, $source, $hdate, $idate, $from, $to, $cc, $bcc, $reply_to, $subject, $text, $message_id, $key, $attachments, $flags, $labels, $size, $hash)`,
                 queryParams
             );
 
@@ -1363,6 +1438,16 @@ class Analyzer {
                 WHERE [emails_fts] MATCH $term
             )`);
             queryParams.$term = (options.term || '').toString().trim();
+        }
+
+        if (options.id && Number(options.id)) {
+            whereTerms.push(`[emails].[id] = $id`);
+            queryParams.$id = Number(options.id);
+        }
+
+        if (options.import && Number(options.import)) {
+            whereTerms.push(`[emails].[import] = $import`);
+            queryParams.$import = Number(options.import);
         }
 
         if (options.subject) {

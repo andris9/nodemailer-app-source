@@ -65,6 +65,7 @@
         };
 
         Object.keys(pages).forEach(target => {
+            pages[target].pages = pages;
             pages[target].focus = () => activateView(target);
         });
 

@@ -65,7 +65,7 @@ async function processMboxImport(curWin, projects, analyzer, paths) {
 
                 let lastSize = 0;
                 for await (let messageData of eachMessage(input)) {
-                    let { size } = await analyzer.import(
+                    let { size, duplicate } = await analyzer.import(
                         {
                             source: {
                                 format: 'mbox',
@@ -79,6 +79,10 @@ async function processMboxImport(curWin, projects, analyzer, paths) {
                         },
                         messageData.content
                     );
+
+                    if (duplicate) {
+                        continue;
+                    }
 
                     // increment counters
                     let sizeDiff = messageData.readSize - lastSize;
@@ -160,7 +164,7 @@ async function processMaildirImport(curWin, projects, analyzer, folderPaths) {
                     input = gunzip;
                 }
 
-                let { size } = await analyzer.import(
+                let { size, duplicate } = await analyzer.import(
                     {
                         source: {
                             format: 'maildir',
@@ -173,6 +177,10 @@ async function processMaildirImport(curWin, projects, analyzer, folderPaths) {
                     },
                     input
                 );
+
+                if (duplicate) {
+                    continue;
+                }
 
                 // increment counters
                 await projects.updateImport(analyzer.id, importId, { emails: 1, processed: 1, size });
@@ -243,7 +251,7 @@ async function processFolderImport(curWin, projects, analyzer, folderPaths) {
                     input = gunzip;
                 }
 
-                let { size } = await analyzer.import(
+                let { size, duplicate } = await analyzer.import(
                     {
                         source: {
                             format: 'eml',
@@ -253,6 +261,10 @@ async function processFolderImport(curWin, projects, analyzer, folderPaths) {
                     },
                     input
                 );
+
+                if (duplicate) {
+                    continue;
+                }
 
                 // increment counters
                 await projects.updateImport(analyzer.id, importId, { emails: 1, processed: 1, size });
@@ -386,7 +398,7 @@ async function processEmlImport(curWin, projects, analyzer, paths) {
                     input = gunzip;
                 }
 
-                let { size } = await analyzer.import(
+                let { size, duplicate } = await analyzer.import(
                     {
                         source: {
                             format: 'eml',
@@ -396,6 +408,10 @@ async function processEmlImport(curWin, projects, analyzer, paths) {
                     },
                     input
                 );
+
+                if (duplicate) {
+                    continue;
+                }
 
                 // increment counters
                 await projects.updateImport(analyzer.id, importId, { emails: 1, processed: 1, size });
@@ -436,7 +452,7 @@ async function processPostfixImport(curWin, projects, analyzer, paths) {
             try {
                 let messageData = await postfixParser(await fs.readFile(path));
 
-                let { size } = await analyzer.import(
+                let { size, duplicate } = await analyzer.import(
                     {
                         source: {
                             format: 'postfix',
@@ -449,6 +465,10 @@ async function processPostfixImport(curWin, projects, analyzer, paths) {
                     },
                     messageData.content
                 );
+
+                if (duplicate) {
+                    continue;
+                }
 
                 // increment counters
                 await projects.updateImport(analyzer.id, importId, { emails: 1, processed: 1, size });
@@ -532,6 +552,7 @@ async function listAttachments(curWin, projects, analyzer, params) {
 }
 
 async function listEmails(curWin, projects, analyzer, params) {
+    console.log(params);
     return await analyzer.getEmails(params);
 }
 

@@ -29,6 +29,9 @@
             this.page = 1;
             this.pages = 1;
             this.visible = false;
+
+            // overriden by main
+            this.pages = false;
         }
 
         async focus() {

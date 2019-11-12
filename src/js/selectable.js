@@ -161,6 +161,13 @@
             return this.active;
         }
 
+        // select first element
+        focus() {
+            if (this.list && this.list.length) {
+                this.select(this.list[0]);
+            }
+        }
+
         select(entry) {
             if (!this.activated || !this.list) {
                 return;

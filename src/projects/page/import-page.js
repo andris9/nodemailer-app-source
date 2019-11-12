@@ -22,10 +22,29 @@
             this.selectable = new window.Selectable(this.rows, (...args) => this.listAction(...args));
 
             this.visible = false;
+
+            // overriden by main
+            this.pages = false;
         }
 
         listAction(action, row) {
-            console.log(action, row);
+            switch (action) {
+                case 'open':
+                    this.actionOpen(row).catch(() => false);
+                    return;
+            }
+        }
+
+        async actionOpen(row) {
+            if (row && row.data && row.data.id) {
+                await this.pages.emails.focus();
+                try {
+                    await this.pages.emails.search({ import: row.data.id }, `"import:${row.data.id}"`);
+                    this.pages.emails.selectable.focus();
+                } catch (err) {
+                    console.error(err);
+                }
+            }
         }
 
         async focus() {
@@ -248,7 +267,6 @@
             rowElm.querySelector('td.cell-02').textContent = humanize.numberFormat(importData.emails, 0, '.', ' ');
             rowElm.querySelector('td.cell-03').textContent = humanize.filesize(importData.size || 0, 1024, 0, '.', ' ');
             rowElm.querySelector('td.cell-04').textContent = (importData.totalsize ? Math.round((importData.processed / importData.totalsize) * 100) : 0) + '%';
-            console.log(runTime, this.formatRunTime(runTime));
             rowElm.querySelector('td.cell-05').textContent = this.formatRunTime(runTime);
             rowElm.querySelector('td.cell-06').textContent = !importData.finished ? 'Importing…' : importData.errored ? 'Failed' : 'Finished';
         }

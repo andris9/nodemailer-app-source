@@ -32,6 +32,9 @@
             this.page = 1;
             this.pages = 1;
             this.visible = false;
+
+            // overriden by main
+            this.pages = false;
         }
 
         async focus() {
@@ -342,6 +345,21 @@
             }
         }
 
+        async actionShow() {
+            if (!this.renderedData) {
+                return false;
+            }
+            let data = this.renderedData;
+
+            await this.pages.emails.focus();
+            try {
+                await this.pages.emails.search({ id: data.email }, `"message:${data.email}"`);
+                this.pages.emails.selectable.focus();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
         async actionOpen() {
             if (!this.renderedData) {
                 return false;
@@ -381,6 +399,16 @@
                     .catch(() => false)
                     .finally(() => {
                         actionSaveElm.classList.remove('active');
+                    });
+            });
+
+            let actionShowElm = document.getElementById('attachment-action-show');
+            actionShowElm.addEventListener('click', () => {
+                actionShowElm.classList.add('active');
+                this.actionShow()
+                    .catch(() => false)
+                    .finally(() => {
+                        actionShowElm.classList.remove('active');
                     });
             });
 

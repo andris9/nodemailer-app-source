@@ -11,7 +11,6 @@ const Analyzer = require('../analyzer/lib/analyzer.js');
 const { BrowserWindow, Menu } = require('electron');
 
 const MAIN_VERSION = 1;
-const PROJECT_VERSION = 1;
 
 const MAIN_UPDATES = [
     // update to 1
@@ -44,8 +43,6 @@ class Projects {
 
     async applyUpdates(version) {
         version = Number(version) || 1;
-        console.log('main update', version);
-
         if (!MAIN_UPDATES[version - 1]) {
             return;
         }
@@ -252,11 +249,10 @@ class Projects {
         await analyzer.prepare();
         await analyzer.close();
 
-        let query = 'INSERT INTO projects ([name], [version], [created], [folder_name]) VALUES ($name, $version, $created, $folder_name)';
+        let query = 'INSERT INTO projects ([name], [created], [folder_name]) VALUES ($name, $created, $folder_name)';
         let queryParams = {
             $name: name,
             $folder_name: folderName,
-            $version: PROJECT_VERSION,
             $created: formatDate(new Date())
         };
 

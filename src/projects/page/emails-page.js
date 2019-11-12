@@ -134,10 +134,15 @@
 
             this.lastChanges = 0;
 
-            this.term = '';
+            this.query = false;
+            this.queryTerm = false;
+
             this.page = 1;
             this.pages = 1;
             this.visible = false;
+
+            // overriden by main
+            this.pages = false;
         }
 
         listAction(action) {
@@ -517,12 +522,7 @@
 
             this.visible = true;
 
-            if (this.page !== 1) {
-                this.page = 1;
-                this.term = '';
-                this.clearSearch();
-                await this.reload();
-            } else if (window.__hasChanges !== this.lastChanges) {
+            if (window.__hasChanges !== this.lastChanges) {
                 this.lastChanges = window.__hasChanges;
                 await this.reload();
             }
@@ -545,11 +545,17 @@
         async reload() {
             await showLoader();
             try {
+                let params = {
+                    page: this.page
+                };
+
+                if (this.query) {
+                    params = Object.assign(params, this.query);
+                }
+
                 let list = await exec({
                     command: 'listEmails',
-                    params: {
-                        page: this.page
-                    }
+                    params
                 });
                 this.render(list);
             } finally {
@@ -557,32 +563,35 @@
             }
         }
 
-        async search() {
-            let term = await exec({
-                command: 'searchEmails',
-                params: {
-                    term: this.term || ''
-                }
-            });
-            term = (term || '').trim();
-            if (term) {
-                this.term = term;
-                this.page = 1;
+        async search(search, term) {
+            search =
+                search ||
+                (await exec({
+                    command: 'searchEmails',
+                    params: {
+                        search: this.query
+                    }
+                }));
 
-                let searchBlockElm = document.getElementById('emails-search-block');
-                searchBlockElm.classList.remove('hidden');
-                let searchClearElm = document.getElementById('emails-search-clear');
-                searchClearElm.classList.remove('hidden');
-                let searchTermElm = document.getElementById('emails-search-term');
-                searchTermElm.innerText = term;
+            this.query = search || false;
+            this.queryTerm = term || false;
 
-                await this.reload();
-            }
+            this.page = 1;
+
+            let searchBlockElm = document.getElementById('emails-search-block');
+            searchBlockElm.classList.remove('hidden');
+            let searchClearElm = document.getElementById('emails-search-clear');
+            searchClearElm.classList.remove('hidden');
+            let searchTermElm = document.getElementById('emails-search-term');
+            searchTermElm.innerText = this.queryTerm || 'user query';
+
+            await this.reload();
         }
 
         clearSearch() {
             this.page = 1;
-            this.term = '';
+            this.query = false;
+            this.queryTerm = false;
 
             let searchBlockElm = document.getElementById('emails-search-block');
             searchBlockElm.classList.add('hidden');
