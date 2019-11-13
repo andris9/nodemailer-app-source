@@ -20,6 +20,7 @@
   "config": {
     "forge": {
       "packagerConfig": {
+        "asar": true,
         "buildVersion": "",
         "icon": "",
         "appCopyright": "© 2019 Andris Reinman",
