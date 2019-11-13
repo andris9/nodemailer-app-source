@@ -3,6 +3,7 @@
 const SQL = require('../sql/sql');
 const urllib = require('url');
 const pathlib = require('path');
+const uuidv4 = require('uuid/v4');
 const util = require('util');
 const mkdirp = util.promisify(require('mkdirp'));
 const rimraf = util.promisify(require('rimraf'));
@@ -82,6 +83,9 @@ class Projects {
 
             await this.sql.run(`PRAGMA journal_mode=WAL`);
 
+            let tableEmailsExistsRow = await this.sql.findOne(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`, ['projects']);
+            let isNew = !tableEmailsExistsRow;
+
             await this.sql.run(`CREATE TABLE IF NOT EXISTS appmeta (
                 [key] TEXT PRIMARY KEY,
                 [value] TEXT
@@ -130,17 +134,45 @@ class Projects {
                 [finished]
             )`);
 
-            let row = await this.sql.findOne('SELECT [value] FROM [appmeta] WHERE [key] = ?', ['version']);
-            let storedVersion = Number(row && row.value) || 0;
+            if (isNew) {
+                // make sure we have correct version number setting set
+                try {
+                    await this.sql.run(`INSERT INTO appmeta ([key], [value]) VALUES ($key, $value)`, {
+                        $key: 'version',
+                        $value: MAIN_VERSION
+                    });
+                } catch (err) {
+                    // ignore
+                }
+            } else {
+                // handle migrations
+                let row = await this.sql.findOne('SELECT [value] FROM [appmeta] WHERE [key] = ?', ['version']);
+                let storedVersion = Number(row && row.value) || 0;
 
-            for (let i = storedVersion + 1; i <= MAIN_VERSION; i++) {
-                await this.applyUpdates(i);
+                for (let i = storedVersion + 1; i <= MAIN_VERSION; i++) {
+                    await this.applyUpdates(i);
+                }
             }
 
             await this.sql.run(`UPDATE [imports] SET finished=$finished, errored=$errored WHERE finished IS NULL`, {
                 $errored: 'Unfinished import',
                 $finished: formatDate(new Date())
             });
+
+            // make sure we have a instance specific ID set
+            let row = await this.sql.findOne('SELECT [value] FROM [appmeta] WHERE [key] = ?', ['fid']);
+            this.fid = row && row.value;
+            if (!this.fid) {
+                this.fid = uuidv4();
+                try {
+                    await this.sql.run(`INSERT INTO appmeta ([key], [value]) VALUES ($key, $value)`, {
+                        $key: 'fid',
+                        $value: this.fid
+                    });
+                } catch (err) {
+                    // ignore
+                }
+            }
 
             await this.sql.run(`PRAGMA foreign_keys=ON`);
             await this.sql.run(`PRAGMA case_sensitive_like=OFF`);
@@ -243,7 +275,8 @@ class Projects {
             projectName: name, //'testikas_1571740887371'
             appDataPath: this.appDataPath,
             folderName,
-            thumbnailGenerator: this.thumbnailGenerator
+            thumbnailGenerator: this.thumbnailGenerator,
+            fid: this.fid
         });
 
         await analyzer.prepare();
@@ -293,7 +326,8 @@ class Projects {
             appDataPath: this.appDataPath,
             folderName: row.folderName,
             thumbnailGenerator: this.thumbnailGenerator,
-            project: row.id
+            project: row.id,
+            fid: this.fid
         });
 
         analyzer.id = id;
