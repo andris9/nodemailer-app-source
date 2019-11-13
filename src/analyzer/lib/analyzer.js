@@ -1636,7 +1636,7 @@ class Analyzer {
             .concat(joinTerms)
             .concat(whereTerms.length ? 'WHERE' : [])
             .concat(whereTerms.join(' AND '))
-            .concat('ORDER BY [emails].idate DESC, [emails].[id] DESC')
+            .concat('ORDER BY [emails].hdate DESC, [emails].[id] DESC')
             .concat('LIMIT $limit OFFSET $offset')
             .join(' ');
 
