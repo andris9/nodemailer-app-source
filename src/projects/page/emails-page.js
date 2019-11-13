@@ -11,7 +11,7 @@
         body, td, th, p {
             font-size: 13px;
             font-family: Sans-Serif;
-            color: #0a244d;
+            color: #0f0f0f;
         }
         body {
             max-width: 600px; /* body_max_width */
@@ -21,7 +21,7 @@
             text-align: left;
             font-size: 13px;
             font-family: Sans-Serif;
-            color: #0a244d;
+            color: #0f0f0f;
             display: flex;
             flex-flow: row wrap;
         }
@@ -29,7 +29,7 @@
             text-align: left;
             font-size: 13px;
             font-family: Sans-Serif;
-            color: #0a244d;
+            color: #0f0f0f;
             flex-basis: 20%;
             padding: 2px 4px;
             text-align: left;
@@ -59,11 +59,11 @@
         body, td, th, p {
             font-size: 13px;
             font-family: Sans-Serif;
-            color: #0a244d;
+            color: #0f0f0f;
         }
 
         .text-content {
-            font-family: monospace;
+            font-family: sans-serif;
             white-space: pre-wrap;
         }
         
