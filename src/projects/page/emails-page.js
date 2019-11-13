@@ -374,10 +374,10 @@
 
             let drawHeaders = headers => {
                 let escapeElm = document.createElement('span');
-                escapeElm.textContent = headers.original;
+                escapeElm.textContent = headers.original.replace(/\t/g, '  ');
                 let escaped = escapeElm.innerHTML.trim();
 
-                let html = `<!doctype html><head><meta charset="utf-8">${plainStyleTag}</head><body><div class="text-content">${escaped}</div></body>`;
+                let html = `<!doctype html><head><meta charset="utf-8">${plainStyleTag} <style>.text-content{font-family: monospace; white-space: pre;}</style></head><body><div class="text-content">${escaped}</div></body>`;
 
                 let iframe = document.createElement('iframe');
                 iframe.setAttribute('sandbox', 'allow-popups allow-same-origin');
@@ -460,7 +460,7 @@
                 }
 
                 addFileRow({
-                    title: 'HTML content',
+                    title: 'HTML message',
                     filename: 'message_' + data.id + '.html',
                     id: 'html',
                     contentType: 'application/octet-stream',
@@ -480,7 +480,7 @@
                 }
 
                 addFileRow({
-                    title: 'Plaintext content',
+                    title: 'Plain text message',
                     filename: 'message_' + data.id + '.txt',
                     id: 'plain',
                     contentType: 'application/octet-stream',
