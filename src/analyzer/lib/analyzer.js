@@ -16,6 +16,7 @@ const crypto = require('crypto');
 const addressparser = require('nodemailer/lib/addressparser');
 const punycode = require('punycode');
 const human = require('humanparser');
+const fs = require('fs').promises;
 const fsCreateWriteStream = require('fs').createWriteStream;
 
 const Splitter = mailsplit.Splitter;
@@ -1654,6 +1655,15 @@ class Analyzer {
                 emailData.hdate = new Date(emailData.hdate + 'Z').toISOString();
             }
 
+            if (emailData.attachments) {
+                emailData.attachments = await this.sql.findMany(
+                    'SELECT id, content_type AS contentType, filename, size FROM attachments WHERE email=? ORDER BY filename ASC LIMIT 1000',
+                    [emailData.id]
+                );
+            } else {
+                emailData.attachments = [];
+            }
+
             let list = await this.sql.findMany(
                 'SELECT type, name, address, contact FROM addresses WHERE email=? ORDER BY type ASC, last_name ASC, first_name ASC LIMIT 1000',
                 [emailData.id]
@@ -1911,6 +1921,23 @@ class Analyzer {
 
         let comma = thumb.indexOf(',');
         return Buffer.from(thumb.substr(comma + 1), 'base64');
+    }
+
+    async saveText(id, type, path) {
+        let row = await this.sql.findOne(`SELECT key FROM emails WHERE id=?`, [id]);
+        if (!row || !row.key) {
+            return false;
+        }
+        let text = await this.getTextContent(row.key);
+
+        let textContent = Buffer.from(
+            text
+                .filter(part => part.contentType === `text/${type}`)
+                .map(part => part.text)
+                .join('\n')
+        );
+
+        await fs.writeFile(path, textContent);
     }
 
     async saveFile(id, path) {

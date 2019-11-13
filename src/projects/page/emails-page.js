@@ -268,10 +268,12 @@
             let tabHtmlContentElm = document.getElementById('email-tab-html-content');
             let tabPlainContentElm = document.getElementById('email-tab-plain-content');
             let tabHeadersContentElm = document.getElementById('email-tab-headers-content');
+            let tabFilesListElm = document.getElementById('email-file-list');
 
             tabHtmlContentElm.innerHTML = '';
             tabPlainContentElm.innerHTML = '';
             tabHeadersContentElm.innerHTML = '';
+            tabFilesListElm.innerHTML = '';
 
             this.currentHtml = '';
 
@@ -383,6 +385,70 @@
                 tabHeadersContentElm.appendChild(iframe);
             };
 
+            let addFileRow = fileInfo => {
+                fileInfo = fileInfo || {};
+                let rowElm = document.createElement('tr');
+
+                let cell01Elm = document.createElement('td');
+                let cell02Elm = document.createElement('td');
+                let cell03Elm = document.createElement('td');
+
+                cell02Elm.classList.add('text-right');
+                cell03Elm.classList.add('text-right');
+
+                cell02Elm.style.width = '20%';
+                cell03Elm.style.width = '20%';
+
+                cell01Elm.textContent = fileInfo.title || fileInfo.filename;
+                cell01Elm.title = fileInfo.filename;
+
+                cell02Elm.textContent = humanize.filesize(Number(fileInfo.size) || 0, 1024, 0, '.', ' ');
+                cell02Elm.title = Number(fileInfo.size) || 0;
+
+                let fileSaveBtnElm = document.createElement('button');
+                fileSaveBtnElm.classList.add('btn', 'btn-default');
+                let fileSaveIconElm = document.createElement('span');
+                fileSaveIconElm.classList.add('icon', 'icon-download');
+
+                fileSaveBtnElm.appendChild(fileSaveIconElm);
+                cell03Elm.appendChild(fileSaveBtnElm);
+
+                rowElm.appendChild(cell01Elm);
+                rowElm.appendChild(cell02Elm);
+                rowElm.appendChild(cell03Elm);
+
+                fileSaveBtnElm.addEventListener('click', ev => {
+                    ev.stopPropagation();
+                    ev.preventDefault();
+
+                    let save = async () => {
+                        if (!this.renderedData) {
+                            return false;
+                        }
+                        await showLoader();
+                        try {
+                            let data = this.renderedData;
+                            await exec({
+                                command: 'saveAttachment',
+                                params: {
+                                    email: data.id,
+                                    attachment: fileInfo.id,
+                                    filename: fileInfo.filename
+                                }
+                            });
+                        } finally {
+                            await hideLoader();
+                        }
+                    };
+
+                    save().catch(() => false);
+                });
+
+                document.getElementById('email-file-list').appendChild(rowElm);
+            };
+
+            console.log(data);
+
             let activeTab = false;
             if (data.text.html) {
                 drawHtml(data.text.html, false).catch(() => false);
@@ -392,6 +458,14 @@
                     this.viewTabs.activate('html');
                     activeTab = 'html';
                 }
+
+                addFileRow({
+                    title: 'HTML content',
+                    filename: 'message_' + data.id + '.html',
+                    id: 'html',
+                    contentType: 'application/octet-stream',
+                    size: data.text.html.length
+                });
             } else {
                 this.viewTabs.hide('html');
             }
@@ -404,11 +478,23 @@
                     this.viewTabs.activate('plain');
                     activeTab = 'plain';
                 }
+
+                addFileRow({
+                    title: 'Plaintext content',
+                    filename: 'message_' + data.id + '.txt',
+                    id: 'plain',
+                    contentType: 'application/octet-stream',
+                    size: data.text.plain.length
+                });
             } else {
                 this.viewTabs.hide('plain');
             }
 
             drawHeaders(data.headers);
+
+            for (let attachmentData of data.attachments) {
+                addFileRow(attachmentData);
+            }
 
             this.viewTabs.show('headers');
             if (!activeTab) {

@@ -823,6 +823,10 @@ async function saveAttachment(curWin, projects, analyzer, params) {
         return false;
     }
 
+    if (['html', 'plain'].includes(params.attachment)) {
+        return await analyzer.saveText(params.email, params.attachment, res.filePath);
+    }
+
     await analyzer.saveFile(params.attachment, res.filePath);
 }
 
@@ -859,6 +863,8 @@ async function saveEmail(curWin, projects, analyzer, params) {
     if (res.canceled || !res.filePath) {
         return false;
     }
+
+    console.log('saveEmail', params.email, res.filePath);
 
     await analyzer.saveEmail(params.email, res.filePath);
 }
