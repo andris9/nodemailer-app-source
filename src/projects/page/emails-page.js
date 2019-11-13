@@ -523,9 +523,7 @@
 
             this.visible = true;
 
-            console.log(1);
             if (this.page !== 1 || this.query) {
-                console.log(2);
                 this.clearSearch();
                 this.lastChanges = window.__hasChanges;
                 await this.reload();

@@ -64,7 +64,7 @@
     "level": "6.0.0",
     "libmime": "4.2.1",
     "maildir-scan": "2.1.1",
-    "mailsplit": "4.5.0",
+    "mailsplit": "4.6.2",
     "mbox-reader": "1.1.1",
     "moment": "^2.24.0",
     "node-tnef": "1.3.2",

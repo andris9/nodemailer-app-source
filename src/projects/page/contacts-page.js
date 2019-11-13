@@ -165,18 +165,11 @@
 
         async actionOpen(row) {
             // TODO: filter messages related to specific person
-            console.log(row.data);
-            console.log(1);
             if (row && row.data && row.data.id) {
-                console.log(2);
                 try {
-                    console.log(3);
                     await this.pageViews.emails.focus();
-                    console.log(4);
                     await this.pageViews.emails.search({ contact: row.data.id }, `"contact:${row.data.address}"`);
-                    console.log(5);
                     this.pageViews.emails.selectable.focus();
-                    console.log(6);
                 } catch (err) {
                     console.error(err);
                 }

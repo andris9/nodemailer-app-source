@@ -9,6 +9,7 @@ const { app, dialog, shell, BrowserWindow } = require('electron');
 const prompt = require('./prompt/prompt');
 const postfixParser = require('./postfix/parser');
 const detectFormat = require('./detect-format/detect-format');
+const emlxStream = require('./analyzer/lib/emlx-stream');
 const pathlib = require('path');
 const { eachMessage } = require('mbox-reader');
 const MaildirScan = require('maildir-scan');
@@ -214,7 +215,7 @@ async function processFolderImport(curWin, projects, analyzer, folderPaths) {
         try {
             let list = await recursiveReaddir(path, [
                 (file, stats) => {
-                    if (stats.isDirectory() || ['.eml', '.eml.gz'].includes(pathlib.extname(file).toLowerCase())) {
+                    if (stats.isDirectory() || ['.eml', '.eml.gz', '.emlx'].includes(pathlib.extname(file).toLowerCase())) {
                         return false;
                     }
                     return true;
@@ -252,6 +253,10 @@ async function processFolderImport(curWin, projects, analyzer, folderPaths) {
                         gunzip.emit('error', err);
                     });
                     input = gunzip;
+                }
+
+                if (pathlib.extname(path).toLowerCase() === '.emlx') {
+                    input = emlxStream(path, input);
                 }
 
                 let { size, duplicate } = await analyzer.import(
@@ -336,6 +341,14 @@ async function createImport(curWin, projects, analyzer, params) {
                     }
                 }
                 break;
+            case 'emlx':
+                {
+                    let id = await processEmlxImport(curWin, projects, analyzer, importGroups[format]);
+                    if (id) {
+                        ids.push(id);
+                    }
+                }
+                break;
             case 'folder':
                 {
                     let id = await processFolderImport(curWin, projects, analyzer, importGroups[format]);
@@ -400,6 +413,74 @@ async function processEmlImport(curWin, projects, analyzer, paths) {
                     });
                     input = gunzip;
                 }
+
+                let { size, duplicate } = await analyzer.import(
+                    {
+                        source: {
+                            format: 'eml',
+                            filename: path,
+                            importId
+                        }
+                    },
+                    input
+                );
+
+                if (duplicate) {
+                    continue;
+                }
+
+                // increment counters
+                await projects.updateImport(analyzer.id, importId, { emails: 1, processed: 1, size });
+            }
+        } catch (err) {
+            errored = err.message;
+            throw err;
+        } finally {
+            await projects.updateImport(analyzer.id, importId, { finished: true, errored });
+        }
+    };
+
+    setImmediate(() => {
+        projects._imports++;
+        processImport()
+            .catch(err => console.error(err))
+            .finally(() => {
+                projects._imports--;
+            });
+    });
+
+    return importId;
+}
+
+async function processEmlxImport(curWin, projects, analyzer, paths) {
+    let totalsize = paths.length;
+
+    let importId = await projects.createImport(analyzer.id, {
+        totalsize,
+        source: {
+            format: 'eml',
+            filePaths: paths
+        }
+    });
+
+    let processImport = async () => {
+        let errored = false;
+        try {
+            for (let path of paths) {
+                let gz = await isGz(path);
+
+                let input = fsCreateReadStream(path);
+                if (gz) {
+                    // process as gz stream
+                    let gunzip = zlib.createGunzip();
+                    input.pipe(gunzip);
+                    input.on('error', err => {
+                        gunzip.emit('error', err);
+                    });
+                    input = gunzip;
+                }
+
+                input = emlxStream(path, input);
 
                 let { size, duplicate } = await analyzer.import(
                     {

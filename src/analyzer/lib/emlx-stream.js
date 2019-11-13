@@ -1,10 +1,18 @@
 /* eslint no-bitwise: 0 */
 'use strict';
 
+const mailsplit = require('mailsplit');
+const Rewriter = mailsplit.Rewriter;
+const Splitter = mailsplit.Splitter;
+const Joiner = mailsplit.Joiner;
+const pathlib = require('path');
+const fs = require('fs').promises;
+const fsCreateReadStream = require('fs').createReadStream;
+
 const plist = require('plist');
 const Transform = require('stream').Transform;
 
-class EmlxStream extends Transform {
+class EmlxRawStream extends Transform {
     constructor(options) {
         super();
         this.options = options || {};
@@ -129,4 +137,105 @@ class EmlxStream extends Transform {
     }
 }
 
-module.exports = EmlxStream;
+function parseEmlx(path, input) {
+    let splitter = new Splitter();
+    let joiner = new Joiner();
+
+    // create a Rewriter for text/html
+    let rewriter = new Rewriter(node => node.headers.getFirst('X-Apple-Content-Length'));
+
+    rewriter.on('node', data => {
+        let chunks = [];
+        let chunklen = 0;
+        data.decoder.on('data', chunk => {
+            chunks.push(chunk);
+            chunklen += chunk.length;
+        });
+
+        data.decoder.on('end', () => {
+            let findAttachment = async () => {
+                if (path) {
+                    let pathParts = pathlib.parse(path);
+                    let parentPathParts = pathParts.dir ? pathlib.parse(pathParts.dir) : false;
+                    let baseName = false;
+
+                    if (/\.partial/.test(pathParts.name)) {
+                        baseName = pathParts.name.substr(0, pathParts.name.length - '.partial'.length);
+                    } else {
+                        return false;
+                    }
+
+                    if (!parentPathParts || parentPathParts.base !== 'Messages') {
+                        return false;
+                    }
+
+                    // search for attachment folder
+                    let attachmentsFolder = pathlib.join(parentPathParts.dir, 'Attachments', baseName, data.node.partNr.join('.'));
+                    let stat;
+                    try {
+                        stat = await fs.stat(attachmentsFolder);
+                        if (!stat || !stat.isDirectory()) {
+                            return false;
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        return false;
+                    }
+
+                    // we have found attachment folder, try to find atachment
+                    let listing = await fs.readdir(attachmentsFolder);
+                    let files = [];
+                    for (let file of listing) {
+                        let fileStat = await fs.stat(pathlib.join(attachmentsFolder, file));
+                        if (fileStat && fileStat.isFile()) {
+                            files.push(file);
+                        }
+                    }
+
+                    if (files.length === 1) {
+                        // found match for attachment!
+                        return pathlib.join(attachmentsFolder, files[0]);
+                    }
+                }
+
+                return false;
+            };
+
+            findAttachment()
+                .then(path => {
+                    if (!path) {
+                        return data.encoder.end(Buffer.from(chunks, chunklen));
+                    }
+                    try {
+                        let input = fsCreateReadStream(path);
+                        input.on('error', err => {
+                            data.encoder.end(Buffer.from(err.message));
+                        });
+                        input.pipe(data.encoder);
+                    } catch (err) {
+                        console.error(err);
+                        return data.encoder.end(Buffer.from(chunks, chunklen));
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    data.encoder.end(Buffer.from(chunks, chunklen));
+                });
+        });
+    });
+
+    let parser = new EmlxRawStream();
+    parser
+        .pipe(splitter)
+        .pipe(rewriter)
+        .pipe(joiner);
+
+    parser.on('error', err => joiner.emit('error', err));
+
+    input.pipe(parser);
+    input.on('error', err => joiner.emit('error', err));
+
+    return joiner;
+}
+
+module.exports = parseEmlx;

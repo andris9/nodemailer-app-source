@@ -63,16 +63,51 @@ const readBytes = async (path, stats) => {
     return buffer;
 };
 
+const seemsEmlx = buffer => {
+    let lines = buffer.toString().split(/\r?\n/);
+    lines.pop(); // just in case last line is incomplete and would seem invalid
+    for (let i = 0; i < lines.length; i++) {
+        let line = lines[i];
+        if (i === 0) {
+            // first line has to be a number
+            line = line.trimEnd();
+            if (line && /^[0-9]+$/i.test(line) && Number(line) > 0) {
+                // seems like a length definition
+                continue;
+            }
+            return false;
+        }
+
+        if (/^[a-z]+[a-z0-9-]*[a-z0-9]+:/i.test(line)) {
+            // normal header line
+            continue;
+        }
+        if (i && /^[ \t]+[^ \t]+/i.test(line)) {
+            // folded header line
+            continue;
+        }
+
+        if (i && line.length === 0) {
+            // header end
+            break;
+        }
+        return false;
+    }
+
+    return true;
+};
+
 const seemsEml = buffer => {
     let lines = buffer.toString().split(/\r?\n/);
+    lines.pop(); // just in case last line is incomplete and would seem invalid
     for (let i = 0; i < lines.length; i++) {
         let line = lines[i];
         if (/^[a-z]+[a-z0-9-]*[a-z0-9]+:/i.test(line)) {
             // normal header line
             continue;
         }
-        if (i && /^[ \t]+/i.test(line)) {
-            // folder header line
+        if (i && /^[ \t]+[^ \t]+/i.test(line)) {
+            // folded header line
             continue;
         }
 
@@ -112,6 +147,10 @@ const detectFileFormat = async (path, stats) => {
 
     if (buffer.length > 2 && buffer[0] === 0x43 && buffer[1] === 0x4f) {
         return 'postfix';
+    }
+
+    if (seemsEmlx(buffer)) {
+        return 'emlx';
     }
 
     if (seemsEml(buffer)) {
