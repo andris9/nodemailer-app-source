@@ -94,11 +94,6 @@
                 }
             });
 
-            if (dataFieldElm.classList.contains('autoselect')) {
-                dataFieldElm.focus();
-                dataFieldElm.select();
-            }
-
             if (promptOptions.query && promptOptions.query[dataFieldElm.name]) {
                 if (dataFieldElm.tagName === 'select') {
                     for (let j = 0; j < dataFieldElm.options.length; i++) {
@@ -110,6 +105,11 @@
                 } else {
                     dataFieldElm.value = promptOptions.query[dataFieldElm.name];
                 }
+            }
+
+            if (dataFieldElm.classList.contains('autoselect')) {
+                dataFieldElm.focus();
+                dataFieldElm.select();
             }
         }
     });

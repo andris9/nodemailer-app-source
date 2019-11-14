@@ -713,7 +713,7 @@ async function searchContacts(curWin, projects, analyzer, params) {
     let result = await prompt(
         {
             title: 'Contact search',
-            label: 'Contact search',
+            label: 'Contact name or address',
             query: {
                 value: params.term || ''
             }
@@ -764,9 +764,8 @@ async function createProject(curWin, projects) {
         {
             title: 'Project name',
             label: 'Project name',
-            value: 'My Gmail takout',
             query: {
-                value: ''
+                value: 'My Gmail takout'
             }
         },
         curWin
