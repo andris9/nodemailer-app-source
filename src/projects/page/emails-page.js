@@ -447,8 +447,6 @@
                 document.getElementById('email-file-list').appendChild(rowElm);
             };
 
-            console.log(data);
-
             let activeTab = false;
             if (data.text.html) {
                 drawHtml(data.text.html, false).catch(() => false);
@@ -540,7 +538,7 @@
         }
 
         async actionOpen() {
-            console.log('OPEN');
+            // no idea what to do here?
         }
 
         renderListItem(data, nr) {
@@ -642,6 +640,22 @@
 
                 if (this.query) {
                     params = Object.assign(params, this.query);
+
+                    if (params.attachments && params.attachments.filename) {
+                        params.attachments.filename = '%' + params.attachments.filename.replace(/^%|%$/g, '') + '%';
+                    }
+
+                    if (params.subject) {
+                        params.subject = '%' + params.subject.replace(/^%|%$/g, '') + '%';
+                    }
+
+                    if (params.from) {
+                        params.from = '%' + params.from.replace(/^%|%$/g, '') + '%';
+                    }
+
+                    if (params.anyTo) {
+                        params.anyTo = '%' + params.anyTo.replace(/^%|%$/g, '') + '%';
+                    }
                 }
 
                 let list = await exec({
@@ -654,15 +668,161 @@
             }
         }
 
-        async search(search, term) {
-            search =
-                search ||
-                (await exec({
-                    command: 'searchEmails',
-                    params: {
-                        search: this.query
+        fromLocaleDate(str) {
+            if (!str) {
+                return false;
+            }
+            let date = new Date(str);
+            if (date.toString() === 'Invalid Date') {
+                return false;
+            }
+            return date;
+        }
+
+        // 2019-11-14T03:04
+        toLocaleDate(date) {
+            if (!date) {
+                return '';
+            }
+
+            if (typeof date === 'string') {
+                date = new Date(date);
+            }
+
+            let year = date.getFullYear();
+            let month = date.getMonth() + 1;
+            let day = date.getDate();
+
+            return `${year}-${(month < 10 ? '0' : '') + month}-${(day < 10 ? '0' : '') + day}`;
+        }
+
+        fromSearchQuery(query) {
+            return {
+                'email-content': query.term || '',
+                'email-date-end': this.toLocaleDate(query.date && query.date.end),
+                'email-date-start': this.toLocaleDate(query.date && query.date.start),
+                'email-from': query.from || '',
+                'email-any-to': query.anyTo || '',
+                'email-subject': query.subject || '',
+                filename: (query.attachments && query.filename) || '',
+                headers: query.headers
+                    ? Object.keys(query.headers)
+                          .map(key => {
+                              return `${key}:${query.headers[key] === true ? '' : ' ' + query.headers[key]}`;
+                          })
+                          .join('\n')
+                    : ''
+            };
+        }
+
+        toSearchQuery(terms) {
+            if (!terms || typeof terms !== 'object') {
+                return false;
+            }
+
+            let query = {};
+
+            if (terms.filename) {
+                let value = terms.filename.toString().trim();
+                if (value) {
+                    if (!query.attachments) {
+                        query.attachments = {};
                     }
-                }));
+                    query.attachments.filename = value;
+                }
+            }
+
+            if (terms['email-content']) {
+                let value = terms['email-content'].toString().trim();
+                if (value) {
+                    query.term = value;
+                }
+            }
+
+            if (terms['email-from']) {
+                let value = terms['email-from'].toString().trim();
+                if (value) {
+                    query.from = value;
+                }
+            }
+
+            if (terms['email-any-to']) {
+                let value = terms['email-any-to'].toString().trim();
+                if (value) {
+                    query.anyTo = value;
+                }
+            }
+
+            if (terms['email-subject']) {
+                let value = terms['email-subject'].toString().trim();
+                if (value) {
+                    query.subject = value;
+                }
+            }
+
+            if (terms['email-date-start']) {
+                let value = this.fromLocaleDate(terms['email-date-start'] + 'T00:00:00');
+                if (value) {
+                    if (!query.date) {
+                        query.date = {};
+                    }
+                    query.date.start = value;
+                }
+            }
+
+            if (terms['email-date-end']) {
+                let value = this.fromLocaleDate(terms['email-date-end'] + 'T23:59:59');
+                if (value) {
+                    if (!query.date) {
+                        query.date = {};
+                    }
+                    query.date.end = value;
+                }
+            }
+
+            if (terms.headers) {
+                let value = terms.headers.toString().trim();
+                if (value) {
+                    let keys = {};
+                    value
+                        .split(/[\r\n]+/)
+                        .map(l => l.trim())
+                        .filter(l => l)
+                        .map(l => {
+                            let parts = l.split(':');
+                            let key = parts.shift().trim();
+                            let value = parts.join(':').trim();
+                            keys[key] = value || true;
+                        });
+                    query.headers = keys;
+                }
+            }
+
+            if (!Object.keys(query).length) {
+                return false;
+            }
+
+            return query;
+        }
+
+        async search(search, term) {
+            if (!search) {
+                let terms = await exec({
+                    command: 'searchEmails',
+                    params: this.fromSearchQuery(this.query) || {}
+                });
+
+                search = this.toSearchQuery(terms);
+
+                if (!search) {
+                    if (this.query) {
+                        return this.clearSearch();
+                    } else {
+                        // do nothing
+                        return;
+                    }
+                }
+            }
 
             this.query = search || false;
             this.queryTerm = term || false;

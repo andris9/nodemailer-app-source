@@ -24,7 +24,7 @@ textarea,
 
 .loader {
     border: 16px solid #f3f3f3; /* Light grey */
-    border-top: 16px solid #3498db; /* Blue */
+    border-top: 16px solid #a6cfd5; /* Blue */
     border-radius: 50%;
     animation: spin 2s linear infinite;
 

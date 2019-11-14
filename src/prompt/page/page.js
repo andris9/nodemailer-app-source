@@ -26,20 +26,13 @@
     };
 
     const promptSubmit = () => {
-        const dataEl = document.querySelector('#data');
-        let data = null;
-
-        if (promptOptions.type === 'input') {
-            data = dataEl.value;
-        } else if (promptOptions.type === 'select') {
-            if (promptOptions.selectMultiple) {
-                data = dataEl.querySelectorAll('option[selected]').map(o => o.getAttribute('value'));
-            } else {
-                data = dataEl.value;
-            }
+        let dataFieldElms = document.querySelectorAll('.prompt-field');
+        let result = {};
+        for (let i = 0; i < dataFieldElms.length; i++) {
+            let dataFieldElm = dataFieldElms[i];
+            result[dataFieldElm.name] = dataFieldElm.value;
         }
-
-        ipcRenderer.sendSync('prompt-post-data:' + promptId, data);
+        ipcRenderer.sendSync('prompt-post-data:' + promptId, JSON.stringify(result));
     };
 
     window.addEventListener('error', error => {
@@ -88,37 +81,35 @@
         document.querySelector('#ok').addEventListener('click', () => promptSubmit());
         document.querySelector('#cancel').addEventListener('click', () => promptCancel());
 
-        let dataEl = document.querySelector('#data');
-        if (dataEl) {
-            if (promptOptions.value) {
-                dataEl.value = promptOptions.value;
-            } else {
-                dataEl.value = '';
-            }
-
-            if (promptOptions.inputAttrs && typeof promptOptions.inputAttrs === 'object') {
-                for (const k in promptOptions.inputAttrs) {
-                    if (!Object.prototype.hasOwnProperty.call(promptOptions.inputAttrs, k)) {
-                        continue;
-                    }
-
-                    dataEl.setAttribute(k, promptOptions.inputAttrs[k]);
-                }
-            }
-
-            dataEl.addEventListener('keyup', e => {
-                if (e.key === 'Enter') {
+        let dataFieldElms = document.querySelectorAll('.prompt-field');
+        for (let i = 0; i < dataFieldElms.length; i++) {
+            let dataFieldElm = dataFieldElms[i];
+            dataFieldElm.addEventListener('keyup', e => {
+                if (dataFieldElm.tagName === 'INPUT' && e.key === 'Enter') {
                     promptSubmit();
                 }
 
-                if (e.key === 'Escape') {
+                if (dataFieldElm.tagName === 'INPUT' && e.key === 'Escape') {
                     promptCancel();
                 }
             });
 
-            dataEl.focus();
-            if (promptOptions.type === 'input') {
-                dataEl.select();
+            if (dataFieldElm.classList.contains('autoselect')) {
+                dataFieldElm.focus();
+                dataFieldElm.select();
+            }
+
+            if (promptOptions.query && promptOptions.query[dataFieldElm.name]) {
+                if (dataFieldElm.tagName === 'select') {
+                    for (let j = 0; j < dataFieldElm.options.length; i++) {
+                        if (dataFieldElm.options[i].value === promptOptions.query[dataFieldElm.name]) {
+                            dataFieldElm.selectedIndex = i;
+                            break;
+                        }
+                    }
+                } else {
+                    dataFieldElm.value = promptOptions.query[dataFieldElm.name];
+                }
             }
         }
     });

@@ -1314,12 +1314,38 @@ class Analyzer {
                 } else if (value && typeof value === 'object') {
                     if (value.start && typeof value.start === 'number') {
                         whereTerms.push(`[attachments].[${lkey}] >= $att_${lkey}_start`);
-                        queryParams[`$att_${lkey}_start`] = value.start;
+
+                        let numvalue = value.start;
+                        switch ((value.type || '').toString().toLowerCase()) {
+                            case 'mb':
+                                numvalue = numvalue * 1024 * 1024;
+                                break;
+                            case 'kb':
+                                numvalue = numvalue * 1024;
+                                break;
+                            case 'b':
+                            default:
+                                break;
+                        }
+                        queryParams[`$att_${lkey}_start`] = numvalue;
                     }
 
                     if (value.end && typeof value.end === 'number') {
                         whereTerms.push(`[attachments].[${lkey}] <= $att_${lkey}_end`);
-                        queryParams[`$att_${lkey}_end`] = value.end;
+
+                        let numvalue = value.end;
+                        switch ((value.type || '').toString().toLowerCase()) {
+                            case 'mb':
+                                numvalue = numvalue * 1024 * 1024;
+                                break;
+                            case 'kb':
+                                numvalue = numvalue * 1024;
+                                break;
+                            case 'b':
+                            default:
+                                break;
+                        }
+                        queryParams[`$att_${lkey}_end`] = numvalue;
                     }
                 }
             });
@@ -1502,7 +1528,7 @@ class Analyzer {
                     WHERE [key]=$header_${i}_key AND [value] LIKE $header_${i}_value
                 )`);
                 queryParams[`$header_${i}_key`] = key.toLowerCase().trim();
-                queryParams[`$header_${i}_value`] = value;
+                queryParams[`$header_${i}_value`] = '%' + value.replace(/^%|%$/g, '') + '%';
             });
         }
 
@@ -1525,7 +1551,7 @@ class Analyzer {
                 )`);
         }
 
-        ['from', 'to', 'cc', 'bcc', 'returnPath', 'deliveredTo'].forEach(key => {
+        ['from', 'to', 'cc', 'bcc', 'returnPath', 'deliveredTo', 'any', 'anyTo'].forEach(key => {
             let hkey = key.replace(/[A-Z]/g, c => '-' + c.toLowerCase());
             let lkey = hkey.replace(/-/g, '_');
 
@@ -1543,11 +1569,23 @@ class Analyzer {
             });
 
             if (addrWhere.length) {
-                queryParams[`$addr_${lkey}_type`] = hkey;
-                whereTerms.push(`[emails].[id] in (
-                SELECT [email] FROM [addresses]
-                    WHERE [type]=$addr_${lkey}_type AND (${addrWhere.join(' OR ')})
-                )`);
+                if (key === 'any') {
+                    queryParams[`$addr_${lkey}_type`] = hkey;
+                    whereTerms.push(`[emails].[id] in (
+                        SELECT [email] FROM [addresses]
+                            WHERE [type]=$addr_${lkey}_type AND (${addrWhere.join(' OR ')})
+                        )`);
+                } else if (key === 'anyTo') {
+                    whereTerms.push(`[emails].[id] in (
+                        SELECT [email] FROM [addresses]
+                            WHERE [type] IN ('to', 'cc', 'bcc') AND (${addrWhere.join(' OR ')})
+                        )`);
+                } else {
+                    whereTerms.push(`[emails].[id] in (
+                        SELECT [email] FROM [addresses]
+                            WHERE ${addrWhere.join(' OR ')}
+                        )`);
+                }
             }
         });
 

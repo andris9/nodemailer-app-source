@@ -28,7 +28,8 @@
 
             this.renderedData = false;
 
-            this.term = '';
+            this.query = false;
+            this.queryTerm = false;
             this.page = 1;
             this.pages = 1;
             this.visible = false;
@@ -281,44 +282,218 @@
         async reload() {
             await showLoader();
             try {
+                let params = {
+                    page: this.page
+                };
+
+                if (this.query) {
+                    params = Object.assign(params, this.query);
+
+                    if (params.attachments && params.attachments.filename) {
+                        params.attachments.filename = '%' + params.attachments.filename.replace(/^%|%$/g, '') + '%';
+                    }
+
+                    if (params.subject) {
+                        params.subject = '%' + params.subject.replace(/^%|%$/g, '') + '%';
+                    }
+
+                    if (params.from) {
+                        params.from = '%' + params.from.replace(/^%|%$/g, '') + '%';
+                    }
+                }
+
                 let list = await exec({
                     command: 'listAttachments',
-                    params: {
-                        page: this.page
-                    }
+                    params
                 });
+
                 this.render(list);
             } finally {
                 await hideLoader();
             }
         }
 
-        async search() {
-            let term = await exec({
-                command: 'searchAttachments',
-                params: {
-                    term: this.term || ''
-                }
-            });
-            term = (term || '').trim();
-            if (term) {
-                this.term = term;
-                this.page = 1;
-
-                let searchBlockElm = document.getElementById('attachments-search-block');
-                searchBlockElm.classList.remove('hidden');
-                let searchClearElm = document.getElementById('attachments-search-clear');
-                searchClearElm.classList.remove('hidden');
-                let searchTermElm = document.getElementById('attachments-search-term');
-                searchTermElm.innerText = term;
-
-                await this.reload();
+        fromLocaleDate(str) {
+            if (!str) {
+                return false;
             }
+            let date = new Date(str);
+            if (date.toString() === 'Invalid Date') {
+                return false;
+            }
+            return date;
+        }
+
+        // 2019-11-14T03:04
+        toLocaleDate(date) {
+            if (!date) {
+                return '';
+            }
+
+            if (typeof date === 'string') {
+                date = new Date(date);
+            }
+
+            let year = date.getFullYear();
+            let month = date.getMonth() + 1;
+            let day = date.getDate();
+
+            return `${year}-${(month < 10 ? '0' : '') + month}-${(day < 10 ? '0' : '') + day}`;
+        }
+
+        fromSearchQuery(query) {
+            return {
+                'email-content': query.term || '',
+                'email-date-end': this.toLocaleDate(query.date && query.date.end),
+                'email-date-start': this.toLocaleDate(query.date && query.date.start),
+                'email-from': query.from || '',
+                'email-subject': query.subject || '',
+                filename: (query.attachments && query.attachments.filename) || '',
+                'size-end': (query.attachments && query.attachments.size && query.attachments.size.end && query.attachments.size.end.toString()) || '',
+                'size-start': (query.attachments && query.attachments.size && query.attachments.size.start && query.attachments.size.start.toString()) || '',
+                'size-type': (query.attachments && query.attachments.size && query.attachments.size.type) || 'b'
+            };
+        }
+
+        toSearchQuery(terms) {
+            if (!terms || typeof terms !== 'object') {
+                return false;
+            }
+
+            let query = {};
+
+            if (terms.filename) {
+                let value = terms.filename.toString().trim();
+                if (value) {
+                    if (!query.attachments) {
+                        query.attachments = {};
+                    }
+                    query.attachments.filename = value;
+                }
+            }
+
+            if (terms['email-content']) {
+                let value = terms['email-content'].toString().trim();
+                if (value) {
+                    query.term = value;
+                }
+            }
+
+            if (terms['email-from']) {
+                let value = terms['email-from'].toString().trim();
+                if (value) {
+                    query.from = value;
+                }
+            }
+
+            if (terms['email-subject']) {
+                let value = terms['email-subject'].toString().trim();
+                if (value) {
+                    query.subject = value;
+                }
+            }
+
+            if (terms['email-date-start']) {
+                let value = this.fromLocaleDate(terms['email-date-start'] + 'T00:00:00');
+                if (value) {
+                    if (!query.date) {
+                        query.date = {};
+                    }
+                    query.date.start = value;
+                }
+            }
+
+            if (terms['email-date-end']) {
+                let value = this.fromLocaleDate(terms['email-date-end'] + 'T23:59:59');
+                if (value) {
+                    if (!query.date) {
+                        query.date = {};
+                    }
+                    query.date.end = value;
+                }
+            }
+
+            if (terms['size-start']) {
+                let value = Number(terms['size-start']);
+                if (value) {
+                    if (!query.attachments) {
+                        query.attachments = {};
+                    }
+                    if (!query.attachments.size) {
+                        query.attachments.size = {};
+                    }
+                    query.attachments.size.start = value;
+                }
+            }
+
+            if (terms['size-end']) {
+                let value = Number(terms['size-end']);
+                if (value) {
+                    if (!query.attachments) {
+                        query.attachments = {};
+                    }
+                    if (!query.attachments.size) {
+                        query.attachments.size = {};
+                    }
+                    query.attachments.size.end = value;
+                }
+            }
+
+            if (terms['size-type']) {
+                let value = terms['size-type']
+                    .toString()
+                    .trim()
+                    .toLowerCase();
+                if (value && query.attachments && query.attachments.size) {
+                    query.attachments.size.type = value;
+                }
+            }
+
+            if (!Object.keys(query).length) {
+                return false;
+            }
+
+            return query;
+        }
+
+        async search(search, term) {
+            if (!search) {
+                let terms = await exec({
+                    command: 'searchAttachments',
+                    params: this.fromSearchQuery(this.query) || {}
+                });
+
+                search = this.toSearchQuery(terms);
+
+                if (!search) {
+                    if (this.query) {
+                        return this.clearSearch();
+                    } else {
+                        // do nothing
+                        return;
+                    }
+                }
+            }
+
+            this.query = search || false;
+            this.queryTerm = term || false;
+
+            this.page = 1;
+
+            let searchBlockElm = document.getElementById('attachments-search-block');
+            searchBlockElm.classList.remove('hidden');
+            let searchClearElm = document.getElementById('attachments-search-clear');
+            searchClearElm.classList.remove('hidden');
+            let searchTermElm = document.getElementById('attachments-search-term');
+            searchTermElm.innerText = this.queryTerm || 'user query';
+
+            await this.reload();
         }
 
         clearSearch() {
             this.page = 1;
-            this.term = '';
+            this.query = false;
+            this.queryTerm = false;
 
             let searchBlockElm = document.getElementById('attachments-search-block');
             searchBlockElm.classList.add('hidden');

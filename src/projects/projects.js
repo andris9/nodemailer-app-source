@@ -401,8 +401,8 @@ class Projects {
         let projectWindow = new BrowserWindow({
             title: project.name,
 
-            width: 1024,
-            height: 542,
+            width: 1280,
+            height: 800,
             'min-width': 500,
             'min-height': 200,
             'accept-first-mouse': true,

@@ -17,6 +17,8 @@ const util = require('util');
 const recursiveReaddir = require('recursive-readdir');
 const zlib = require('zlib');
 
+const PAGE_SIZE = 30;
+
 async function isGz(path) {
     let buffer = Buffer.alloc(2);
     let fd = await fs.open(path, 'r');
@@ -693,47 +695,43 @@ async function listImports(curWin, projects, analyzer) {
 }
 
 async function listContacts(curWin, projects, analyzer, params) {
+    params.pageSize = params.pageSize || PAGE_SIZE;
     return await analyzer.getContacts(params);
 }
 
 async function listAttachments(curWin, projects, analyzer, params) {
+    params.pageSize = params.pageSize || PAGE_SIZE;
     return await analyzer.getAttachments(params);
 }
 
 async function listEmails(curWin, projects, analyzer, params) {
+    params.pageSize = params.pageSize || PAGE_SIZE;
     return await analyzer.getEmails(params);
 }
 
 async function searchContacts(curWin, projects, analyzer, params) {
-    let term = await prompt(
+    let result = await prompt(
         {
             title: 'Contact search',
             label: 'Contact search',
-            value: params.term || '',
-            inputAttrs: {
-                type: 'text'
-            },
-            type: 'input'
+            query: {
+                value: params.term || ''
+            }
         },
         curWin
     );
 
-    term = (term || '').toString().trim();
+    let term = ((result && result.value) || '').toString().trim();
     return term;
 }
 
 async function searchAttachments(curWin, projects, analyzer, params) {
-    let term = await prompt(
+    return await prompt(
         {
             title: 'Attachment search',
 
             label: false,
-            value: params.term || '',
-
-            inputAttrs: {
-                type: 'text'
-            },
-            type: 'input',
+            query: params || {},
 
             pagename: 'attachments',
 
@@ -742,26 +740,39 @@ async function searchAttachments(curWin, projects, analyzer, params) {
         },
         curWin
     );
+}
 
-    term = (term || '').toString().trim();
-    return term;
+async function searchEmails(curWin, projects, analyzer, params) {
+    return await prompt(
+        {
+            title: 'Email search',
+
+            label: false,
+            query: params || {},
+
+            pagename: 'emails',
+
+            width: 600,
+            height: 400
+        },
+        curWin
+    );
 }
 
 async function createProject(curWin, projects) {
-    let name = await prompt(
+    let result = await prompt(
         {
             title: 'Project name',
             label: 'Project name',
             value: 'My Gmail takout',
-            inputAttrs: {
-                type: 'text'
-            },
-            type: 'input'
+            query: {
+                value: ''
+            }
         },
         curWin
     );
 
-    name = (name || '').toString().trim();
+    let name = ((result && result.value) || '').toString().trim();
     if (name) {
         let project = await projects.create(name);
         return project;
@@ -771,21 +782,18 @@ async function createProject(curWin, projects) {
 }
 
 async function renameProject(curWin, projects, analyzer, params) {
-    let name = await prompt(
+    let result = await prompt(
         {
             title: 'Project name',
             label: 'Project name',
-            value: params.name,
-            inputAttrs: {
-                type: 'text'
-            },
-            type: 'input'
+            query: {
+                value: params.name
+            }
         },
         curWin
     );
 
-    name = (name || '').toString().trim();
-
+    let name = ((result && result.value) || '').toString().trim();
     if (name) {
         return await projects.rename(params.id, name);
     }
@@ -863,8 +871,6 @@ async function saveEmail(curWin, projects, analyzer, params) {
     if (res.canceled || !res.filePath) {
         return false;
     }
-
-    console.log('saveEmail', params.email, res.filePath);
 
     await analyzer.saveEmail(params.email, res.filePath);
 }
@@ -963,6 +969,9 @@ module.exports = async (curWin, projects, analyzer, data, menu) => {
 
         case 'searchAttachments':
             return await searchAttachments(curWin, projects, analyzer, data.params);
+
+        case 'searchEmails':
+            return await searchEmails(curWin, projects, analyzer, data.params);
 
         case 'saveAttachment':
             return await saveAttachment(curWin, projects, analyzer, data.params);

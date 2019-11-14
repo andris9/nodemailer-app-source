@@ -25,7 +25,6 @@ function electronPrompt(options, parentWindow) {
                 minHeight: DEFAULT_HEIGHT,
                 resizable: false,
                 title: 'Prompt',
-                label: 'Please input a value:',
                 alwaysOnTop: false,
                 value: null,
                 type: 'input',
@@ -79,7 +78,12 @@ function electronPrompt(options, parentWindow) {
         };
 
         const postDataListener = (event, value) => {
-            resolve(value);
+            try {
+                value = JSON.parse(value);
+                resolve(value);
+            } catch (err) {
+                reject(err);
+            }
             event.returnValue = null;
             cleanup();
         };

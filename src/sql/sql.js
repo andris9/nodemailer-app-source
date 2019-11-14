@@ -63,6 +63,9 @@ class SQL {
                 // can not use lambda function as we need bound `this`
                 this.db.run(sql, params || [], function(err) {
                     if (err) {
+                        if (/fts5: syntax error/.test(err.message)) {
+                            return resolve([]);
+                        }
                         return reject(err);
                     }
 
@@ -88,6 +91,9 @@ class SQL {
         return new Promise((resolve, reject) => {
             this.db.get(sql, params || [], (err, row) => {
                 if (err) {
+                    if (/fts5: syntax error/.test(err.message)) {
+                        return resolve([]);
+                    }
                     reject(err);
                 } else {
                     resolve(row);
@@ -100,6 +106,9 @@ class SQL {
         return new Promise((resolve, reject) => {
             this.db.all(sql, params || [], (err, rows) => {
                 if (err) {
+                    if (/fts5: syntax error/.test(err.message)) {
+                        return resolve([]);
+                    }
                     reject(err);
                 } else {
                     resolve(rows);

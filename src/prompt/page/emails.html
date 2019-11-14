@@ -14,13 +14,13 @@
                 <div class="pane" style="padding: 20px 20px 0px;">
                     <form id="form">
                         <div class="form-group">
-                            <label id="label-filename">File name</label>
-                            <input type="text" class="form-control prompt-field" name="filename" id="data-filename" />
+                            <label id="label-email-from">From</label>
+                            <input type="text" class="form-control prompt-field" name="email-from" id="data-email-from" />
                         </div>
 
                         <div class="form-group">
-                            <label id="label-email-from">From</label>
-                            <input type="text" class="form-control prompt-field" name="email-from" id="data-email-from" />
+                            <label id="label-email-any-to">To</label>
+                            <input type="text" class="form-control prompt-field" name="email-any-to" id="data-email-any-to" />
                         </div>
 
                         <div class="form-group">
@@ -52,40 +52,22 @@
                         </div>
 
                         <div class="form-group">
-                            <label id="label-email-date">Attachment Size</label>
-                            <div style="display: flex; flex-direction: row; align-items: center;">
-                                <div style="padding: 0px 10px 0 0">
-                                    From
-                                </div>
-                                <div>
-                                    <input
-                                        type="number"
-                                        style="font-family: monospace; text-align: right; max-width: 120px;"
-                                        class="form-control prompt-field"
-                                        name="size-start"
-                                        id="data-size-start"
-                                    />
-                                </div>
-                                <div style="padding: 0px 10px 0">
-                                    to
-                                </div>
-                                <div>
-                                    <input
-                                        type="number"
-                                        style="font-family: monospace; text-align: right; max-width: 120px;"
-                                        class="form-control prompt-field"
-                                        name="size-end"
-                                        id="data-size-end"
-                                    />
-                                </div>
-                                <div style="padding-left: 10px;">
-                                    <select class="form-control prompt-field" id="data-size-type" name="size-type">
-                                        <option value="b">B</option>
-                                        <option value="kb">kB</option>
-                                        <option value="mb">MB</option>
-                                    </select>
-                                </div>
+                            <label id="label-filename">Attachment file name</label>
+                            <input type="text" class="form-control prompt-field" name="filename" id="data-filename" />
+                        </div>
+
+                        <div class="form-group">
+                            <div class="pull-right" style="font-size: 12px; color: #9f9f9f;">
+                                Separate header key and value with a colon, one header per line
                             </div>
+                            <label>Custom header search</label>
+                            <textarea
+                                class="form-control prompt-field"
+                                name="headers"
+                                id="data-headers"
+                                rows="3"
+                                placeholder="List-ID: &lt;list.mylist.foo&gt;"
+                            ></textarea>
                         </div>
                     </form>
                 </div>
