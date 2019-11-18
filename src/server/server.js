@@ -1,6 +1,6 @@
 'use strict';
 
-const { Menu } = require('electron');
+const { Menu, dialog } = require('electron');
 const SMTPServer = require('smtp-server').SMTPServer;
 
 const DEFAULT_SMTP_PORT = 1025;
@@ -114,6 +114,7 @@ class Server {
             }
         }
 
+        this._starting = false;
         this._stopping = false;
         this.running = false;
     }
@@ -166,6 +167,20 @@ class Server {
     }
 
     async startSmtp(serverConfig) {
+        try {
+            await this.startSmtpWrapped(serverConfig);
+        } catch (err) {
+            dialog.showMessageBox(this.projects.mainWindow, {
+                title: 'Error',
+                buttons: ['Dismiss'],
+                type: 'error',
+                message: 'Failed to start SMTP server\n' + err.message
+            });
+            throw err;
+        }
+    }
+
+    async startSmtpWrapped(serverConfig) {
         if (this.smtpServer) {
             return false;
         }
@@ -272,6 +287,20 @@ class Server {
     }
 
     async startPop3(serverConfig) {
+        try {
+            await this.startPop3Wrapped(serverConfig);
+        } catch (err) {
+            dialog.showMessageBox(this.projects.mainWindow, {
+                title: 'Error',
+                buttons: ['Dismiss'],
+                type: 'error',
+                message: 'Failed to start POP3 server\n' + err.message
+            });
+            throw err;
+        }
+    }
+
+    async startPop3Wrapped(serverConfig) {
         if (this.pop3Server) {
             return false;
         }
@@ -323,6 +352,8 @@ class Server {
     }
 
     async setConfig(serverConfig) {
+        let oldConfig = await this.getConfig();
+
         serverConfig = serverConfig || {};
         for (let key of Object.keys(serverConfig)) {
             let lkey = 'server_' + key.replace(/[A-Z]/g, c => '_' + c.toLowerCase());
@@ -361,6 +392,52 @@ class Server {
                 } catch (err) {
                     console.error(err);
                 }
+            }
+        }
+
+        if (!this.running) {
+            return;
+        }
+
+        if (oldConfig.smtpPort !== serverConfig.smtpPort) {
+            // restart server
+            try {
+                await this.stopSmtp();
+                await this.startSmtp(serverConfig);
+            } catch (err) {
+                console.error(err);
+                try {
+                    await this.stopSmtp();
+                } catch (err) {
+                    // ignore
+                }
+                try {
+                    await this.stopPop3();
+                } catch (err) {
+                    // ignore
+                }
+                this.setStopped();
+            }
+        }
+
+        if (oldConfig.pop3Port !== serverConfig.pop3Port) {
+            // restart server
+            try {
+                await this.stopPop3();
+                await this.startPop3(serverConfig);
+            } catch (err) {
+                console.error(err);
+                try {
+                    await this.stopSmtp();
+                } catch (err) {
+                    // ignore
+                }
+                try {
+                    await this.stopPop3();
+                } catch (err) {
+                    // ignore
+                }
+                this.setStopped();
             }
         }
     }
