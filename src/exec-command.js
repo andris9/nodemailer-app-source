@@ -778,7 +778,10 @@ async function serverStop(curWin, projects) {
 }
 
 async function serverStatus(curWin, projects) {
-    return !!projects.server.running;
+    return {
+        running: projects.server.running,
+        config: await projects.server.getConfig()
+    };
 }
 
 async function searchAttachments(curWin, projects, analyzer, params) {
@@ -978,6 +981,12 @@ async function updateMenu(curWin, projects, analyzer, params, menu) {
     });
 }
 
+async function selfInfo(curWin, projects, analyzer) {
+    return {
+        id: analyzer.id
+    };
+}
+
 module.exports = async (curWin, projects, analyzer, data, menu) => {
     switch (data.command) {
         case 'listProjects':
@@ -1057,6 +1066,9 @@ module.exports = async (curWin, projects, analyzer, data, menu) => {
 
         case 'serverStatus':
             return await serverStatus(curWin, projects, analyzer, data.params);
+
+        case 'selfInfo':
+            return await selfInfo(curWin, projects, analyzer, data.params);
 
         default:
             throw new Error('Unknown command ' + JSON.stringify(data));

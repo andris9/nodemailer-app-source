@@ -148,20 +148,21 @@
             return redrawList();
         });
 
-        window.events.subscribe('server-stop', () => {
-            document.getElementById('server-start-btn').classList.remove('hidden');
-            document.getElementById('server-stop-btn').classList.add('hidden');
-        });
-
-        window.events.subscribe('server-start', () => {
-            document.getElementById('server-start-btn').classList.add('hidden');
-            document.getElementById('server-stop-btn').classList.remove('hidden');
+        window.events.subscribe('server-status', serverStatus => {
+            if (serverStatus.running) {
+                document.getElementById('server-start-btn').classList.add('hidden');
+                document.getElementById('server-stop-btn').classList.remove('hidden');
+            } else {
+                document.getElementById('server-start-btn').classList.remove('hidden');
+                document.getElementById('server-stop-btn').classList.add('hidden');
+            }
         });
 
         let serverStatus = await exec({
             command: 'serverStatus'
         });
-        if (!serverStatus) {
+
+        if (!serverStatus || !serverStatus.running) {
             document.getElementById('server-start-btn').classList.remove('hidden');
             document.getElementById('server-stop-btn').classList.add('hidden');
         } else {

@@ -45,9 +45,11 @@ class Server {
         }
 
         this.projects.mainWindow.webContents.send(
-            'server-start',
+            'server-status',
             JSON.stringify({
-                id: 'server-start'
+                id: 'server-start',
+                running: true,
+                config: await this.getConfig()
             })
         );
 
@@ -55,9 +57,11 @@ class Server {
             for (let win of this.projects.projectWindows.get(id)) {
                 try {
                     win.webContents.send(
-                        'server-start',
+                        'server-status',
                         JSON.stringify({
-                            id: 'server-start'
+                            id: 'server-start',
+                            running: true,
+                            config: await this.getConfig()
                         })
                     );
                 } catch (err) {
@@ -85,9 +89,11 @@ class Server {
         }
 
         this.projects.mainWindow.webContents.send(
-            'server-stop',
+            'server-status',
             JSON.stringify({
-                id: 'server-stop'
+                id: 'server-stop',
+                running: false,
+                config: await this.getConfig()
             })
         );
 
@@ -95,9 +101,11 @@ class Server {
             for (let win of this.projects.projectWindows.get(id)) {
                 try {
                     win.webContents.send(
-                        'server-stop',
+                        'server-status',
                         JSON.stringify({
-                            id: 'server-stop'
+                            id: 'server-stop',
+                            running: false,
+                            config: await this.getConfig()
                         })
                     );
                 } catch (err) {
@@ -167,7 +175,88 @@ class Server {
             disabledCommands: ['STARTTLS'],
             allowInsecureAuth: true,
             banner: 'Forensicat SMTP',
-            logger: true
+            logger: true,
+
+            onAuth: (auth, session, callback) => {
+                let projectId = Number(auth.username.replace(/[^0-9]/g, ''));
+                if (!projectId) {
+                    return callback(new Error('Invalid username or password'));
+                }
+
+                this.projects
+                    .open(projectId)
+                    .then(analyzer => {
+                        if (!analyzer) {
+                            return callback(new Error('Invalid username or password'));
+                        }
+                        callback(null, { user: projectId });
+                    })
+                    .catch(err => callback(err));
+            },
+            onData: (stream, session, callback) => {
+                let chunks = [];
+                let chunklen = 0;
+                stream.on('readable', () => {
+                    let chunk;
+                    while ((chunk = stream.read()) !== null) {
+                        chunks.push(chunk);
+                        chunklen += chunk.length;
+                    }
+                });
+                stream.on('end', () => {
+                    let message = Buffer.concat(chunks, chunklen);
+
+                    let handler = async () => {
+                        let analyzer = await this.projects.open(session.user);
+
+                        if (!analyzer) {
+                            throw new Error('Project not found');
+                        }
+
+                        let res = await analyzer.import(
+                            {
+                                source: {
+                                    format: 'smtp',
+                                    envelope: session.envelope
+                                },
+                                idate: new Date(),
+                                returnPath: session.envelope.mailFrom
+                            },
+                            message
+                        );
+
+                        if (res && res.id) {
+                            await this.projects.updateImport(analyzer.id, null, { emails: 1, processed: 0, size: res.size });
+
+                            if (this.projects.projectWindows.has(session.user)) {
+                                for (let win of this.projects.projectWindows.get(session.user)) {
+                                    try {
+                                        win.webContents.send(
+                                            'message-received',
+                                            JSON.stringify({
+                                                id: res.id,
+                                                size: res.size
+                                            })
+                                        );
+                                    } catch (err) {
+                                        console.error(err);
+                                    }
+                                }
+                            }
+
+                            return res.id;
+                        }
+
+                        return false;
+                    };
+
+                    handler()
+                        .then(id => {
+                            callback(null, 'Message imported as ' + id);
+                        })
+                        .catch(callback);
+                });
+            }
         });
 
         return new Promise((resolve, reject) => {
@@ -247,6 +336,32 @@ class Server {
                 $key: lkey,
                 $value: value
             });
+        }
+
+        this.projects.mainWindow.webContents.send(
+            'server-status',
+            JSON.stringify({
+                id: 'server-config',
+                running: this.running,
+                config: serverConfig
+            })
+        );
+
+        for (let id of this.projects.projectWindows.keys()) {
+            for (let win of this.projects.projectWindows.get(id)) {
+                try {
+                    win.webContents.send(
+                        'server-status',
+                        JSON.stringify({
+                            id: 'server-config',
+                            running: this.running,
+                            config: serverConfig
+                        })
+                    );
+                } catch (err) {
+                    console.error(err);
+                }
+            }
         }
     }
 }

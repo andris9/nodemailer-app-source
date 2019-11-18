@@ -977,6 +977,21 @@
                         return this.createExportMbox();
                 }
             });
+
+            window.events.subscribe('message-received', data => {
+                if (data && data.id && this.page === 1 && !this.query) {
+                    if (this.visible) {
+                        this.lastChanges = ++window.__hasChanges;
+                        this.reload()
+                            .then(() => {
+                                this.selectable.select(data.id);
+                            })
+                            .catch(() => false);
+                    } else {
+                        window.__hasChanges++;
+                    }
+                }
+            });
         }
     }
 

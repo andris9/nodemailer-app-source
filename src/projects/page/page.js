@@ -65,7 +65,8 @@
         updateServerStatus() {
             let serverStatusRecordElm = document.getElementById('server-status-record');
             let serverStatusTextElm = document.getElementById('server-status-text');
-            if (!this.serverStatus) {
+
+            if (!this.serverStatus && this.serverStatus.running) {
                 serverStatusRecordElm.classList.add('status-red');
                 serverStatusRecordElm.classList.remove('status-green');
                 serverStatusTextElm.textContent = 'status';
@@ -74,24 +75,38 @@
                 serverStatusRecordElm.classList.add('status-green');
                 serverStatusTextElm.textContent = 'running';
             }
+
+            if (this.serverStatus) {
+                Array.from(document.querySelectorAll('.server-smtp-port-value')).forEach(elm => {
+                    elm.textContent = this.serverStatus.config.smtpPort;
+                });
+
+                Array.from(document.querySelectorAll('.server-pop3-port-value')).forEach(elm => {
+                    elm.textContent = this.serverStatus.config.pop3Port;
+                });
+            }
+
+            Array.from(document.querySelectorAll('.server-user-value')).forEach(elm => {
+                elm.textContent = 'project.' + this.selfInfo.id;
+            });
+
+            Array.from(document.querySelectorAll('.server-password-value')).forEach(elm => {
+                elm.textContent = 'secret.' + this.selfInfo.id;
+            });
         }
 
         async init() {
-            window.events.subscribe('server-start', () => {
-                console.log('server-start');
-                this.serverStatus = true;
-                this.updateServerStatus();
-            });
-
-            window.events.subscribe('server-stop', () => {
-                console.log('server-stop');
-                this.serverStatus = false;
+            window.events.subscribe('server-status', data => {
+                this.serverStatus = data;
                 this.updateServerStatus();
             });
 
             this.serverStatus = await exec({
-                command: 'serverStatus',
-                params: {}
+                command: 'serverStatus'
+            });
+
+            this.selfInfo = await exec({
+                command: 'selfInfo'
             });
 
             this.updateServerStatus();

@@ -257,8 +257,7 @@ const serverStartMenuItem = {
     click: async () => {
         try {
             await execCommand(mainWindow, projects, false, {
-                command: 'serverStart',
-                params: {}
+                command: 'serverStart'
             });
         } catch (err) {
             dialog.showMessageBox(mainWindow, {
@@ -278,8 +277,7 @@ const serverStopMenuItem = {
     click: async () => {
         try {
             await execCommand(mainWindow, projects, false, {
-                command: 'serverStop',
-                params: {}
+                command: 'serverStop'
             });
         } catch (err) {
             dialog.showMessageBox(mainWindow, {
@@ -300,8 +298,7 @@ const serverConfigureMenuItem = {
         mainWindow.webContents.focus();
         try {
             await execCommand(mainWindow, projects, false, {
-                command: 'serverConfig',
-                params: {}
+                command: 'serverConfig'
             });
         } catch (err) {
             dialog.showMessageBox(mainWindow, {

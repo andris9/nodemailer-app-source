@@ -183,6 +183,13 @@
                 return;
             }
 
+            if (typeof entry === 'number') {
+                entry = this.list.find(e => e.data && e.data.id === entry);
+                if (!entry) {
+                    return;
+                }
+            }
+
             if (this.active === entry) {
                 // nothing to do here
                 return;

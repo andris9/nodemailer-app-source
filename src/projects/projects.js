@@ -587,6 +587,10 @@ class Projects {
                 })
             );
 
+            if (!importId) {
+                return;
+            }
+
             let item = await this.sql.findOne('SELECT id, emails, size, errored, finished, created, updated, processed, totalsize FROM imports WHERE id=?', [
                 importId
             ]);

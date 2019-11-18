@@ -33,21 +33,23 @@ window.events = {
     let ci = 0;
     let execQueue = new Map();
 
-    ['project-update', 'import-update', 'import-list', 'project-created', 'menu-click', 'focus-change', 'server-start', 'server-stop'].forEach(channel => {
-        ipcRenderer.on(channel, (event, arg) => {
-            let payload;
-            try {
-                payload = JSON.parse(arg);
-            } catch (err) {
-                console.error(err);
-                return;
-            }
-            if (!payload || !payload.id) {
-                return;
-            }
-            window.events.publish(channel, payload);
-        });
-    });
+    ['project-update', 'import-update', 'import-list', 'project-created', 'menu-click', 'focus-change', 'server-status', 'message-received'].forEach(
+        channel => {
+            ipcRenderer.on(channel, (event, arg) => {
+                let payload;
+                try {
+                    payload = JSON.parse(arg);
+                } catch (err) {
+                    console.error(err);
+                    return;
+                }
+                if (!payload || !payload.id) {
+                    return;
+                }
+                window.events.publish(channel, payload);
+            });
+        }
+    );
 
     ipcRenderer.on('cmdres', (event, arg) => {
         let payload;
