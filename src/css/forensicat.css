@@ -159,3 +159,11 @@ hr {
     min-width: 150px;
     text-align: left;
 }
+
+.status-red {
+    color: #fc605b;
+}
+
+.status-green {
+    color: #34c84a;
+}

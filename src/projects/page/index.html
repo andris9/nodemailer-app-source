@@ -245,7 +245,11 @@
                                     <div style="max-width: 600px;">
                                         <dl class="info-dl">
                                             <dt>Server status</dt>
-                                            <dd>Server is currently <span class="icon icon-record" style="color:#fc605b"></span> stopped.</dd>
+                                            <dd>
+                                                Server is currently
+                                                <span class="icon icon-record status-red" id="server-status-record"></span>
+                                                <span id="server-status-text">stopped</span>.
+                                            </dd>
                                         </dl>
                                     </div>
 
@@ -286,7 +290,7 @@
 
                                     <fieldset>
                                         <legend>POP3</legend>
-                                        <p>Use SMTP to read emails added to this project.</p>
+                                        <p>Use POP3 to read emails added to this project.</p>
 
                                         <div style="max-width: 600px;">
                                             <dl class="info-dl">

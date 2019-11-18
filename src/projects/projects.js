@@ -198,7 +198,8 @@ class Projects {
             this.prepared = true;
 
             this.server = new Server({
-                sql: this.sql
+                sql: this.sql,
+                projects: this
             });
 
             while (this.prepareQueue.length) {
@@ -307,6 +308,7 @@ class Projects {
                 id
             })
         );
+
         return id;
     }
 

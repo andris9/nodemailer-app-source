@@ -85,6 +85,8 @@ const createWindow = () => {
             })
         );
     });
+
+    projects.server.init().catch(err => console.error(err));
 };
 
 // This method will be called when Electron has finished
@@ -252,14 +254,18 @@ const serverStartMenuItem = {
     id: 'server-start',
     label: 'Start server',
     enabled: false,
-    click: () => {
-        let focused = BrowserWindow.getFocusedWindow();
-        if (focused) {
-            dialog.showMessageBox(focused, {
+    click: async () => {
+        try {
+            await execCommand(mainWindow, projects, false, {
+                command: 'serverStart',
+                params: {}
+            });
+        } catch (err) {
+            dialog.showMessageBox(mainWindow, {
                 title: 'Error',
                 buttons: ['Dismiss'],
                 type: 'warning',
-                message: 'Future feature'
+                message: 'Failed to process command\n' + err.message
             });
         }
     }
@@ -269,14 +275,18 @@ const serverStopMenuItem = {
     id: 'server-stop',
     label: 'Stop server',
     enabled: false,
-    click: () => {
-        let focused = BrowserWindow.getFocusedWindow();
-        if (focused) {
-            dialog.showMessageBox(focused, {
+    click: async () => {
+        try {
+            await execCommand(mainWindow, projects, false, {
+                command: 'serverStop',
+                params: {}
+            });
+        } catch (err) {
+            dialog.showMessageBox(mainWindow, {
                 title: 'Error',
                 buttons: ['Dismiss'],
                 type: 'warning',
-                message: 'Future feature'
+                message: 'Failed to process command\n' + err.message
             });
         }
     }

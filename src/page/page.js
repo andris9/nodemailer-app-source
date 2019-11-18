@@ -12,8 +12,6 @@
     let deleteActiveBtn = document.getElementById('delete-active-btn');
     let editActiveBtn = document.getElementById('edit-active-btn');
 
-    let serverConfigBtn = document.getElementById('server-config-btn');
-
     let openProject = id => {
         exec({
             command: 'openProject',
@@ -150,6 +148,27 @@
             return redrawList();
         });
 
+        window.events.subscribe('server-stop', () => {
+            document.getElementById('server-start-btn').classList.remove('hidden');
+            document.getElementById('server-stop-btn').classList.add('hidden');
+        });
+
+        window.events.subscribe('server-start', () => {
+            document.getElementById('server-start-btn').classList.add('hidden');
+            document.getElementById('server-stop-btn').classList.remove('hidden');
+        });
+
+        let serverStatus = await exec({
+            command: 'serverStatus'
+        });
+        if (!serverStatus) {
+            document.getElementById('server-start-btn').classList.remove('hidden');
+            document.getElementById('server-stop-btn').classList.add('hidden');
+        } else {
+            document.getElementById('server-start-btn').classList.add('hidden');
+            document.getElementById('server-stop-btn').classList.remove('hidden');
+        }
+
         window.events.subscribe('focus-change', data => {
             switch (data.type) {
                 case 'blur':
@@ -245,6 +264,7 @@
         });
     };
 
+    let serverConfigBtn = document.getElementById('server-config-btn');
     serverConfigBtn.addEventListener('click', () => {
         serverConfigBtn.classList.add('active');
         exec({
@@ -258,6 +278,32 @@
             .catch(() => false)
             .finally(() => {
                 serverConfigBtn.classList.remove('active');
+            });
+    });
+
+    let serverStartBtn = document.getElementById('server-start-btn');
+    serverStartBtn.addEventListener('click', () => {
+        console.log('start');
+        serverStartBtn.classList.add('active');
+        exec({
+            command: 'serverStart'
+        })
+            .catch(() => false)
+            .finally(() => {
+                serverStartBtn.classList.remove('active');
+            });
+    });
+
+    let serverStopBtn = document.getElementById('server-stop-btn');
+    serverStopBtn.addEventListener('click', () => {
+        console.log('stop');
+        serverStopBtn.classList.add('active');
+        exec({
+            command: 'serverStop'
+        })
+            .catch(() => false)
+            .finally(() => {
+                serverStopBtn.classList.remove('active');
             });
     });
 

@@ -1,6 +1,6 @@
 'use strict';
 /* eslint global-require: 0 */
-/* globals window, document, alert, ImportPage, ContactsPage, AttachmentsPage, EmailsPage, Tabs */
+/* globals window, document, alert, ImportPage, ContactsPage, AttachmentsPage, EmailsPage, Tabs, exec */
 
 (() => {
     let loaderQueue = 0;
@@ -62,7 +62,40 @@
             this.visible = false;
         }
 
-        async init() {}
+        updateServerStatus() {
+            let serverStatusRecordElm = document.getElementById('server-status-record');
+            let serverStatusTextElm = document.getElementById('server-status-text');
+            if (!this.serverStatus) {
+                serverStatusRecordElm.classList.add('status-red');
+                serverStatusRecordElm.classList.remove('status-green');
+                serverStatusTextElm.textContent = 'status';
+            } else {
+                serverStatusRecordElm.classList.remove('status-red');
+                serverStatusRecordElm.classList.add('status-green');
+                serverStatusTextElm.textContent = 'running';
+            }
+        }
+
+        async init() {
+            window.events.subscribe('server-start', () => {
+                console.log('server-start');
+                this.serverStatus = true;
+                this.updateServerStatus();
+            });
+
+            window.events.subscribe('server-stop', () => {
+                console.log('server-stop');
+                this.serverStatus = false;
+                this.updateServerStatus();
+            });
+
+            this.serverStatus = await exec({
+                command: 'serverStatus',
+                params: {}
+            });
+
+            this.updateServerStatus();
+        }
     }
 
     async function main() {

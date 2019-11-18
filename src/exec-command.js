@@ -769,6 +769,18 @@ async function serverConfig(curWin, projects) {
     await projects.server.setConfig(updates);
 }
 
+async function serverStart(curWin, projects) {
+    await projects.server.start();
+}
+
+async function serverStop(curWin, projects) {
+    await projects.server.stop();
+}
+
+async function serverStatus(curWin, projects) {
+    return !!projects.server.running;
+}
+
 async function searchAttachments(curWin, projects, analyzer, params) {
     return await prompt(
         {
@@ -1036,6 +1048,15 @@ module.exports = async (curWin, projects, analyzer, data, menu) => {
 
         case 'serverConfig':
             return await serverConfig(curWin, projects, analyzer, data.params);
+
+        case 'serverStart':
+            return await serverStart(curWin, projects, analyzer, data.params);
+
+        case 'serverStop':
+            return await serverStop(curWin, projects, analyzer, data.params);
+
+        case 'serverStatus':
+            return await serverStatus(curWin, projects, analyzer, data.params);
 
         default:
             throw new Error('Unknown command ' + JSON.stringify(data));
