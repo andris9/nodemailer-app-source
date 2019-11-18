@@ -61,6 +61,7 @@ thead tr.active {
 dl.info-dl {
     display: flex;
     flex-flow: row wrap;
+    align-items: center;
 }
 dl.info-dl dt {
     flex-basis: 20%;
@@ -147,4 +148,14 @@ hr {
 
 .fixed-pane {
     max-width: 480px;
+}
+
+.field-select {
+    user-select: text;
+    display: inline-block;
+    border: 1px solid #dfdfdf;
+    border-radius: 4px;
+    padding: 5px 10px;
+    min-width: 150px;
+    text-align: left;
 }

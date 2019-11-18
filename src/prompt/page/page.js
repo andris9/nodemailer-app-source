@@ -30,7 +30,11 @@
         let result = {};
         for (let i = 0; i < dataFieldElms.length; i++) {
             let dataFieldElm = dataFieldElms[i];
-            result[dataFieldElm.name] = dataFieldElm.value;
+            if (dataFieldElm.type === 'checkbox') {
+                result[dataFieldElm.name] = !!dataFieldElm.checked;
+            } else {
+                result[dataFieldElm.name] = dataFieldElm.value;
+            }
         }
         ipcRenderer.sendSync('prompt-post-data:' + promptId, JSON.stringify(result));
     };
@@ -102,6 +106,8 @@
                             break;
                         }
                     }
+                } else if (dataFieldElm.type === 'checkbox') {
+                    dataFieldElm.checked = !!promptOptions.query[dataFieldElm.name];
                 } else {
                     dataFieldElm.value = promptOptions.query[dataFieldElm.name];
                 }

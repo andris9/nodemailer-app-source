@@ -18,7 +18,7 @@
                     <!-- import -->
 
                     <button class="btn btn-default import-button-group" id="imports-import-menu">
-                        <span class="icon icon-plus-squared"></span>
+                        <span class="icon icon-plus-circled"></span>
                     </button>
 
                     <!-- contacts -->
@@ -53,6 +53,12 @@
                             <span class="icon icon-search"></span>
                         </button>
                     </div>
+
+                    <!-- server -->
+
+                    <button class="btn btn-default hidden server-component" id="server-info-menu">
+                        <span class="icon icon-info-circled"></span>
+                    </button>
 
                     <!-- contacts -->
 
@@ -152,6 +158,11 @@
                                 <span class="icon icon-download"></span>
                                 Imports
                             </a>
+
+                            <a class="nav-group-item page-menu" data-target="server" id="page-menu-server">
+                                <span class="icon icon-database"></span>
+                                Local Server
+                            </a>
                         </nav>
                     </div>
 
@@ -210,6 +221,134 @@
                                 </thead>
                                 <tbody class="enumerable-list" id="contacts-list"></tbody>
                             </table>
+                        </div>
+
+                        <div id="page-server" class="hidden">
+                            <div id="server-tab" class="tab-group">
+                                <div id="server-tab-overview" class="tab-item">
+                                    Overview
+                                </div>
+                                <div id="server-tab-logs" class="tab-item">
+                                    Server Logs
+                                </div>
+                            </div>
+
+                            <div id="server-tab-overview-content" class="padded-sides hidden">
+                                <div class="padded-more">
+                                    <h4>Local Server</h4>
+
+                                    <p>
+                                        Local server allows you to access emails in a project programmatically. You can also hook up your e-mail client to
+                                        download messages from this project.
+                                    </p>
+
+                                    <div style="max-width: 600px;">
+                                        <dl class="info-dl">
+                                            <dt>Server status</dt>
+                                            <dd>Server is currently <span class="icon icon-record" style="color:#fc605b"></span> stopped.</dd>
+                                        </dl>
+                                    </div>
+
+                                    <fieldset>
+                                        <legend>SMTP</legend>
+
+                                        <p>
+                                            Use SMTP to add new emails to this project. Messages sent via SMTP end up only in this project and are not delivered
+                                            to actual recipients. You can use this feature to preview emails before these are actually sent.
+                                        </p>
+                                        <div style="max-width: 600px;">
+                                            <dl class="info-dl">
+                                                <dt>Hostname</dt>
+                                                <dd>
+                                                    <code class="field-select">localhost</code>
+                                                </dd>
+
+                                                <dt>Port</dt>
+                                                <dd><code class="field-select">1025</code></dd>
+
+                                                <dt>Username</dt>
+                                                <dd>
+                                                    <code class="field-select">project_123</code>
+                                                </dd>
+
+                                                <dt>Password</dt>
+                                                <dd>
+                                                    <code class="field-select">project_123</code>
+                                                </dd>
+
+                                                <dt>TLS/SSL</dt>
+                                                <dd>
+                                                    <code class="field-select">None</code>
+                                                </dd>
+                                            </dl>
+                                        </div>
+                                    </fieldset>
+
+                                    <fieldset>
+                                        <legend>POP3</legend>
+                                        <p>Use SMTP to read emails added to this project.</p>
+
+                                        <div style="max-width: 600px;">
+                                            <dl class="info-dl">
+                                                <dt>Hostname</dt>
+                                                <dd>
+                                                    <code class="field-select">localhost</code>
+                                                </dd>
+
+                                                <dt>Port</dt>
+                                                <dd><code class="field-select">1110</code></dd>
+
+                                                <dt>Username</dt>
+                                                <dd>
+                                                    <code class="field-select">project_123</code>
+                                                </dd>
+
+                                                <dt>Password</dt>
+                                                <dd>
+                                                    <code class="field-select">project_123</code>
+                                                </dd>
+
+                                                <dt>TLS/SSL</dt>
+                                                <dd>
+                                                    <code class="field-select">None</code>
+                                                </dd>
+                                            </dl>
+                                        </div>
+                                    </fieldset>
+                                </div>
+                            </div>
+                            <div id="server-tab-logs-content" class="padded-sides hidden">
+                                <table class="table-striped" style="table-layout: fixed;">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 180px;">Date</th>
+                                            <th style="width: 120px;">Session</th>
+                                            <th style="width: 80px;">Proto</th>
+                                            <th style="width: 40px;">&nbsp;</th>
+                                            <th>Message</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="enumerable-list" id="server-logs-list">
+                                        <tr>
+                                            <td>
+                                                2019-11-18 11:48:52.552
+                                            </td>
+                                            <td>
+                                                7A8E31A66777
+                                            </td>
+                                            <td>
+                                                SMTP
+                                            </td>
+                                            <td>
+                                                S
+                                            </td>
+                                            <td>
+                                                250 OK
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
 

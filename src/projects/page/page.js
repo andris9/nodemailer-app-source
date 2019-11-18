@@ -1,6 +1,6 @@
 'use strict';
 /* eslint global-require: 0 */
-/* globals window, document, alert, ImportPage, ContactsPage, AttachmentsPage, EmailsPage */
+/* globals window, document, alert, ImportPage, ContactsPage, AttachmentsPage, EmailsPage, Tabs */
 
 (() => {
     let loaderQueue = 0;
@@ -29,17 +29,60 @@
 
     window.hideLoader = hideLoader;
 
+    class ServerPage {
+        constructor() {
+            this.buttonGroupElms = Array.from(document.querySelectorAll('.server-component'));
+            this.pageElm = document.getElementById('page-server');
+            this.pageMenuElm = document.getElementById('page-menu-server');
+
+            // overriden by main
+            this.pageViews = false;
+
+            this.viewTabs = new Tabs('server-tab');
+        }
+
+        async focus() {
+            // overriden by main
+        }
+
+        async show() {
+            this.buttonGroupElms.forEach(elm => elm.classList.remove('hidden'));
+            this.pageElm.classList.remove('hidden');
+            this.pageMenuElm.classList.add('active');
+            this.visible = true;
+
+            this.viewTabs.show('overview');
+            this.viewTabs.activate('overview');
+        }
+
+        async hide() {
+            this.buttonGroupElms.forEach(elm => elm.classList.add('hidden'));
+            this.pageElm.classList.add('hidden');
+            this.pageMenuElm.classList.remove('active');
+            this.visible = false;
+        }
+
+        async init() {}
+    }
+
     async function main() {
         let pageViews = {
             imports: new ImportPage(),
             contacts: new ContactsPage(),
             attachments: new AttachmentsPage(),
-            emails: new EmailsPage()
+            emails: new EmailsPage(),
+            server: new ServerPage()
         };
 
         await showLoader();
 
-        await Promise.all([pageViews.imports.init(), pageViews.contacts.init(), pageViews.attachments.init(), pageViews.emails.init()]);
+        await Promise.all([
+            pageViews.imports.init(),
+            pageViews.contacts.init(),
+            pageViews.attachments.init(),
+            pageViews.emails.init(),
+            pageViews.server.init()
+        ]);
 
         // show import page by default
         let selected = 'imports';

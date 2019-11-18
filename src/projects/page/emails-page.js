@@ -24,6 +24,7 @@
             color: #0f0f0f;
             display: flex;
             flex-flow: row wrap;
+            align-items: center;
         }
         dl.info-dl dt {
             text-align: left;
@@ -75,7 +76,9 @@
         dl.info-dl {
             display: flex;
             flex-flow: row wrap;
+            align-items: center;
         }
+        
         dl.info-dl dt {
             flex-basis: 20%;
             padding: 2px 4px;

@@ -9,6 +9,9 @@ const mkdirp = util.promisify(require('mkdirp'));
 const rimraf = util.promisify(require('rimraf'));
 const fs = require('fs').promises;
 const Analyzer = require('../analyzer/lib/analyzer.js');
+
+const Server = require('../server/server.js');
+
 const { BrowserWindow, Menu } = require('electron');
 
 const MAIN_VERSION = 1;
@@ -40,6 +43,8 @@ class Projects {
         this.sqlPath = pathlib.join(this.appDataPath, 'forensicat.db');
 
         this.thumbnailGenerator = options.thumbnailGenerator;
+
+        this.server = false;
     }
 
     async applyUpdates(version) {
@@ -191,6 +196,11 @@ class Projects {
         } finally {
             this.preparing = false;
             this.prepared = true;
+
+            this.server = new Server({
+                sql: this.sql
+            });
+
             while (this.prepareQueue.length) {
                 let promise = this.prepareQueue.shift();
                 promise.resolve();

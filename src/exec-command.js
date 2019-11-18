@@ -725,6 +725,50 @@ async function searchContacts(curWin, projects, analyzer, params) {
     return term;
 }
 
+async function serverConfig(curWin, projects) {
+    let serverConfig = await projects.server.getConfig();
+    let query = {};
+    Object.keys(serverConfig).forEach(key => {
+        query[key.replace(/[A-Z]/g, c => '-' + c.toLowerCase())] = serverConfig[key];
+    });
+
+    let response = await prompt(
+        {
+            title: 'Server config',
+
+            label: false,
+            query,
+
+            pagename: 'server',
+
+            width: 300,
+            height: 200
+        },
+        curWin
+    );
+
+    if (!response) {
+        return;
+    }
+
+    let updates = {};
+    Object.keys(response || {}).forEach(key => {
+        let ckey = key.replace(/-([a-z])/g, (o, c) => c.toUpperCase());
+        let value = response[key];
+        switch (typeof serverConfig[ckey]) {
+            case 'number':
+                value = Number(value) || 0;
+                break;
+            case 'boolean':
+                value = !!value;
+                break;
+        }
+        updates[ckey] = value;
+    });
+
+    await projects.server.setConfig(updates);
+}
+
 async function searchAttachments(curWin, projects, analyzer, params) {
     return await prompt(
         {
@@ -989,6 +1033,9 @@ module.exports = async (curWin, projects, analyzer, data, menu) => {
 
         case 'updateMenu':
             return await updateMenu(curWin, projects, analyzer, data.params, menu);
+
+        case 'serverConfig':
+            return await serverConfig(curWin, projects, analyzer, data.params);
 
         default:
             throw new Error('Unknown command ' + JSON.stringify(data));

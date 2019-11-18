@@ -248,6 +248,62 @@ const exportMenuItem = {
     }
 };
 
+const serverStartMenuItem = {
+    id: 'server-start',
+    label: 'Start server',
+    enabled: false,
+    click: () => {
+        let focused = BrowserWindow.getFocusedWindow();
+        if (focused) {
+            dialog.showMessageBox(focused, {
+                title: 'Error',
+                buttons: ['Dismiss'],
+                type: 'warning',
+                message: 'Future feature'
+            });
+        }
+    }
+};
+
+const serverStopMenuItem = {
+    id: 'server-stop',
+    label: 'Stop server',
+    enabled: false,
+    click: () => {
+        let focused = BrowserWindow.getFocusedWindow();
+        if (focused) {
+            dialog.showMessageBox(focused, {
+                title: 'Error',
+                buttons: ['Dismiss'],
+                type: 'warning',
+                message: 'Future feature'
+            });
+        }
+    }
+};
+
+const serverConfigureMenuItem = {
+    id: 'server-configure',
+    label: 'Configure…',
+    enabled: true,
+    click: async () => {
+        mainWindow.webContents.focus();
+        try {
+            await execCommand(mainWindow, projects, false, {
+                command: 'serverConfig',
+                params: {}
+            });
+        } catch (err) {
+            dialog.showMessageBox(mainWindow, {
+                title: 'Error',
+                buttons: ['Dismiss'],
+                type: 'warning',
+                message: 'Failed to process command\n' + err.message
+            });
+        }
+    }
+};
+
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
 
@@ -308,6 +364,10 @@ const template = [
     {
         label: 'Export',
         submenu: [exportMenuItem]
+    },
+    {
+        label: 'Server',
+        submenu: [serverStartMenuItem, serverStopMenuItem, serverConfigureMenuItem]
     },
     // { role: 'viewMenu' }
     {
@@ -375,7 +435,11 @@ ipcMain.on('cmdreq', (event, arg) => {
                 message: 'Failed to process request.\n' + err.message
             });
 
-            event.reply('cmdres', JSON.stringify(responsePayload));
+            try {
+                event.reply('cmdres', JSON.stringify(responsePayload));
+            } catch (err) {
+                // ignore, window probably closed
+            }
         });
 });
 

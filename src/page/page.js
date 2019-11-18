@@ -1,6 +1,6 @@
 'use strict';
 /* eslint global-require: 0 */
-/* globals document, window, exec, confirm, alert */
+/* globals document, window, exec, confirm */
 
 (() => {
     let elements = [];
@@ -11,6 +11,8 @@
 
     let deleteActiveBtn = document.getElementById('delete-active-btn');
     let editActiveBtn = document.getElementById('edit-active-btn');
+
+    let serverConfigBtn = document.getElementById('server-config-btn');
 
     let openProject = id => {
         exec({
@@ -242,6 +244,22 @@
             }
         });
     };
+
+    serverConfigBtn.addEventListener('click', () => {
+        serverConfigBtn.classList.add('active');
+        exec({
+            command: 'serverConfig'
+        })
+            .then(result => {
+                if (result) {
+                    openProject(result);
+                }
+            })
+            .catch(() => false)
+            .finally(() => {
+                serverConfigBtn.classList.remove('active');
+            });
+    });
 
     let createProjectElm = document.getElementById('create-project-btn');
     createProjectElm.addEventListener('click', () => {
