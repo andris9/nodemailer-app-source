@@ -132,9 +132,9 @@
             pageViews.server.init()
         ]);
 
-        // show import page by default
-        let selected = 'imports';
-        await pageViews.imports.show();
+        // show emails page by default
+        let selected = 'emails';
+        await pageViews[selected].show();
 
         let activateView = async target => {
             if (!pageViews[target] || target === selected) {
