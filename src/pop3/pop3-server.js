@@ -7,6 +7,7 @@ const shared = require('nodemailer/lib/shared');
 const POP3Connection = require('./connection');
 const punycode = require('punycode');
 const packageData = require('../../package.json');
+const base32 = require('base32.js');
 
 const CLOSE_TIMEOUT = 1 * 1000; // how much to wait until pending connections are terminated
 
@@ -42,7 +43,7 @@ class POP3Server extends EventEmitter {
 
         this.server = net.createServer(this.options, socket => {
             let socketOptions = {
-                id: crypto.randomBytes(10).toString('hex')
+                id: base32.encode(crypto.randomBytes(10)).toLowerCase()
             };
             this.connect(socket, socketOptions);
         });

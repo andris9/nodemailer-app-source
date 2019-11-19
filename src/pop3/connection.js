@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const EventEmitter = require('events');
 const DataStream = require('nodemailer/lib/smtp-connection/data-stream');
+const base32 = require('base32.js');
 
 const SOCKET_TIMEOUT = 60 * 1000;
 
@@ -22,7 +23,7 @@ class POP3Connection extends EventEmitter {
 
         // Store remote address for later usage
         this.remoteAddress = options.remoteAddress || this._socket.remoteAddress;
-        this.id = options.id || crypto.randomBytes(10).toString('hex');
+        this.id = options.id || base32.encode(crypto.randomBytes(10)).toLowerCase();
 
         this.processing = false;
         this.queue = [];
