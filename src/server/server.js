@@ -1,7 +1,8 @@
 'use strict';
 
 const { Menu, dialog } = require('electron');
-const SMTPServer = require('smtp-server').SMTPServer;
+const { SMTPServer } = require('smtp-server');
+const { POP3Server } = require('../pop3/pop3-server');
 
 const DEFAULT_SMTP_PORT = 1025;
 const DEFAULT_POP3_PORT = 1110;
@@ -305,8 +306,143 @@ class Server {
             return false;
         }
 
-        // TODO: start actual POP3 server
-        return false;
+        const serverOptions = {
+            port: serverConfig.pop3Port,
+            host: '127.0.0.1',
+
+            disableVersionString: false,
+
+            // log to console
+            logger: {
+                info(...args) {
+                    args.shift();
+                    console.log(...args);
+                },
+                debug(...args) {
+                    args.shift();
+                    console.log(...args);
+                },
+                error(...args) {
+                    args.shift();
+                    console.log(...args);
+                }
+            },
+
+            onAuth: (auth, session, callback) => {
+                let projectId = Number(auth.username.replace(/[^0-9]/g, ''));
+                console.log(projectId);
+                if (!projectId) {
+                    return callback(new Error('Invalid username or password'));
+                }
+
+                this.projects
+                    .open(projectId)
+                    .then(analyzer => {
+                        if (!analyzer) {
+                            console.log('?');
+                            return callback(new Error('Invalid username or password'));
+                        }
+                        console.log('okeiod');
+                        callback(null, { user: projectId });
+                    })
+                    .catch(err => callback(err));
+            },
+
+            onListMessages: (session, callback) => {
+                // only list messages in INBOX
+
+                let messageLoader = async () => {
+                    let analyzer = await this.projects.open(session.user);
+
+                    if (!analyzer) {
+                        throw new Error('Project not found');
+                    }
+
+                    let messages = [];
+                    let query = `SELECT id, size FROM emails WHERE pop3_deleted = ? ORDER BY id ASC`;
+                    for await (let message of analyzer.sql.each(query, [0])) {
+                        messages.push(message);
+                    }
+
+                    return messages;
+                };
+
+                messageLoader()
+                    .then(messages => {
+                        return callback(null, {
+                            messages: Array.isArray(messages)
+                                ? messages
+                                : []
+                                      .concat(messages || [])
+                                      // compose message objects
+                                      .map(message => ({
+                                          id: message._id.toString(),
+                                          size: message.size
+                                      })),
+                            count: messages.length,
+                            size: messages.reduce((acc, message) => acc + message.size, 0)
+                        });
+                    })
+                    .catch(callback);
+            },
+
+            onFetchMessage: (message, session, callback) => {
+                this.projects
+                    .open(session.user)
+                    .then(analyzer => {
+                        if (!analyzer) {
+                            throw new Error('Unknown mailbox');
+                        }
+                        return analyzer.getMessageStream(message.id);
+                    })
+                    .then(stream => {
+                        if (!stream) {
+                            throw new Error('Unknown message');
+                        }
+                        callback(null, stream);
+                    })
+                    .catch(callback);
+            },
+
+            onUpdate: (update, session, callback) => {
+                let handler = async () => {
+                    if (!update.deleted || !update.deleted.length) {
+                        return;
+                    }
+
+                    let analyzer = await this.projects.open(session.user);
+                    if (!analyzer) {
+                        throw new Error('Project not found');
+                    }
+
+                    let deleted = 0;
+                    for (let message of update.deleted) {
+                        let res = await analyzer.sql.run(`UPDATE emails SET pop3_deleted = ? WHERE id = ?`, [1, message.id]);
+                        if (res) {
+                            deleted++;
+                        }
+                    }
+                    return { deleted };
+                };
+
+                handler()
+                    .then(res => callback(null, res))
+                    .catch(err => console.error(err));
+            }
+        };
+
+        this.pop3Server = new POP3Server(serverOptions);
+
+        return new Promise((resolve, reject) => {
+            this.pop3Server.on('error', err => {
+                console.error(err);
+                reject(err);
+            });
+
+            this.pop3Server.listen(serverConfig.pop3Port, '127.0.0.1', () => {
+                resolve();
+            });
+        });
     }
 
     async stopSmtp() {

@@ -31,13 +31,20 @@ const Headers = mailsplit.Headers;
 const MAX_HTML_PARSE_LENGTH = 2 * 1024 * 1024; // do not parse HTML messages larger than 2MB to plaintext
 const HASH_ALGO = 'sha1';
 
-const PROJECT_VERSION = 1;
+const PROJECT_VERSION = 2;
 const PROJECT_UPDATES = [
     // update to 1
     [
         'ALTER TABLE [emails] ADD [import] INTEGER',
         `CREATE INDEX IF NOT EXISTS [email_import] ON emails (
             [import]
+        )`
+    ],
+    // update to 2
+    [
+        'ALTER TABLE [emails] ADD [pop3_deleted] INTEGER DEFAULT 0 NOT NULL',
+        `CREATE INDEX IF NOT EXISTS [pop3_deleted] ON emails (
+            [pop3_deleted]
         )`
     ]
 ];
@@ -144,6 +151,8 @@ class Analyzer {
                 [size] INTEGER,
                 [hash] TEXT,
 
+                [pop3_deleted] INTEGER DEFAULT 0 NOT NULL,
+
                 [key] TEXT
             );`);
 
@@ -245,6 +254,15 @@ class Analyzer {
             await this.sql.run(`CREATE INDEX IF NOT EXISTS [email_message_od] ON emails (
                 [message_id]
             )`);
+
+            try {
+                // may fail on non-updated dbs
+                await this.sql.run(`CREATE INDEX IF NOT EXISTS [pop3_deleted] ON emails (
+                [pop3_deleted]
+            )`);
+            } catch (err) {
+                // ignore
+            }
 
             await this.sql.run(`CREATE INDEX IF NOT EXISTS [email] ON headers (
                 [email]
