@@ -1,6 +1,7 @@
 {
-  "name": "forensicat",
-  "productName": "forensicat",
+  "name": "nodemailer-app",
+  "private": true,
+  "productName": "Nodemailer App",
   "version": "1.0.0",
   "description": "My Electron application description",
   "main": "src/index.js",
@@ -34,7 +35,7 @@
         {
           "name": "@electron-forge/maker-squirrel",
           "config": {
-            "name": "forensicat"
+            "name": "Nodemailer App"
           }
         },
         {

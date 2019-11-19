@@ -2072,8 +2072,8 @@ class Analyzer {
 
             headerSplitter.on('headers', data => {
                 // update headers
-                data.headers.remove('X-Forensicat');
-                data.headers.add('X-Forensicat', [this.fid, this.project.toString(16), id.toString(16), Date.now().toString(16)].join(':'), Infinity);
+                data.headers.remove('X-Nodemailer-App');
+                data.headers.add('X-Nodemailer-App', [this.fid, this.project.toString(16), id.toString(16), Date.now().toString(16)].join(':'), Infinity);
 
                 // remove MBOX headers
                 data.headers.remove('Content-Length');
@@ -2115,8 +2115,8 @@ class Analyzer {
 
             headerSplitter.on('headers', data => {
                 // update headers
-                data.headers.remove('X-Forensicat');
-                data.headers.add('X-Forensicat', [this.fid, this.project.toString(16), id.toString(16), Date.now().toString(16)].join(':'), Infinity);
+                data.headers.remove('X-Nodemailer-App');
+                data.headers.add('X-Nodemailer-App', [this.fid, this.project.toString(16), id.toString(16), Date.now().toString(16)].join(':'), Infinity);
 
                 // remove MBOX headers
                 data.headers.remove('Content-Length');

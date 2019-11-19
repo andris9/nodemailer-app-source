@@ -396,7 +396,7 @@ const template = [
             {
                 label: 'Learn More',
                 click: async () => {
-                    await shell.openExternal('https://forensicat.com');
+                    await shell.openExternal('https://nodemailer.com/app');
                 }
             }
         ]

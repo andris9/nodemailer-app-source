@@ -194,7 +194,7 @@ class Server {
             secure: false,
             disabledCommands: ['STARTTLS'],
             allowInsecureAuth: true,
-            banner: 'Forensicat SMTP',
+            banner: 'Nodemailer App SMTP',
             logger: {
                 info: (...args) => {
                     let meta = args.shift();

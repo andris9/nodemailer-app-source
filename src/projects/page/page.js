@@ -68,10 +68,10 @@
             let serverStatusRecordElm = document.getElementById('server-status-record');
             let serverStatusTextElm = document.getElementById('server-status-text');
 
-            if (!this.serverStatus && this.serverStatus.running) {
+            if (!this.serverStatus || !this.serverStatus.running) {
                 serverStatusRecordElm.classList.add('status-red');
                 serverStatusRecordElm.classList.remove('status-green');
-                serverStatusTextElm.textContent = 'status';
+                serverStatusTextElm.textContent = 'stopped';
             } else {
                 serverStatusRecordElm.classList.remove('status-red');
                 serverStatusRecordElm.classList.add('status-green');

@@ -313,7 +313,7 @@ class POP3Connection extends EventEmitter {
             !this.session.user ? 'SASL PLAIN' : false,
             // https://tools.ietf.org/html/rfc2449#section-6.6
             'PIPELINING',
-            this._server.options.disableVersionString ? false : 'IMPLEMENTATION Forensicat-v' + version
+            this._server.options.disableVersionString ? false : 'IMPLEMENTATION Nodemailer-App-v' + version
         ].filter(row => row);
 
         this.send(['+OK Capability list follows'].concat(extensions));

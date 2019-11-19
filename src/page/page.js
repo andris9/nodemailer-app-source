@@ -59,8 +59,8 @@
 
         // icon
         let imgElm = document.createElement('img');
-        imgElm.classList.add('img', 'media-object', 'pull-left');
-        imgElm.setAttribute('src', '../assets/envelope.png');
+        imgElm.classList.add('img-circle', 'media-object', 'pull-left');
+        imgElm.setAttribute('src', '../assets/envelope-small.png');
         imgElm.setAttribute('width', '32');
         imgElm.setAttribute('height', '32');
         liElm.appendChild(imgElm);
