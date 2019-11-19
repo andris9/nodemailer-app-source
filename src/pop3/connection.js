@@ -69,14 +69,31 @@ class POP3Connection extends EventEmitter {
             payload = payload.join('\r\n') + '\r\n.';
         }
 
+        let truncated = payload.split(/\r?\n/);
+        let lines = truncated.length;
+        let isTruncated = false;
+        if (truncated.length > 5) {
+            isTruncated = true;
+            truncated = truncated.slice(0, 5);
+        }
+        truncated = truncated.join('\n');
+        if (truncated.length > 256) {
+            isTruncated = true;
+            truncated.substr(0, 256);
+        }
+        if (isTruncated) {
+            truncated += `… <total ${payload.length}B, ${lines} lines>`;
+        }
+
         this.logger.debug(
             {
                 tnx: 'send',
                 cid: this.id,
-                host: this.remoteAddress
+                host: this.remoteAddress,
+                user: this.session.user
             },
             'S:',
-            (payload.length < 128 ? payload : payload.substr(0, 128) + '... +' + (payload.length - 128) + ' B').replace(/\r?\n/g, '\\n')
+            truncated
         );
         this.write(payload + '\r\n');
     }
@@ -245,6 +262,7 @@ class POP3Connection extends EventEmitter {
         if (/^(PASS|AUTH PLAIN)\s+[^\s]+/i.test(line)) {
             logLine = logLine.replace(/[^\s]+$/, '*hidden*');
         }
+
         this.logger.debug(
             {
                 tnx: 'receive',
@@ -852,7 +870,7 @@ class POP3Connection extends EventEmitter {
                         tnx: 'auth',
                         cid: this.id,
                         method: 'PLAIN',
-                        user: username
+                        user: response.user
                     },
                     '%s authenticated using %s',
                     username,

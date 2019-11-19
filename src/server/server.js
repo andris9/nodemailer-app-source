@@ -3,6 +3,8 @@
 const { Menu, dialog } = require('electron');
 const { SMTPServer } = require('smtp-server');
 const { POP3Server } = require('../pop3/pop3-server');
+const { ServerLogs } = require('../server-logs/server-logs');
+const util = require('util');
 
 const DEFAULT_SMTP_PORT = 1025;
 const DEFAULT_POP3_PORT = 1110;
@@ -20,6 +22,8 @@ class Server {
 
         this.smtpServer = false;
         this.pop3Server = false;
+
+        this.logger = new ServerLogs({ projects: this.projects });
     }
 
     async init() {
@@ -191,7 +195,44 @@ class Server {
             disabledCommands: ['STARTTLS'],
             allowInsecureAuth: true,
             banner: 'Forensicat SMTP',
-            logger: true,
+            logger: {
+                info: (...args) => {
+                    let meta = args.shift();
+                    this.logger
+                        .log({
+                            level: 'info',
+                            user: meta.user,
+                            proto: 'smtp',
+                            sess: meta.cid,
+                            message: util.format(...args)
+                        })
+                        .catch(err => console.error(err));
+                },
+                debug: (...args) => {
+                    let meta = args.shift();
+                    this.logger
+                        .log({
+                            level: 'debug',
+                            user: meta.user,
+                            proto: 'smtp',
+                            sess: meta.cid,
+                            message: util.format(...args)
+                        })
+                        .catch(err => console.error(err));
+                },
+                error: (...args) => {
+                    let meta = args.shift();
+                    this.logger
+                        .log({
+                            level: 'error',
+                            user: meta.user,
+                            proto: 'smtp',
+                            sess: meta.cid,
+                            message: util.format(...args)
+                        })
+                        .catch(err => console.error(err));
+                }
+            },
 
             onAuth: (auth, session, callback) => {
                 let projectId = Number(auth.username.replace(/[^0-9]/g, ''));
@@ -314,23 +355,46 @@ class Server {
 
             // log to console
             logger: {
-                info(...args) {
-                    args.shift();
-                    console.log(...args);
+                info: (...args) => {
+                    let meta = args.shift();
+                    this.logger
+                        .log({
+                            level: 'info',
+                            user: meta.user,
+                            proto: 'pop3',
+                            sess: meta.cid,
+                            message: util.format(...args)
+                        })
+                        .catch(err => console.error(err));
                 },
-                debug(...args) {
-                    args.shift();
-                    console.log(...args);
+                debug: (...args) => {
+                    let meta = args.shift();
+                    this.logger
+                        .log({
+                            level: 'debug',
+                            user: meta.user,
+                            proto: 'pop3',
+                            sess: meta.cid,
+                            message: util.format(...args)
+                        })
+                        .catch(err => console.error(err));
                 },
-                error(...args) {
-                    args.shift();
-                    console.log(...args);
+                error: (...args) => {
+                    let meta = args.shift();
+                    this.logger
+                        .log({
+                            level: 'error',
+                            user: meta.user,
+                            proto: 'pop3',
+                            sess: meta.cid,
+                            message: util.format(...args)
+                        })
+                        .catch(err => console.error(err));
                 }
             },
 
             onAuth: (auth, session, callback) => {
                 let projectId = Number(auth.username.replace(/[^0-9]/g, ''));
-                console.log(projectId);
                 if (!projectId) {
                     return callback(new Error('Invalid username or password'));
                 }
@@ -339,10 +403,8 @@ class Server {
                     .open(projectId)
                     .then(analyzer => {
                         if (!analyzer) {
-                            console.log('?');
                             return callback(new Error('Invalid username or password'));
                         }
-                        console.log('okeiod');
                         callback(null, { user: projectId });
                     })
                     .catch(err => callback(err));

@@ -167,3 +167,9 @@ hr {
 .status-green {
     color: #34c84a;
 }
+
+.pre-text {
+    vertical-align: top;
+    font-family: monospace;
+    white-space: pre;
+}

@@ -37,6 +37,8 @@
 
             // overriden by main
             this.pageViews = false;
+            this.smtpLogListElm = document.getElementById('server-smtp-logs-list');
+            this.pop3LogListElm = document.getElementById('server-pop3-logs-list');
 
             this.viewTabs = new Tabs('server-tab');
         }
@@ -95,6 +97,78 @@
             });
         }
 
+        formatDate(date) {
+            date = new Date(date);
+            if (date.toString() === 'Invalid Date') {
+                date = new Date();
+            }
+
+            let year = date.getFullYear();
+            let month = date.getMonth() + 1;
+            let day = date.getDate();
+
+            let hours = date.getHours();
+            let minutes = date.getMinutes();
+            let seconds = date.getSeconds();
+            let ms = date.getMilliseconds();
+
+            return `${year}-${(month < 10 ? '0' : '') + month}-${(day < 10 ? '0' : '') + day} ${(hours < 10 ? '0' : '') + hours}:${(minutes < 10 ? '0' : '') +
+                minutes}:${(seconds < 10 ? '0' : '') + seconds}${ms ? '.' + ms : ''}`;
+        }
+
+        getLogRow(log) {
+            let rowElm = document.createElement('tr');
+            let cell01Elm = document.createElement('td');
+            let cell02Elm = document.createElement('td');
+            let cell03Elm = document.createElement('td');
+
+            cell01Elm.classList.add('pre-text');
+            cell02Elm.classList.add('pre-text');
+            cell03Elm.classList.add('pre-text');
+
+            cell01Elm.textContent = this.formatDate(log.time);
+            cell02Elm.textContent = log.sess;
+            cell03Elm.textContent = log.message;
+
+            rowElm.appendChild(cell01Elm);
+            rowElm.appendChild(cell02Elm);
+            rowElm.appendChild(cell03Elm);
+            return rowElm;
+        }
+
+        updateLogs() {
+            this.smtpLogListElm.innerHTML = '';
+
+            if (this.smtpLogs && this.smtpLogs.length) {
+                for (let log of this.smtpLogs) {
+                    this.smtpLogListElm.appendChild(this.getLogRow(log));
+                }
+            }
+
+            this.pop3LogListElm.innerHTML = '';
+
+            if (this.pop3Logs && this.pop3Logs.length) {
+                for (let log of this.pop3Logs) {
+                    this.pop3LogListElm.appendChild(this.getLogRow(log));
+                }
+            }
+        }
+
+        addLogRow(log) {
+            let logListElm;
+            switch (log && log.proto) {
+                case 'smtp':
+                    logListElm = this.smtpLogListElm;
+                    break;
+                case 'pop3':
+                    logListElm = this.pop3LogListElm;
+                    break;
+                default:
+                    return;
+            }
+            logListElm.appendChild(this.getLogRow(log));
+        }
+
         async init() {
             window.events.subscribe('server-status', data => {
                 this.serverStatus = data;
@@ -110,6 +184,26 @@
             });
 
             this.updateServerStatus();
+
+            this.smtpLogs = await exec({
+                command: 'serverLogs',
+                params: {
+                    proto: 'smtp'
+                }
+            });
+
+            this.pop3Logs = await exec({
+                command: 'serverLogs',
+                params: {
+                    proto: 'pop3'
+                }
+            });
+
+            this.updateLogs();
+
+            window.events.subscribe('log', log => {
+                this.addLogRow(log);
+            });
         }
     }
 

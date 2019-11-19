@@ -228,8 +228,11 @@
                                 <div id="server-tab-overview" class="tab-item">
                                     Overview
                                 </div>
-                                <div id="server-tab-logs" class="tab-item">
-                                    Server Logs
+                                <div id="server-tab-smtp-logs" class="tab-item">
+                                    SMTP Logs
+                                </div>
+                                <div id="server-tab-pop3-logs" class="tab-item">
+                                    POP3 Logs
                                 </div>
                             </div>
 
@@ -238,8 +241,7 @@
                                     <h4>Local Server</h4>
 
                                     <p>
-                                        Local server allows you to access emails in a project programmatically. You can also hook up your e-mail client to
-                                        download messages from this project.
+                                        Hook up your e-mail client to add or download messages from this project.
                                     </p>
 
                                     <div style="max-width: 600px;">
@@ -321,36 +323,28 @@
                                     </fieldset>
                                 </div>
                             </div>
-                            <div id="server-tab-logs-content" class="padded-sides hidden">
+                            <div id="server-tab-smtp-logs-content" class="padded-sides hidden">
                                 <table class="table-striped" style="table-layout: fixed;">
                                     <thead>
                                         <tr>
                                             <th style="width: 180px;">Date</th>
-                                            <th style="width: 120px;">Session</th>
-                                            <th style="width: 80px;">Proto</th>
-                                            <th style="width: 40px;">&nbsp;</th>
+                                            <th style="width: 180px;">Session</th>
                                             <th>Message</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="enumerable-list" id="server-logs-list">
+                                    <tbody class="enumerable-list" id="server-smtp-logs-list"></tbody>
+                                </table>
+                            </div>
+                            <div id="server-tab-pop3-logs-content" class="padded-sides hidden">
+                                <table class="table-striped" style="table-layout: fixed;">
+                                    <thead>
                                         <tr>
-                                            <td>
-                                                2019-11-18 11:48:52.552
-                                            </td>
-                                            <td>
-                                                7A8E31A66777
-                                            </td>
-                                            <td>
-                                                SMTP
-                                            </td>
-                                            <td>
-                                                S
-                                            </td>
-                                            <td>
-                                                250 OK
-                                            </td>
+                                            <th style="width: 180px;">Date</th>
+                                            <th style="width: 180px;">Session</th>
+                                            <th>Message</th>
                                         </tr>
-                                    </tbody>
+                                    </thead>
+                                    <tbody class="enumerable-list" id="server-pop3-logs-list"></tbody>
                                 </table>
                             </div>
                         </div>

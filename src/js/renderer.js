@@ -33,7 +33,7 @@ window.events = {
     let ci = 0;
     let execQueue = new Map();
 
-    ['project-update', 'import-update', 'import-list', 'project-created', 'menu-click', 'focus-change', 'server-status', 'message-received'].forEach(
+    ['project-update', 'import-update', 'import-list', 'project-created', 'menu-click', 'focus-change', 'server-status', 'message-received', 'log'].forEach(
         channel => {
             ipcRenderer.on(channel, (event, arg) => {
                 let payload;

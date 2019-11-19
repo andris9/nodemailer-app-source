@@ -769,6 +769,10 @@ async function serverConfig(curWin, projects) {
     await projects.server.setConfig(updates);
 }
 
+async function serverLogs(curWin, projects, analyzer, params) {
+    return await projects.server.logger.read(analyzer.id, params.proto, params.maxLines);
+}
+
 async function serverStart(curWin, projects) {
     await projects.server.start();
 }
@@ -1066,6 +1070,9 @@ module.exports = async (curWin, projects, analyzer, data, menu) => {
 
         case 'serverStatus':
             return await serverStatus(curWin, projects, analyzer, data.params);
+
+        case 'serverLogs':
+            return await serverLogs(curWin, projects, analyzer, data.params);
 
         case 'selfInfo':
             return await selfInfo(curWin, projects, analyzer, data.params);
