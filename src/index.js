@@ -5,6 +5,7 @@ const Projects = require('./projects/projects');
 const urllib = require('url');
 const pathlib = require('path');
 const crypto = require('crypto');
+const openAboutWindow = require('about-window').default;
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 // eslint-disable-next-line global-require
@@ -311,6 +312,23 @@ const serverConfigureMenuItem = {
     }
 };
 
+const aboutMenuItem = {
+    id: 'about',
+    label: 'About Nodemailer App',
+    enabled: true,
+    click: async () => {
+        openAboutWindow({
+            icon_path: pathlib.join(__dirname, 'icons/png/256x256.png'),
+            copyright: 'Copyright (c) 2019 Andris Reinman',
+            package_json_dir: pathlib.join(__dirname, '..'),
+            homepage: 'https://nodemailer.com/app',
+            show_close_button: 'Close',
+            license: 'Free for personal usage',
+            adjust_window_size: true
+        });
+    }
+};
+
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
 
@@ -322,7 +340,8 @@ const template = [
               {
                   label: app.name,
                   submenu: [
-                      { role: 'about' },
+                      //{ role: 'about' },
+                      aboutMenuItem,
                       { type: 'separator' },
                       { role: 'services' },
                       { type: 'separator' },
@@ -338,7 +357,13 @@ const template = [
     // { role: 'fileMenu' }
     {
         label: 'File',
-        submenu: [newProjectMenuItem, renameProjectMenuItem, deleteProjectMenuItem, isMac ? { role: 'close' } : { role: 'quit' }]
+        submenu: [
+            !isMac ? aboutMenuItem : false,
+            newProjectMenuItem,
+            renameProjectMenuItem,
+            deleteProjectMenuItem,
+            isMac ? { role: 'close' } : { role: 'quit' }
+        ].filter(val => val)
     },
     // { role: 'editMenu' }
     {
