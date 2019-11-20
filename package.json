@@ -71,6 +71,19 @@
                     "name": "@electron-forge/maker-rpm",
                     "config": {}
                 }
+            ],
+            "publishers": [
+                {
+                    "name": "@electron-forge/publisher-github",
+                    "config": {
+                        "authToken": "0c31a67f143987790e43acfe38ffb4c45d92f803",
+                        "repository": {
+                            "owner": "Nodemailer",
+                            "name": "nodemailer-app"
+                        },
+                        "prerelease": false
+                    }
+                }
             ]
         }
     },
@@ -100,12 +113,13 @@
         "uuid": "3.3.3"
     },
     "devDependencies": {
-        "@electron-forge/maker-dmg": "6.0.0-beta.45",
         "@electron-forge/cli": "6.0.0-beta.45",
         "@electron-forge/maker-deb": "6.0.0-beta.45",
+        "@electron-forge/maker-dmg": "6.0.0-beta.45",
         "@electron-forge/maker-rpm": "6.0.0-beta.45",
         "@electron-forge/maker-squirrel": "6.0.0-beta.45",
         "@electron-forge/maker-zip": "6.0.0-beta.45",
+        "@electron-forge/publisher-github": "^6.0.0-beta.45",
         "dotenv": "8.2.0",
         "electron": "7.1.2",
         "electron-notarize": "0.2.0",
