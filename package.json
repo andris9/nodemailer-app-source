@@ -74,14 +74,6 @@
                 {
                     "name": "@electron-forge/maker-rpm",
                     "config": {}
-                },
-                {
-                    "name": "@electron-forge/maker-pkg",
-                    "config": {
-                        "identity": "Developer ID Installer: Andris Reinman (8JM6VJ352Q)",
-                        "identity-validation": true,
-                        "install": "/Applications"
-                    }
                 }
             ],
             "publishers": [
@@ -136,6 +128,7 @@
         "dotenv": "8.2.0",
         "electron": "7.1.2",
         "electron-notarize": "0.2.0",
+        "electron-prebuilt-compile": "^4.0.0",
         "eslint": "6.6.0",
         "eslint-config-nodemailer": "1.2.0",
         "eslint-config-prettier": "6.7.0",

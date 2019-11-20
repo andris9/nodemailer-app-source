@@ -828,7 +828,7 @@ async function createProject(curWin, projects) {
             title: 'Project name',
             label: 'Project name',
             query: {
-                value: 'My Gmail takout'
+                value: 'Mailbox Takeout'
             }
         },
         curWin
