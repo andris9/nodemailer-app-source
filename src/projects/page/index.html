@@ -258,35 +258,54 @@
                                     <fieldset>
                                         <legend>SMTP</legend>
 
-                                        <p>
-                                            Use SMTP to add new emails to this project. Messages sent via SMTP end up only in this project and are not delivered
-                                            to actual recipients. You can use this feature to preview emails before these are actually sent.
-                                        </p>
-                                        <div style="max-width: 600px;">
-                                            <dl class="info-dl">
-                                                <dt>Hostname</dt>
-                                                <dd>
-                                                    <code class="field-select">localhost</code>
-                                                </dd>
+                                        <div style="display: flex; flex-direction: row; align-items: center;">
+                                            <div>
+                                                <p style="text-align: justify;">
+                                                    Use SMTP to add new emails to this project. Messages sent via SMTP end up only in this project and are not
+                                                    delivered to actual recipients. You can use this feature to preview emails before these are actually sent.
+                                                </p>
+                                                <div style="max-width: 600px;">
+                                                    <dl class="info-dl">
+                                                        <dt>Hostname</dt>
+                                                        <dd>
+                                                            <code class="field-select">localhost</code>
+                                                        </dd>
 
-                                                <dt>Port</dt>
-                                                <dd><code class="field-select server-smtp-port-value"></code></dd>
+                                                        <dt>Port</dt>
+                                                        <dd><code class="field-select server-smtp-port-value"></code></dd>
 
-                                                <dt>Username</dt>
-                                                <dd>
-                                                    <code class="field-select server-user-value"></code>
-                                                </dd>
+                                                        <dt>Username</dt>
+                                                        <dd>
+                                                            <code class="field-select server-user-value"></code>
+                                                        </dd>
 
-                                                <dt>Password</dt>
-                                                <dd>
-                                                    <code class="field-select server-password-value"></code>
-                                                </dd>
+                                                        <dt>Password</dt>
+                                                        <dd>
+                                                            <code class="field-select server-password-value"></code>
+                                                        </dd>
 
-                                                <dt>TLS/SSL</dt>
-                                                <dd>
-                                                    <code class="field-select">None</code>
-                                                </dd>
-                                            </dl>
+                                                        <dt>TLS/SSL</dt>
+                                                        <dd>
+                                                            <code class="field-select">None</code>
+                                                        </dd>
+                                                    </dl>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div style="margin-left: 40px; padding: 15px; border: none; background-color: #fafafa; border-radius: 4px;">
+                                                    <h5>Nodemailer configuration example</h5>
+                                                    <pre class="text-select">
+const transporter = nodemailer.createTransport({
+    host: 'localhost',
+    port: <span class="server-smtp-port-value text-select"></span>,
+    auth: {
+        user: '<span class="server-user-value text-select"></span>',
+        pass: '<span class="server-password-value text-select"></span>'
+    }
+});
+</pre>
+                                                </div>
+                                            </div>
                                         </div>
                                     </fieldset>
 
