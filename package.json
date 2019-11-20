@@ -23,8 +23,8 @@
             "packagerConfig": {
                 "appBundleId": "com.kreata.nodemailer",
                 "asar": true,
-                "buildVersion": 8519705,
-                "icon": "./src/icons/mac/icon.icns",
+                "buildVersion": "",
+                "icon": "",
                 "appCopyright": "© 2019 Andris Reinman",
                 "appCategoryType": "public.app-category.utilities",
                 "win32metadata": {

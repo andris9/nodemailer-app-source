@@ -1,10 +1,14 @@
 'use strict';
 const { app } = require('electron');
 
+// Handle creating/removing shortcuts on Windows when installing/uninstalling.
 // eslint-disable-next-line global-require
-if (require('electron-squirrel-startup')) return app.quit();
+if (require('electron-squirrel-startup')) {
+    app.quit();
+}
 
-const { BrowserWindow, ipcMain, dialog, Menu, shell } = require('electron');
+const os = require('os');
+const { BrowserWindow, ipcMain, dialog, Menu, shell, autoUpdater } = require('electron');
 const execCommand = require('./exec-command');
 const Projects = require('./projects/projects');
 const urllib = require('url');
@@ -12,11 +16,14 @@ const pathlib = require('path');
 const crypto = require('crypto');
 const openAboutWindow = require('about-window').default;
 
-// Handle creating/removing shortcuts on Windows when installing/uninstalling.
-// eslint-disable-next-line global-require
-if (require('electron-squirrel-startup')) {
-    app.quit();
-}
+const platform = os.platform() + '_' + os.arch();
+const server = 'https://downloads.nodemailer.com';
+const feed = `${server}/update/${platform}/${app.getVersion()}`;
+autoUpdater.setFeedURL(feed);
+
+setInterval(() => {
+    autoUpdater.checkForUpdates();
+}, 5 * 60 * 1000);
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
