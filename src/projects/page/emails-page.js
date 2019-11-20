@@ -544,6 +544,19 @@
             // no idea what to do here?
         }
 
+        renderEmptyInfo() {
+            let rowElm = document.createElement('tr');
+
+            let cell01Elm = document.createElement('td');
+            cell01Elm.setAttribute('colspan', '3');
+
+            cell01Elm.innerHTML = 'Nothing to show here.<br/>Drop some email files here or use the Import menu.';
+            cell01Elm.classList.add('empty-ad');
+
+            rowElm.appendChild(cell01Elm);
+            this.rowListElm.appendChild(rowElm);
+        }
+
         renderListItem(data, nr) {
             let rowElm = document.createElement('tr');
 
@@ -582,16 +595,16 @@
             this.pageNrElm.textContent = humanize.numberFormat(list.page, 0, '.', ' ');
             this.pageTotalElm.textContent = humanize.numberFormat(list.pages, 0, '.', ' ');
 
-            this.rows.forEach(data => {
-                if (data.elm.parentNode === this.rowListElm) {
-                    this.rowListElm.removeChild(data.elm);
-                }
-            });
+            this.rowListElm.innerHTML = '';
             this.rows = [];
 
             let startNr = (list.page - 1) * list.pageSize;
             for (let data of list.data) {
                 this.renderListItem(data, ++startNr);
+            }
+
+            if (!list.data.length && this.page === 1 && !this.query) {
+                this.renderEmptyInfo();
             }
 
             this.selectable.update(this.rows);

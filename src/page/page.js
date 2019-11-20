@@ -128,6 +128,12 @@
             renderProject(container, projectData);
         });
 
+        if (!projects.data.length) {
+            document.getElementById('empty-project-list').classList.remove('hidden');
+        } else {
+            document.getElementById('empty-project-list').classList.add('hidden');
+        }
+
         selectable.update(elements);
     };
 
@@ -140,6 +146,12 @@
         projects.data.forEach(projectData => {
             renderProject(container, projectData);
         });
+
+        if (!projects.data.length) {
+            document.getElementById('empty-project-list').classList.remove('hidden');
+        } else {
+            document.getElementById('empty-project-list').classList.add('hidden');
+        }
 
         selectable.update(elements);
         selectable.activate();

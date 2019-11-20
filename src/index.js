@@ -314,12 +314,15 @@ const serverConfigureMenuItem = {
 
 const aboutMenuItem = {
     id: 'about',
-    label: 'About Nodemailer App',
+    label: 'About NodemailerApp',
     enabled: true,
     click: async () => {
         openAboutWindow({
             icon_path: pathlib.join(__dirname, 'icons/png/256x256.png'),
-            copyright: 'Copyright (c) 2019 Andris Reinman',
+            use_inner_html: true,
+            copyright:
+                '<div style="text-align: center">Copyright &copy; 2019 Andris Reinman<br>Licensed for non-commercial use<br/><br>The Nodemailer logo was designed by <a href="https://www.behance.net/kristjansen"  class="link">Sven Kristjansen</a></div>',
+            use_version_info: false,
             package_json_dir: pathlib.join(__dirname, '..'),
             homepage: 'https://nodemailer.com/app',
             show_close_button: 'Close',
