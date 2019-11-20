@@ -1,5 +1,10 @@
 'use strict';
-const { app, BrowserWindow, ipcMain, dialog, Menu, shell } = require('electron');
+const { app } = require('electron');
+
+// eslint-disable-next-line global-require
+if (require('electron-squirrel-startup')) return app.quit();
+
+const { BrowserWindow, ipcMain, dialog, Menu, shell } = require('electron');
 const execCommand = require('./exec-command');
 const Projects = require('./projects/projects');
 const urllib = require('url');
