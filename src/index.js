@@ -362,6 +362,7 @@ const template = [
         label: 'File',
         submenu: [
             !isMac ? aboutMenuItem : false,
+            !isMac ? { type: 'separator' } : false,
             newProjectMenuItem,
             renameProjectMenuItem,
             deleteProjectMenuItem,
@@ -404,18 +405,15 @@ const template = [
         label: 'Server',
         submenu: [serverStartMenuItem, serverStopMenuItem, serverConfigureMenuItem]
     },
-    // { role: 'viewMenu' }
-    {
-        label: 'View',
-        submenu: [{ role: 'toggledevtools' }, { type: 'separator' }, { type: 'separator' }, { role: 'togglefullscreen' }]
-    },
     // { role: 'windowMenu' }
     {
         label: 'Window',
         submenu: [
             { role: 'minimize' },
             { role: 'zoom' },
+            { role: 'togglefullscreen' },
             ...(isMac ? [{ type: 'separator' }, { role: 'front' }, { type: 'separator' }, { role: 'window' }] : [{ role: 'close' }])
+            /*, { type: 'separator' }, { role: 'toggledevtools' }, */
         ]
     },
     {
