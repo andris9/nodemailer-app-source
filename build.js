@@ -39,5 +39,5 @@ exec('git rev-parse HEAD', (err, stdout) => {
 
     packageData.config.forge.packagerConfig.icon = icon;
 
-    fs.writeFileSync(packagePath, JSON.stringify(packageData, false, 2));
+    fs.writeFileSync(packagePath, JSON.stringify(packageData, false, 4));
 });
