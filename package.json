@@ -74,6 +74,15 @@
                 {
                     "name": "@electron-forge/maker-rpm",
                     "config": {}
+                },
+                {
+                    "name": "@electron-forge/maker-pkg",
+                    "config": {
+                        "identity": "Developer ID Installer: Andris Reinman (8JM6VJ352Q)",
+                        "license": "./eula.html",
+                        "isVersionChecked": false,
+                        "hasStrictIdentifier": false
+                    }
                 }
             ],
             "publishers": [
