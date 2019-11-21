@@ -2,14 +2,14 @@
     "name": "nodemailer-app",
     "private": true,
     "productName": "NodemailerApp",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "The ultimate email debugging tool",
     "main": "src/index.js",
     "scripts": {
         "start": "electron-forge start",
         "package": "electron-forge package",
         "make": "node build.js && electron-forge make && node teardown.js",
-        "publish": "electron-forge publish",
+        "publish": "node build.js && electron-forge publish && node teardown.js",
         "test": "grunt"
     },
     "keywords": [],
