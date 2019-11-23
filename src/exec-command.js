@@ -16,6 +16,7 @@ const MaildirScan = require('maildir-scan');
 const util = require('util');
 const recursiveReaddir = require('recursive-readdir');
 const zlib = require('zlib');
+const upload = require('./upload/upload.js');
 
 const PAGE_SIZE = 30;
 
@@ -725,24 +726,38 @@ async function searchContacts(curWin, projects, analyzer, params) {
     return term;
 }
 
-async function serverConfig(curWin, projects) {
-    let serverConfig = await projects.server.getConfig();
+async function serverConfig(curWin, projects, analyzer) {
+    return preferences(curWin, projects, analyzer, { tab: 'server' });
+}
+
+async function preferences(curWin, projects, analyzer, params) {
+    let prefs = await projects.getPreferences();
     let query = {};
-    Object.keys(serverConfig).forEach(key => {
-        query[key.replace(/[A-Z]/g, c => '-' + c.toLowerCase())] = serverConfig[key];
+    Object.keys(prefs).forEach(key => {
+        if (prefs[key] && typeof prefs[key] === 'object') {
+            Object.keys(prefs[key]).forEach(subKey => {
+                query[key.replace(/[A-Z]/g, c => '-' + c.toLowerCase()) + ':' + subKey.replace(/[A-Z]/g, c => '-' + c.toLowerCase())] = prefs[key][subKey];
+            });
+        } else {
+            query[key.replace(/[A-Z]/g, c => '-' + c.toLowerCase())] = prefs[key];
+        }
     });
 
     let response = await prompt(
         {
-            title: 'Server config',
+            title: 'Preferences',
 
             label: false,
             query,
 
-            pagename: 'server',
+            values: {
+                'active-tab': (params && params.tab) || 'smtp'
+            },
 
-            width: 300,
-            height: 200
+            pagename: 'preferences',
+
+            width: 400,
+            height: 330
         },
         curWin
     );
@@ -755,18 +770,38 @@ async function serverConfig(curWin, projects) {
     Object.keys(response || {}).forEach(key => {
         let ckey = key.replace(/-([a-z])/g, (o, c) => c.toUpperCase());
         let value = response[key];
-        switch (typeof serverConfig[ckey]) {
-            case 'number':
-                value = Number(value) || 0;
-                break;
-            case 'boolean':
-                value = !!value;
-                break;
+        if (ckey.includes(':')) {
+            let keyParts = ckey.split(':');
+            ckey = keyParts.shift();
+            let subKey = keyParts.join(':');
+            if (!updates[ckey]) {
+                updates[ckey] = {};
+            }
+
+            switch (typeof prefs[ckey][subKey]) {
+                case 'number':
+                    value = Number(value) || 0;
+                    break;
+                case 'boolean':
+                    value = !!value;
+                    break;
+            }
+            updates[ckey][subKey] = value;
+        } else {
+            switch (typeof prefs[ckey]) {
+                case 'number':
+                    value = Number(value) || 0;
+                    break;
+                case 'boolean':
+                    value = !!value;
+                    break;
+            }
+
+            updates[ckey] = value;
         }
-        updates[ckey] = value;
     });
 
-    await projects.server.setConfig(updates);
+    await projects.setPreferences(updates);
 }
 
 async function serverLogs(curWin, projects, analyzer, params) {
@@ -937,6 +972,10 @@ async function saveEmail(curWin, projects, analyzer, params) {
     await analyzer.saveEmail(params.email, res.filePath);
 }
 
+async function uploadEmail(curWin, projects, analyzer, params) {
+    return upload(params.email, curWin, projects, analyzer);
+}
+
 async function createPdf(curWin, projects, analyzer, params) {
     let fileName = params.filename
         // eslint-disable-next-line no-control-regex
@@ -1053,6 +1092,9 @@ module.exports = async (curWin, projects, analyzer, data, menu) => {
         case 'saveEmail':
             return await saveEmail(curWin, projects, analyzer, data.params);
 
+        case 'uploadEmail':
+            return await uploadEmail(curWin, projects, analyzer, data.params);
+
         case 'createPdf':
             return await createPdf(curWin, projects, analyzer, data.params);
 
@@ -1061,6 +1103,9 @@ module.exports = async (curWin, projects, analyzer, data, menu) => {
 
         case 'serverConfig':
             return await serverConfig(curWin, projects, analyzer, data.params);
+
+        case 'preferences':
+            return await preferences(curWin, projects, analyzer, data.params);
 
         case 'serverStart':
             return await serverStart(curWin, projects, analyzer, data.params);

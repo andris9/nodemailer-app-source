@@ -49,7 +49,7 @@ function electronPrompt(options, parentWindow) {
             minWidth: opts.minWidth,
             minHeight: opts.minHeight,
 
-            resizable: opts.resizable,
+            resizable: true, //opts.resizable,
             parent: parentWindow,
             skipTaskbar: true,
             alwaysOnTop: opts.alwaysOnTop,
@@ -94,6 +94,7 @@ function electronPrompt(options, parentWindow) {
         };
 
         const errorListener = (event, message) => {
+            console.error(message);
             reject(new Error(message));
             event.returnValue = null;
             cleanup();

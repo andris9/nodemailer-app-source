@@ -296,7 +296,6 @@
 
     let serverStartBtn = document.getElementById('server-start-btn');
     serverStartBtn.addEventListener('click', () => {
-        console.log('start');
         serverStartBtn.classList.add('active');
         exec({
             command: 'serverStart'
@@ -309,7 +308,6 @@
 
     let serverStopBtn = document.getElementById('server-stop-btn');
     serverStopBtn.addEventListener('click', () => {
-        console.log('stop');
         serverStopBtn.classList.add('active');
         exec({
             command: 'serverStop'

@@ -885,6 +885,24 @@
             }
         }
 
+        async actionUpload() {
+            if (!this.renderedData) {
+                return false;
+            }
+            await showLoader();
+            try {
+                let data = this.renderedData;
+                await exec({
+                    command: 'uploadEmail',
+                    params: {
+                        email: data.id
+                    }
+                });
+            } finally {
+                await hideLoader();
+            }
+        }
+
         createExportMbox() {
             showLoader()
                 .then(() => this.focus())
@@ -955,6 +973,16 @@
                     .catch(() => false)
                     .finally(() => {
                         actionSaveElm.classList.remove('active');
+                    });
+            });
+
+            let actionUploadElm = document.getElementById('email-action-upload');
+            actionUploadElm.addEventListener('click', () => {
+                actionUploadElm.classList.add('active');
+                this.actionUpload()
+                    .catch(() => false)
+                    .finally(() => {
+                        actionUploadElm.classList.remove('active');
                     });
             });
 

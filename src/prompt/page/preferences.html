@@ -1,0 +1,269 @@
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Nodemailer</title>
+
+        <link rel="stylesheet" href="../../css/photon.min.css" />
+        <link rel="stylesheet" href="../../css/forensicat.css" />
+
+        <meta http-equiv="Content-Security-Policy" content="script-src 'self';" />
+    </head>
+    <body>
+        <div class="window">
+            <div class="window-content">
+                <div class="pane" style="padding: 0px;">
+                    <div id="preferences" class="tab-group">
+                        <div id="preferences-smtp" class="tab-item">
+                            SMTP Upload
+                        </div>
+                        <div id="preferences-imap" class="tab-item">
+                            IMAP Upload
+                        </div>
+                        <div id="preferences-server" class="tab-item">
+                            Local Server
+                        </div>
+                    </div>
+
+                    <input type="hidden" id="active-tab" value="" />
+
+                    <form id="form">
+                        <div id="preferences-smtp-content" class="padded-sides hidden">
+                            <div class="padded-more">
+                                <div class="form-group">
+                                    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                                        <div style="padding: 0px 10px 0 0">
+                                            <label id="label-smtp-json:hostname" for="data-smtp-json:hostname">Hostname</label>
+                                        </div>
+                                        <div>
+                                            <input
+                                                type="text"
+                                                class="form-control prompt-field"
+                                                name="smtp-json:hostname"
+                                                id="data-smtp-json:hostname"
+                                                style="max-width: 160px;"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                                        <div style="padding: 0px 10px 0 0">
+                                            <label id="label-smtp-json:port" for="data-smtp-json:port">Port</label>
+                                        </div>
+                                        <div>
+                                            <input
+                                                type="number"
+                                                class="form-control prompt-field"
+                                                style="font-family: monospace; max-width: 160px;"
+                                                name="smtp-json:port"
+                                                id="data-smtp-json:port"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                                        <div style="padding: 0px 10px 0 0">
+                                            <label id="label-smtp-json:user" for="data-smtp-json:user">Username</label>
+                                        </div>
+                                        <div>
+                                            <input
+                                                type="text"
+                                                class="form-control prompt-field"
+                                                name="smtp-json:user"
+                                                id="data-smtp-json:user"
+                                                style="max-width: 160px;"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                                        <div style="padding: 0px 10px 0 0">
+                                            <label id="label-smtp-json:pass" for="data-smtp-json:pass">Password</label>
+                                        </div>
+                                        <div>
+                                            <input
+                                                type="password"
+                                                class="form-control prompt-field"
+                                                name="smtp-json:pass"
+                                                id="data-smtp-json:pass"
+                                                style="max-width: 160px;"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                                        <div style="padding: 0px 10px 0 0">
+                                            <label id="label-smtp-json:security" for="data-smtp-json:security">Security</label>
+                                        </div>
+                                        <div>
+                                            <select class="form-control prompt-field" id="data-smtp-json:security" name="smtp-json:security">
+                                                <option value="disable">Disable</option>
+                                                <option value="starttls">STARTTLS if available</option>
+                                                <option value="tls">TLS on connection</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="preferences-imap-content" class="padded-sides hidden">
+                            <div class="padded-more">
+                                <div class="form-group">
+                                    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                                        <div style="padding: 0px 10px 0 0">
+                                            <label id="label-imap-json:hostname" for="data-imap-json:hostname">Hostname</label>
+                                        </div>
+                                        <div>
+                                            <input
+                                                type="text"
+                                                class="form-control prompt-field"
+                                                name="imap-json:hostname"
+                                                id="data-imap-json:hostname"
+                                                style="max-width: 160px;"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                                        <div style="padding: 0px 10px 0 0">
+                                            <label id="label-imap-json:port" for="data-imap-json:port">Port</label>
+                                        </div>
+                                        <div>
+                                            <input
+                                                type="number"
+                                                class="form-control prompt-field"
+                                                style="font-family: monospace; max-width: 160px;"
+                                                name="imap-json:port"
+                                                id="data-imap-json:port"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                                        <div style="padding: 0px 10px 0 0">
+                                            <label id="label-imap-json:user" for="data-imap-json:user">Username</label>
+                                        </div>
+                                        <div>
+                                            <input
+                                                type="text"
+                                                class="form-control prompt-field"
+                                                name="imap-json:user"
+                                                id="data-imap-json:user"
+                                                style="max-width: 160px;"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                                        <div style="padding: 0px 10px 0 0">
+                                            <label id="label-imap-json:pass" for="data-imap-json:pass">Password</label>
+                                        </div>
+                                        <div>
+                                            <input
+                                                type="password"
+                                                class="form-control prompt-field"
+                                                name="imap-json:pass"
+                                                id="data-imap-json:pass"
+                                                style="max-width: 160px;"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                                        <div style="padding: 0px 10px 0 0">
+                                            <label id="label-imap-json:security" for="data-imap-json:security">Security</label>
+                                        </div>
+                                        <div>
+                                            <select class="form-control prompt-field" id="data-imap-json:security" name="imap-json:security">
+                                                <option value="disable">Disable</option>
+                                                <option value="starttls">STARTTLS if available</option>
+                                                <option value="tls">TLS on connection</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="preferences-server-content" class="padded-sides hidden">
+                            <div class="padded-more">
+                                <div class="form-group">
+                                    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                                        <div style="padding: 0px 10px 0 0">
+                                            <label id="label-server:smtp-port" for="data-server:smtp-port">SMTP Server Port</label>
+                                        </div>
+                                        <div>
+                                            <input
+                                                type="number"
+                                                class="form-control prompt-field"
+                                                style="font-family: monospace; max-width: 160px;"
+                                                name="server:smtp-port"
+                                                id="data-server:smtp-port"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                                        <div style="padding: 0px 10px 0 0">
+                                            <label id="label-server:pop3-port" for="data-server:pop3-port">POP3 Server Port</label>
+                                        </div>
+                                        <div>
+                                            <input
+                                                type="number"
+                                                class="form-control prompt-field"
+                                                style="font-family: monospace; max-width: 160px;"
+                                                name="server:pop3-port"
+                                                id="data-server:pop3-port"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="checkbox">
+                                    <label>
+                                        <input class="prompt-field" type="checkbox" name="server:autostart" id="data-server:autostart" />
+                                        Run server on application start
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <footer class="toolbar toolbar-footer">
+                <div class="toolbar-actions">
+                    <button class="btn btn-primary pull-right" id="ok">
+                        OK
+                    </button>
+
+                    <button class="btn btn-default pull-right" id="cancel">
+                        Cancel
+                    </button>
+                </div>
+            </footer>
+        </div>
+
+        <script src="../../js/tabs.js" charset="utf-8"></script>
+        <script src="page.js"></script>
+        <script src="preferences.js"></script>
+    </body>
+</html>

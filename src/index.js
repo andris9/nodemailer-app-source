@@ -19,6 +19,11 @@ const openAboutWindow = require('about-window').default;
 const platform = os.platform() + '_' + os.arch();
 const server = 'https://downloads.nodemailer.com';
 const feed = `${server}/update/${platform}/${app.getVersion()}`;
+
+autoUpdater.on('error', err => {
+    console.error(err);
+});
+
 autoUpdater.setFeedURL(feed);
 
 setInterval(() => {
@@ -324,6 +329,27 @@ const serverConfigureMenuItem = {
     }
 };
 
+const preferencesMenuItem = {
+    id: 'server-configure',
+    label: 'Preferences',
+    enabled: true,
+    click: async () => {
+        mainWindow.webContents.focus();
+        try {
+            await execCommand(mainWindow, projects, false, {
+                command: 'preferences'
+            });
+        } catch (err) {
+            dialog.showMessageBox(mainWindow, {
+                title: 'Error',
+                buttons: ['Dismiss'],
+                type: 'warning',
+                message: 'Failed to process command\n' + err.message
+            });
+        }
+    }
+};
+
 const aboutMenuItem = {
     id: 'about',
     label: 'About NodemailerApp',
@@ -358,6 +384,8 @@ const template = [
                       //{ role: 'about' },
                       aboutMenuItem,
                       { type: 'separator' },
+                      preferencesMenuItem,
+                      { type: 'separator' },
                       { role: 'services' },
                       { type: 'separator' },
                       { role: 'hide' },
@@ -374,6 +402,8 @@ const template = [
         label: 'File',
         submenu: [
             !isMac ? aboutMenuItem : false,
+            !isMac ? { type: 'separator' } : false,
+            !isMac ? preferencesMenuItem : false,
             !isMac ? { type: 'separator' } : false,
             newProjectMenuItem,
             renameProjectMenuItem,
@@ -424,8 +454,9 @@ const template = [
             { role: 'minimize' },
             { role: 'zoom' },
             { role: 'togglefullscreen' },
-            ...(isMac ? [{ type: 'separator' }, { role: 'front' }, { type: 'separator' }, { role: 'window' }] : [{ role: 'close' }])
-            /*, { type: 'separator' }, { role: 'toggledevtools' }, */
+            ...(isMac ? [{ type: 'separator' }, { role: 'front' }, { type: 'separator' }, { role: 'window' }] : [{ role: 'close' }]),
+            { type: 'separator' },
+            { role: 'toggledevtools' }
         ]
     },
     {

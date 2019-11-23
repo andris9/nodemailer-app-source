@@ -2,7 +2,7 @@
 // Licensed under MIT by p-sam
 
 /* eslint global-require:0 */
-/* global window, document */
+/* global window, document, alert */
 'use strict';
 
 (() => {
@@ -14,10 +14,9 @@
     let promptOptions = null;
 
     const promptError = e => {
-        if (e instanceof Error) {
+        if (e && e.message) {
             e = e.message;
         }
-
         ipcRenderer.sendSync('prompt-error:' + promptId, e);
     };
 
@@ -41,7 +40,7 @@
 
     window.addEventListener('error', error => {
         if (promptId) {
-            promptError('An error has occured on the prompt window: \n' + error);
+            promptError(error);
         }
     });
 
@@ -68,6 +67,23 @@
             }
         }
 
+        if (promptOptions.values) {
+            Object.keys(promptOptions.values).forEach(key => {
+                try {
+                    let elm = document.getElementById(key);
+                    if (elm) {
+                        if (/^input$/i.test(elm.tagName)) {
+                            elm.value = promptOptions.values[key] || '';
+                        } else {
+                            elm.textContent = promptOptions.values[key] || '';
+                        }
+                    }
+                } catch (err) {
+                    alert(err.message);
+                }
+            });
+        }
+
         try {
             if (promptOptions.customStylesheet) {
                 const customStyleContent = fs.readFileSync(promptOptions.customStylesheet);
@@ -89,24 +105,24 @@
         for (let i = 0; i < dataFieldElms.length; i++) {
             let dataFieldElm = dataFieldElms[i];
             dataFieldElm.addEventListener('keyup', e => {
-                if (dataFieldElm.tagName === 'INPUT' && e.key === 'Enter') {
+                if (/^input$/i.test(dataFieldElm.tagName) && e.key === 'Enter') {
                     promptSubmit();
                 }
 
-                if (dataFieldElm.tagName === 'INPUT' && e.key === 'Escape') {
+                if (/^input$/i.test(dataFieldElm.tagName) && e.key === 'Escape') {
                     promptCancel();
                 }
             });
 
             if (promptOptions.query && promptOptions.query[dataFieldElm.name]) {
-                if (dataFieldElm.tagName === 'select') {
-                    for (let j = 0; j < dataFieldElm.options.length; i++) {
-                        if (dataFieldElm.options[i].value === promptOptions.query[dataFieldElm.name]) {
-                            dataFieldElm.selectedIndex = i;
+                if (/^select$/i.test(dataFieldElm.tagName)) {
+                    for (let j = 0; j < dataFieldElm.options.length; j++) {
+                        if (dataFieldElm.options[j] && dataFieldElm.options[j].value === promptOptions.query[dataFieldElm.name]) {
+                            dataFieldElm.selectedIndex = j;
                             break;
                         }
                     }
-                } else if (dataFieldElm.type === 'checkbox') {
+                } else if (/^checkbox$/i.test(dataFieldElm.type)) {
                     dataFieldElm.checked = !!promptOptions.query[dataFieldElm.name];
                 } else {
                     dataFieldElm.value = promptOptions.query[dataFieldElm.name];
@@ -117,6 +133,10 @@
                 dataFieldElm.focus();
                 dataFieldElm.select();
             }
+        }
+
+        if (typeof window.afterReady === 'function') {
+            window.afterReady();
         }
     });
 })();

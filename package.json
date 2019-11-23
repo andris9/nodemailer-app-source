@@ -102,7 +102,9 @@
     },
     "dependencies": {
         "about-window": "1.13.2",
+        "axe-logger": "0.0.2",
         "base32.js": "0.1.0",
+        "browserbox": "^0.9.1",
         "doc-ready": "1.0.4",
         "electron-squirrel-startup": "1.0.0",
         "html-to-text": "5.1.1",

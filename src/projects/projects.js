@@ -320,6 +320,88 @@ class Projects {
         return row;
     }
 
+    async getPreferences() {
+        let row;
+        let preferences = {};
+
+        row = await this.sql.findOne('SELECT [value] FROM [appmeta] WHERE [key] = ?', ['prefs_smtp_json']);
+        try {
+            preferences.smtpJson = (row && row.value && JSON.parse(row.value)) || {};
+        } catch (err) {
+            preferences.smtpJson = {};
+        }
+        preferences.smtpJson.hostname = preferences.smtpJson.hostname || 'localhost';
+        preferences.smtpJson.port = preferences.smtpJson.port || (preferences.smtpJson.secure ? 465 : 587);
+        preferences.smtpJson.security = preferences.smtpJson.security || 'starttls';
+        preferences.smtpJson.user = preferences.smtpJson.user || '';
+        preferences.smtpJson.pass = preferences.smtpJson.pass || '';
+
+        row = await this.sql.findOne('SELECT [value] FROM [appmeta] WHERE [key] = ?', ['prefs_imap_json']);
+        try {
+            preferences.imapJson = (row && row.value && JSON.parse(row.value)) || {};
+        } catch (err) {
+            preferences.imapJson = {};
+        }
+        preferences.imapJson.hostname = preferences.imapJson.hostname || 'localhost';
+        preferences.imapJson.port = preferences.imapJson.port || (preferences.imapJson.secure ? 993 : 143);
+        preferences.imapJson.security = preferences.imapJson.security || 'starttls';
+        preferences.imapJson.user = preferences.imapJson.user || '';
+        preferences.imapJson.pass = preferences.imapJson.pass || '';
+
+        preferences.server = await this.server.getConfig();
+
+        return preferences;
+    }
+
+    async setPreferences(preferences) {
+        preferences = preferences || {};
+        for (let key of Object.keys(preferences)) {
+            if (key === 'server') {
+                await this.server.setConfig(preferences[key]);
+                continue;
+            }
+
+            let lkey = 'prefs_' + key.replace(/[A-Z]/g, c => '_' + c.toLowerCase());
+
+            let value = preferences[key];
+
+            if (/Json$/.test(key)) {
+                value = JSON.stringify(value);
+            } else if (typeof value === 'boolean') {
+                value = value ? '1' : null;
+            }
+
+            await this.sql.run(`INSERT INTO appmeta ([key], [value]) VALUES ($key, $value) ON CONFLICT([key]) DO UPDATE SET [value] = $value`, {
+                $key: lkey,
+                $value: value
+            });
+        }
+
+        this.mainWindow.webContents.send(
+            'preferences',
+            JSON.stringify({
+                id: 'preferences',
+                config: preferences
+            })
+        );
+
+        for (let id of this.projectWindows.keys()) {
+            for (let win of this.projectWindows.get(id)) {
+                try {
+                    win.webContents.send(
+                        'preferences',
+                        JSON.stringify({
+                            id: 'preferences',
+                            config: preferences
+                        })
+                    );
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+        }
+    }
+
     async open(id) {
         if (this.opened.has(id)) {
             let analyzer = this.opened.get(id);
