@@ -13,17 +13,127 @@
     <body>
         <div class="window">
             <div class="window-content">
-                <table class="table-striped" style="table-layout: fixed;">
-                    <thead>
-                        <tr>
-                            <th style="width: 200px;">Date</th>
-                            <th style="width: 160px;">Session</th>
-                            <th>Message</th>
-                        </tr>
-                    </thead>
-                    <tbody class="enumerable-list" id="server-smtp-logs-list"></tbody>
-                </table>
+                <div>
+                    <div id="tabs" class="tab-group">
+                        <div id="tabs-smtp" class="tab-item">
+                            SMTP Upload
+                        </div>
+                        <div id="tabs-imap" class="tab-item">
+                            IMAP Upload
+                        </div>
+                    </div>
+
+                    <form id="form">
+                        <div id="tabs-smtp-content" class="padded-sides hidden">
+                            <div class="padded-more">
+                                <div style="display: flex; flex-direction: row; align-items: center;">
+                                    <div>
+                                        MAIL FROM:
+                                    </div>
+
+                                    <div style="margin: 0 10px;">
+                                        <input
+                                            type="text"
+                                            style="max-width: 160px;"
+                                            class="form-control prompt-field"
+                                            name="smtp-mail-from"
+                                            placeholder="Return path address"
+                                            id="data-smtp-mail-from"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        RCPT TO:
+                                    </div>
+
+                                    <div style="margin-left: 10px;">
+                                        <input
+                                            type="text"
+                                            style="min-width: 300px;"
+                                            class="form-control prompt-field"
+                                            name="smtp-rcpt-to"
+                                            id="data-smtp-rcpt-to"
+                                            placeholder="Comma separated list of addresses"
+                                        />
+                                    </div>
+
+                                    <div style="visibility: hidden">
+                                        <input type="datetime-local" style="max-width: 10px;" class="form-control" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="tabs-imap-content" class="padded-sides hidden">
+                            <div class="padded-more">
+                                <div style="display: flex; flex-direction: row; align-items: center;">
+                                    <div>
+                                        Path:
+                                    </div>
+
+                                    <div style="margin: 0 10px;">
+                                        <input
+                                            type="text"
+                                            style="max-width: 200px;"
+                                            class="form-control prompt-field"
+                                            name="smtp-imap-path"
+                                            placeholder="Path"
+                                            id="data-smtp-imap-path"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        Flags:
+                                    </div>
+
+                                    <div style="margin: 0 10px;">
+                                        <input
+                                            type="text"
+                                            style="max-width: 200px;"
+                                            class="form-control prompt-field"
+                                            name="imap-flags"
+                                            id="data-imap-flags"
+                                            placeholder="Comma separated flags"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        Time:
+                                    </div>
+
+                                    <div style="margin-left: 10px;">
+                                        <input type="datetime-local" class="form-control prompt-field" name="imap-idate" id="data-imap-idate" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+
+                    <div class="toolbar">
+                        <div class="toolbar-actions">
+                            <button class="btn btn-primary pull-right" id="upload">
+                                Upload
+                            </button>
+
+                            <button class="btn btn-default pull-right" id="cancel">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+
+                    <table class="table-striped" style="table-layout: fixed;">
+                        <thead>
+                            <tr>
+                                <th style="width: 200px;">Date</th>
+                                <th style="width: 160px;">Session</th>
+                                <th>Message</th>
+                            </tr>
+                        </thead>
+                        <tbody class="enumerable-list" id="server-smtp-logs-list"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
+        <script src="../../js/tabs.js" charset="utf-8"></script>
+        <script src="page.js"></script>
     </body>
 </html>
