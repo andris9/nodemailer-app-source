@@ -17,6 +17,7 @@ const util = require('util');
 const recursiveReaddir = require('recursive-readdir');
 const zlib = require('zlib');
 const upload = require('./upload/upload.js');
+const uploader = require('./upload/uploader.js');
 
 const PAGE_SIZE = 30;
 
@@ -1030,6 +1031,18 @@ async function selfInfo(curWin, projects, analyzer) {
     };
 }
 
+async function uploadOpts(curWin, projects, analyzer, params) {
+    if (!analyzer) {
+        return false;
+    }
+    let emailData = await analyzer.getEmail(params.id, true);
+    return emailData;
+}
+
+async function runUploadEmail(curWin, projects, analyzer, params) {
+    return uploader(curWin, projects, analyzer, params);
+}
+
 module.exports = async (curWin, projects, analyzer, data, menu) => {
     switch (data.command) {
         case 'listProjects':
@@ -1121,6 +1134,18 @@ module.exports = async (curWin, projects, analyzer, data, menu) => {
 
         case 'selfInfo':
             return await selfInfo(curWin, projects, analyzer, data.params);
+
+        case 'uploadOpts':
+            return await uploadOpts(curWin, projects, analyzer, data.params);
+
+        case 'closeWindow':
+            if (curWin) {
+                curWin.close();
+            }
+            return;
+
+        case 'runUploadEmail':
+            return await runUploadEmail(curWin, projects, analyzer, data.params);
 
         default:
             throw new Error('Unknown command ' + JSON.stringify(data));

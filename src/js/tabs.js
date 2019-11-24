@@ -16,9 +16,15 @@
 
         activate(tab) {
             let tabElm = this.groupElm.querySelector(`#${this.prefix}-${tab}`);
+            if (!tabElm) {
+                return;
+            }
+
             if (tabElm.classList.contains('active')) {
                 return;
             }
+
+            this.active = tab;
 
             let currentActive = this.tabElms.find(item => item.classList.contains('active'));
             if (currentActive) {
@@ -28,6 +34,10 @@
 
             tabElm.classList.add('active');
             document.querySelector(`#${tabElm.id}-content`).classList.remove('hidden');
+        }
+
+        getActive() {
+            return this.active;
         }
 
         hide(tab) {

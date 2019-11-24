@@ -272,11 +272,13 @@
             let tabPlainContentElm = document.getElementById('email-tab-plain-content');
             let tabHeadersContentElm = document.getElementById('email-tab-headers-content');
             let tabFilesListElm = document.getElementById('email-file-list');
+            let tabHtmlSourceContentElm = document.getElementById('email-tab-html-source-content');
 
             tabHtmlContentElm.innerHTML = '';
             tabPlainContentElm.innerHTML = '';
             tabHeadersContentElm.innerHTML = '';
             tabFilesListElm.innerHTML = '';
+            tabHtmlSourceContentElm.innerHTML = '';
 
             this.currentHtml = '';
 
@@ -375,6 +377,24 @@
                 tabPlainContentElm.appendChild(iframe);
             };
 
+            let drawHtmlSource = text => {
+                let escapeElm = document.createElement('span');
+                escapeElm.textContent = text;
+                let escaped = escapeElm.innerHTML.trim();
+
+                let html = `<!doctype html><head><meta charset="utf-8">${plainStyleTag} <style>.text-content{font-family: monospace; white-space: pre;}</style></head><body><div class="text-content">${escaped}</div></body>`;
+
+                let iframe = document.createElement('iframe');
+                iframe.setAttribute('sandbox', 'allow-popups allow-same-origin');
+                iframe.srcdoc = html;
+
+                if (!this.currentHtml) {
+                    this.currentHtml = html;
+                }
+
+                tabHtmlSourceContentElm.appendChild(iframe);
+            };
+
             let drawHeaders = headers => {
                 let escapeElm = document.createElement('span');
                 escapeElm.textContent = headers.original.replace(/\t/g, '  ');
@@ -453,8 +473,10 @@
             let activeTab = false;
             if (data.text.html) {
                 drawHtml(data.text.html, false).catch(() => false);
+                drawHtmlSource(data.text.html);
 
                 this.viewTabs.show('html');
+                this.viewTabs.show('html-source');
                 if (!activeTab) {
                     this.viewTabs.activate('html');
                     activeTab = 'html';
@@ -469,6 +491,7 @@
                 });
             } else {
                 this.viewTabs.hide('html');
+                this.viewTabs.hide('html-source');
             }
 
             if (data.text.plain) {

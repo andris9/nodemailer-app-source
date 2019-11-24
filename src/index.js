@@ -26,9 +26,15 @@ autoUpdater.on('error', err => {
 
 autoUpdater.setFeedURL(feed);
 
+// check for updates every 15 minutes
 setInterval(() => {
     autoUpdater.checkForUpdates();
-}, 5 * 60 * 1000);
+}, 15 * 60 * 1000);
+
+// first check after 10 seconds
+setTimeout(() => {
+    autoUpdater.checkForUpdates();
+}, 10 * 1000);
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.

@@ -2,7 +2,7 @@
 <html>
     <head>
         <meta charset="UTF-8" />
-        <title>Nodemailer</title>
+        <title>Upload message to server</title>
 
         <link rel="stylesheet" href="../../css/photon.min.css" />
         <link rel="stylesheet" href="../../css/forensicat.css" />
@@ -24,7 +24,7 @@
                     </div>
 
                     <form id="form">
-                        <div id="tabs-smtp-content" class="padded-sides hidden">
+                        <div id="tabs-smtp-content" class="padded-sides">
                             <div class="padded-more">
                                 <div style="display: flex; flex-direction: row; align-items: center;">
                                     <div>
@@ -75,9 +75,9 @@
                                             type="text"
                                             style="max-width: 200px;"
                                             class="form-control prompt-field"
-                                            name="smtp-imap-path"
+                                            name="imap-path"
                                             placeholder="Path"
-                                            id="data-smtp-imap-path"
+                                            id="data-imap-path"
                                         />
                                     </div>
 
@@ -110,6 +110,10 @@
 
                     <div class="toolbar">
                         <div class="toolbar-actions">
+                            <button class="btn btn-default" id="configure">
+                                <span class="icon icon-tools"></span>
+                            </button>
+
                             <button class="btn btn-primary pull-right" id="upload">
                                 Upload
                             </button>
@@ -124,15 +128,15 @@
                         <thead>
                             <tr>
                                 <th style="width: 200px;">Date</th>
-                                <th style="width: 160px;">Session</th>
                                 <th>Message</th>
                             </tr>
                         </thead>
-                        <tbody class="enumerable-list" id="server-smtp-logs-list"></tbody>
+                        <tbody class="enumerable-list" id="upload-logs-list"></tbody>
                     </table>
                 </div>
             </div>
         </div>
+        <script src="../../js/renderer.js" charset="utf-8"></script>
         <script src="../../js/tabs.js" charset="utf-8"></script>
         <script src="page.js"></script>
     </body>

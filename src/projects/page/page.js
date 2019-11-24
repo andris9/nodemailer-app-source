@@ -201,9 +201,7 @@
 
             this.updateLogs();
 
-            window.events.subscribe('log', log => {
-                this.addLogRow(log);
-            });
+            window.events.subscribe('log', log => this.addLogRow(log));
         }
     }
 

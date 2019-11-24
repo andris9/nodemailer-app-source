@@ -124,7 +124,7 @@
                 this.renderListItem(data, ++startNr);
             }
 
-            if (!list.data.length && this.page === 1 && !this.query) {
+            if (!list.data.length && this.page === 1 && !this.term) {
                 this.renderEmptyInfo();
             }
 

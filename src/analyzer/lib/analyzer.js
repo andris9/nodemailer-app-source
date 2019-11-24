@@ -16,6 +16,7 @@ const crypto = require('crypto');
 const addressparser = require('nodemailer/lib/addressparser');
 const punycode = require('punycode');
 const human = require('humanparser');
+const isemail = require('isemail');
 const fs = require('fs').promises;
 const fsCreateWriteStream = require('fs').createWriteStream;
 
@@ -873,7 +874,13 @@ class Analyzer {
 
             let list = addressparser(
                 lines
-                    .map(line => line.value && line.value.trim())
+                    .map(
+                        line =>
+                            line.value &&
+                            Buffer.from(line.value, 'binary')
+                                .toString()
+                                .trim()
+                    )
                     .filter(line => line)
                     .join(', '),
                 { flatten: true }
@@ -910,7 +917,14 @@ class Analyzer {
             queryParams['$' + key.replace(/-/g, '_')] =
                 libmime.decodeWords(
                     lines
-                        .map(line => line.value && line.value.replace(/\s+/g, ' ').trim())
+                        .map(
+                            line =>
+                                line.value &&
+                                Buffer.from(line.value, 'binary')
+                                    .toString()
+                                    .replace(/\s+/g, ' ')
+                                    .trim()
+                        )
                         .filter(line => line)
                         .join(', ')
                 ) || null;
@@ -920,7 +934,11 @@ class Analyzer {
         ['message-id', 'references', 'in-reply-to', 'thread-index', 'X-GM-THRID'.toLowerCase()].forEach(key => {
             let entries = (headers ? headers.getDecoded(key) : [])
                 .map(line => {
-                    let value = line.value && line.value.trim();
+                    let value =
+                        line.value &&
+                        Buffer.from(line.value, 'binary')
+                            .toString()
+                            .trim();
                     if (key === 'thread-index') {
                         value = value.substr(0, 22);
                     }
@@ -1135,6 +1153,20 @@ class Analyzer {
         }
 
         return this.readStream(`${row.key}:source`);
+    }
+
+    async getMessageBuffer(id) {
+        let row = await this.sql.findOne(`SELECT key FROM emails WHERE id=?`, [id]);
+        if (!row || !row.key) {
+            return false;
+        }
+
+        let content = await this.readBuffer(`${row.key}:source`);
+        if (!content) {
+            return false;
+        }
+
+        return content;
     }
 
     async getContacts(options) {
@@ -1814,7 +1846,7 @@ class Analyzer {
         return response;
     }
 
-    async getEmail(id) {
+    async getEmail(id, noContent) {
         let now = Date.now();
 
         let selectFields = [
@@ -1825,7 +1857,10 @@ class Analyzer {
             `[emails].[hdate] AS hdate`,
             `[emails].[hash] AS hash`,
             `[emails].[size] AS size`,
-            `[emails].[key] AS key`
+            `[emails].[key] AS key`,
+            `[emails].[return_path] AS returnPath`,
+            `[emails].[source] AS source`,
+            `[emails].[flags] AS [flags]`
         ];
 
         let emailData = await this.sql.findOne(`SELECT ${selectFields.join(', ')} FROM emails WHERE id=? LIMIT 1`, [id]);
@@ -1842,6 +1877,22 @@ class Analyzer {
 
         if (emailData.hdate) {
             emailData.hdate = new Date(emailData.hdate + 'Z').toISOString();
+        }
+
+        if (emailData.source) {
+            try {
+                emailData.source = JSON.parse(emailData.source);
+            } catch (err) {
+                emailData.source = {};
+            }
+        }
+
+        if (emailData.flags) {
+            try {
+                emailData.flags = JSON.parse(emailData.source);
+            } catch (err) {
+                emailData.flags = [];
+            }
         }
 
         let addresses = await this.sql.findMany(
@@ -1861,6 +1912,13 @@ class Analyzer {
                 contact: addressData.contact
             });
         });
+
+        emailData.envelope = this.getEnvelope(emailData);
+
+        if (noContent) {
+            emailData.timer = Date.now() - now;
+            return emailData;
+        }
 
         let headers = new Headers(
             await this.level.get(`${key}:headers`, {
@@ -2137,6 +2195,50 @@ class Analyzer {
                     end: false
                 });
         });
+    }
+
+    getEnvelope(emailData) {
+        let envelope = {};
+
+        // MAIL FROM
+        if (emailData.source.envelope && emailData.source.envelope.mailFrom && isemail.validate(emailData.source.envelope.mailFrom.address)) {
+            envelope.mailFrom = emailData.source.envelope.mailFrom.address;
+        } else if (emailData.returnPath && isemail.validate(emailData.returnPath)) {
+            envelope.mailFrom = emailData.returnPath;
+        } else {
+            let address = (emailData.addresses.from || []).find(addr => isemail.validate(addr.address));
+            if (address) {
+                envelope.mailFrom = address.address;
+            } else {
+                envelope.mailFrom = '';
+            }
+        }
+
+        // RCPT TO
+        if (emailData.source.envelope && emailData.source.envelope.rcptTo && emailData.source.envelope.rcptTo.length) {
+            let list = emailData.source.envelope.rcptTo.map(addr => addr.address).filter(address => isemail.validate(address));
+            list = new Set(list);
+            envelope.rcptTo = Array.from(list);
+        } else {
+            let list = [];
+            for (let type of ['to', 'cc', 'bcc']) {
+                if (!emailData.addresses[type]) {
+                    continue;
+                }
+                emailData.addresses[type].forEach(addr => {
+                    if (isemail.validate(addr.address)) {
+                        list.push(addr.address);
+                    }
+                });
+            }
+            list = new Set(list);
+            envelope.rcptTo = Array.from(list);
+        }
+
+        envelope.date = emailData.idate || emailData.hdate;
+        envelope.flags = emailData.flags || [];
+
+        return envelope;
     }
 }
 

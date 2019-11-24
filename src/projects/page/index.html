@@ -30,6 +30,9 @@
                         <button class="btn btn-default" id="contacts-search">
                             <span class="icon icon-search"></span>
                         </button>
+                        <button class="btn btn-default hidden" id="contacts-search-clear">
+                            Clear Search
+                        </button>
                     </div>
 
                     <!-- attachments -->
@@ -41,9 +44,12 @@
                         <button class="btn btn-default" id="attachments-search">
                             <span class="icon icon-search"></span>
                         </button>
+                        <button class="btn btn-default hidden" id="attachments-search-clear">
+                            Clear Search
+                        </button>
                     </div>
 
-                    <!-- attachments -->
+                    <!-- emails -->
 
                     <div class="btn-group hidden emails-component">
                         <button class="btn btn-default" id="emails-reload">
@@ -51,6 +57,9 @@
                         </button>
                         <button class="btn btn-default" id="emails-search">
                             <span class="icon icon-search"></span>
+                        </button>
+                        <button class="btn btn-default hidden" id="emails-search-clear">
+                            Clear Search
                         </button>
                     </div>
 
@@ -77,11 +86,8 @@
                     </div>
 
                     <div class=" pull-right hidden contacts-button-group">
-                        <button class="btn btn-default pull-right hidden" id="contacts-search-clear" style="margin-right:5px;">
-                            Clear Search
-                        </button>
                         <div id="contacts-search-block" class="pull-right hidden toolbar-text" style="margin-right:5px;">
-                            Searching for "<span id="contacts-search-term"></span>"
+                            Searching for "<span id="contacts-search-term"></span>."
                         </div>
                     </div>
 
@@ -102,11 +108,8 @@
                     </div>
 
                     <div class=" pull-right hidden attachments-component">
-                        <button class="btn btn-default pull-right hidden" id="attachments-search-clear" style="margin-right:5px;">
-                            Clear Search
-                        </button>
                         <div id="attachments-search-block" class="pull-right hidden toolbar-text" style="margin-right:5px;">
-                            Searching for <span id="attachments-search-term"></span>
+                            Searching for <span id="attachments-search-term"></span>.
                         </div>
                     </div>
 
@@ -127,11 +130,8 @@
                     </div>
 
                     <div class=" pull-right hidden emails-component">
-                        <button class="btn btn-default pull-right hidden" id="emails-search-clear" style="margin-right:5px;">
-                            Clear Search
-                        </button>
                         <div id="emails-search-block" class="pull-right hidden toolbar-text" style="margin-right:5px;">
-                            Searching for <span id="emails-search-term"></span>
+                            Searching for <span id="emails-search-term"></span>.
                         </div>
                     </div>
                 </div>
@@ -410,6 +410,9 @@ const transporter = nodemailer.createTransport({
                                 <div id="email-tab-plain" class="tab-item">
                                     Plain text
                                 </div>
+                                <div id="email-tab-html-source" class="tab-item">
+                                    HTML
+                                </div>
                                 <div id="email-tab-headers" class="tab-item">
                                     Headers
                                 </div>
@@ -432,6 +435,7 @@ const transporter = nodemailer.createTransport({
 
                             <div id="email-tab-html-content" class="padded-sides hidden"></div>
                             <div id="email-tab-plain-content" class="padded-sides hidden"></div>
+                            <div id="email-tab-html-source-content" class="padded-sides hidden"></div>
                             <div id="email-tab-headers-content" class="padded-sides hidden"></div>
                             <div id="email-tab-files-content" class="hidden">
                                 <table class="table-striped" style="table-layout: fixed;">

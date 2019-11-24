@@ -337,7 +337,7 @@
             return date;
         }
 
-        // 2019-11-14T03:04
+        // 2019-11-14
         toLocaleDate(date) {
             if (!date) {
                 return '';
