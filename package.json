@@ -31,14 +31,14 @@
                     "CompanyName": "Andris Reinman",
                     "requested-execution-level": "asInvoker"
                 },
-                "osxSign": {
+                "_osxSign": {
                     "identity": "Developer ID Application: Andris Reinman (8JM6VJ352Q)",
                     "hardenedRuntime": true,
                     "gatekeeper-assess": false,
                     "entitlements": "entitlements.mac.plist",
                     "entitlements-inherit": "entitlements.mac.plist"
                 },
-                "osxNotarize": {
+                "_osxNotarize": {
                     "appleId": "andris.reinman@kreata.ee",
                     "appleIdPassword": "@keychain:AC_PASSWORD",
                     "ascProvider": "8JM6VJ352Q"

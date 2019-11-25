@@ -36,12 +36,29 @@ setTimeout(() => {
     autoUpdater.checkForUpdates();
 }, 10 * 1000);
 
+function checkIfCalledViaCLI(args) {
+    if (args && args.length > 1) {
+        return true;
+    }
+    return false;
+}
+
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow;
 let projects;
 
 const createWindow = () => {
+    let isCalledViaCLI = checkIfCalledViaCLI(process.argv);
+
+    if (isCalledViaCLI) {
+        console.log(1);
+        console.log(process.cwd());
+        console.log(process.argv.join(' ; '));
+        console.log(2);
+        return process.exit(0);
+    }
+
     // Create the browser window.
     mainWindow = new BrowserWindow({
         width: 400,
