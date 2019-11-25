@@ -2,7 +2,7 @@
     "name": "nodemailer-app",
     "private": true,
     "productName": "NodemailerApp",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "description": "The ultimate email debugging tool",
     "main": "src/index.js",
     "scripts": {
@@ -111,7 +111,7 @@
         "humanparser": "1.11.0",
         "iconv-lite": "0.5.0",
         "isemail": "3.2.0",
-        "js-beautify": "^1.10.2",
+        "js-beautify": "1.10.2",
         "level": "6.0.0",
         "libmime": "4.2.1",
         "maildir-scan": "2.1.1",
