@@ -451,6 +451,7 @@ class Projects {
         if (this.projectWindows.has(id)) {
             for (let win of this.projectWindows.get(id)) {
                 try {
+                    this.windows.delete(win);
                     this.projectWindows.get(id).delete(win);
                     this.projectRef.delete(win.id);
                     win.close();
