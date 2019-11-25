@@ -6,6 +6,7 @@
 (() => {
     const humanize = require('humanize');
     const moment = require('moment');
+    const beautifyHtml = require('js-beautify').html;
 
     const htmlStyleTag = `<style>
         body, td, th, p {
@@ -379,6 +380,13 @@
 
             let drawHtmlSource = text => {
                 let escapeElm = document.createElement('span');
+
+                try {
+                    text = beautifyHtml(text, {});
+                } catch (err) {
+                    // might happen
+                }
+
                 escapeElm.textContent = text;
                 let escaped = escapeElm.innerHTML.trim();
 

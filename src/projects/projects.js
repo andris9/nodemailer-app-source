@@ -447,6 +447,19 @@ class Projects {
             return false;
         }
 
+        // close all project windows
+        if (this.projectWindows.has(id)) {
+            for (let win of this.projectWindows.get(id)) {
+                try {
+                    this.projectWindows.get(id).delete(win);
+                    this.projectRef.delete(win.id);
+                    win.close();
+                } catch (err) {
+                    // ignore
+                }
+            }
+        }
+
         let path = pathlib.join(this.appDataPath, row.folderName);
         // delete all files form folder
         await rimraf(path, {});
