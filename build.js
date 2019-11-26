@@ -40,10 +40,12 @@ exec('git rev-parse HEAD', (err, stdout) => {
     packageData.config.forge.packagerConfig.icon = icon;
 
     packageData.config.forge.packagerConfig.extraResource = [];
-    let sendmailFiles = fs.readdirSync('.').filter(file => /^sendmail(.exe)?/.test(file));
-    sendmailFiles.forEach(file => {
-        packageData.config.forge.packagerConfig.extraResource.push(pathlib.join(__dirname, file));
-    });
+    if (opsys === 'win32' || opsys === 'win64') {
+        let sendmailFiles = fs.readdirSync('.').filter(file => /^sendmail(.exe)?/.test(file));
+        sendmailFiles.forEach(file => {
+            packageData.config.forge.packagerConfig.extraResource.push(pathlib.join(__dirname, file));
+        });
+    }
 
     fs.writeFileSync(packagePath, JSON.stringify(packageData, false, 4));
 });
