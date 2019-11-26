@@ -13,6 +13,10 @@
             <div class="window-content">
                 <div class="pane" style="padding: 0px;">
                     <div id="preferences" class="tab-group">
+                        <div id="preferences-general" class="tab-item">
+                            General
+                        </div>
+
                         <div id="preferences-smtp" class="tab-item">
                             SMTP Upload
                         </div>
@@ -27,6 +31,17 @@
                     <input type="hidden" id="active-tab" value="" />
 
                     <form id="form">
+                        <div id="preferences-general-content" class="padded-sides hidden">
+                            <div class="padded-more">
+                                <div class="checkbox">
+                                    <label>
+                                        <input class="prompt-field" type="checkbox" name="general-json:disable-remote" id="data-general-json:disable-remote" />
+                                        Do not load remote content for emails by default
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
                         <div id="preferences-smtp-content" class="padded-sides hidden">
                             <div class="padded-more">
                                 <div class="form-group">

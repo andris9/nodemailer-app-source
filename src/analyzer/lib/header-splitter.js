@@ -145,7 +145,7 @@ class HeaderSplitter extends Transform {
             this.headersParsed = true;
             // add header terminator
             this.headerChunks.push(Buffer.from('\n\n'));
-            this.headerBytes += 4;
+            this.headerBytes += 2;
             // join all chunks into a header block
             this.rawHeaders = Buffer.concat(this.headerChunks, this.headerBytes);
 

@@ -731,6 +731,10 @@ async function serverConfig(curWin, projects, analyzer) {
     return preferences(curWin, projects, analyzer, { tab: 'server' });
 }
 
+async function getPreferences(curWin, projects) {
+    return await projects.getPreferences();
+}
+
 async function preferences(curWin, projects, analyzer, params) {
     let prefs = await projects.getPreferences();
     let query = {};
@@ -752,7 +756,7 @@ async function preferences(curWin, projects, analyzer, params) {
             query,
 
             values: {
-                'active-tab': (params && params.tab) || 'smtp'
+                'active-tab': (params && params.tab) || 'general'
             },
 
             pagename: 'preferences',
@@ -1119,6 +1123,9 @@ module.exports = async (curWin, projects, analyzer, data, menu) => {
 
         case 'preferences':
             return await preferences(curWin, projects, analyzer, data.params);
+
+        case 'getPreferences':
+            return await getPreferences(curWin, projects, analyzer, data.params);
 
         case 'serverStart':
             return await serverStart(curWin, projects, analyzer, data.params);

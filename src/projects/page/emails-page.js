@@ -478,9 +478,18 @@
                 document.getElementById('email-file-list').appendChild(rowElm);
             };
 
+            let getPrefs = async () => {
+                let preferences = await exec({
+                    command: 'getPreferences'
+                });
+                return preferences.generalJson || {};
+            };
+
             let activeTab = false;
             if (data.text.html) {
-                drawHtml(data.text.html, false).catch(() => false);
+                getPrefs()
+                    .then(prefs => drawHtml(data.text.html, !prefs.disableRemote))
+                    .catch(err => console.error(err));
                 drawHtmlSource(data.text.html);
 
                 this.viewTabs.show('html');

@@ -603,7 +603,7 @@ class Analyzer {
                     decoder.once('error', err => reject(err));
                     decoder.once('end', () => {
                         let textContent = {
-                            contentType: data.node.contentType,
+                            contentType: data.node.contentType || 'text/plain',
                             charset: data.node.charset,
                             text: Buffer.concat(chunks, chunklen)
                                 .toString()
@@ -2160,7 +2160,6 @@ class Analyzer {
         await new Promise((resolve, reject) => {
             let headerSplitter = new HeaderSplitter();
 
-            let newlines = new Newlines();
             let mboxStream = new MboxStream(mboxOptions || {});
 
             sourceStream.once('error', err => {
@@ -2189,7 +2188,7 @@ class Analyzer {
             sourceStream
                 .pipe(headerSplitter)
                 // remove 0x0D, keep 0x0A
-                .pipe(newlines)
+                .pipe(new Newlines())
                 .pipe(mboxStream)
                 .pipe(outputStream, {
                     end: false

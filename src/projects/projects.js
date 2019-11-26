@@ -8,7 +8,9 @@ const util = require('util');
 const mkdirp = util.promisify(require('mkdirp'));
 const rimraf = util.promisify(require('rimraf'));
 const fs = require('fs').promises;
+const fsCreateReadStream = require('fs').createReadStream;
 const Analyzer = require('../analyzer/lib/analyzer.js');
+const chokidar = require('chokidar');
 
 const Server = require('../server/server.js');
 
@@ -41,6 +43,11 @@ class Projects {
         this.windows = new Set();
 
         this.sqlPath = pathlib.join(this.appDataPath, 'forensicat.db');
+
+        this.sendmailPaths = {
+            data: pathlib.join(this.appDataPath, 'maildrop', 'data'),
+            queue: pathlib.join(this.appDataPath, 'maildrop', 'queue')
+        };
 
         this.thumbnailGenerator = options.thumbnailGenerator;
 
@@ -81,6 +88,13 @@ class Projects {
             return resolver;
         }
         this.preparing = true;
+
+        try {
+            await mkdirp(this.sendmailPaths.data);
+            await mkdirp(this.sendmailPaths.queue);
+        } catch (err) {
+            // ignore?
+        }
 
         try {
             await mkdirp(this.appDataPath);
@@ -202,10 +216,106 @@ class Projects {
                 projects: this
             });
 
+            let handleFile = async (event, path) => {
+                let dataPath = pathlib.join(this.sendmailPaths.data, pathlib.parse(path).base);
+                let paths = [];
+
+                try {
+                    let queueStats = await fs.stat(path);
+                    if (queueStats.isFile()) {
+                        paths.push(path);
+                    }
+
+                    let dataStats = await fs.stat(dataPath);
+                    if (dataStats.isFile()) {
+                        paths.push(dataPath);
+                    }
+                } catch (err) {
+                    console.error(err);
+                }
+
+                try {
+                    if (paths.length !== 2) {
+                        return false;
+                    }
+                    let meta = JSON.parse(await fs.readFile(path, 'utf-8'));
+                    let basename = pathlib.parse(dataPath).base;
+                    let message = await this.importFromMaildrop(meta, dataPath);
+                    if (message) {
+                        console.log(`Imported ${basename} from maildrop to ${meta.project} as ${message}`);
+                    } else {
+                        console.log(`Failed to import ${basename}`);
+                    }
+                } catch (err) {
+                    console.error(err);
+                } finally {
+                    for (let uPath of paths) {
+                        // delete queue entry
+                        try {
+                            await fs.unlink(uPath);
+                        } catch (err) {
+                            // ignore
+                            console.error(err);
+                        }
+                    }
+                }
+            };
+
+            try {
+                chokidar.watch(this.sendmailPaths.queue).on('add', path => {
+                    handleFile('add', path).catch(err => console.error(err));
+                });
+            } catch (err) {
+                // ignore?
+            }
+
             while (this.prepareQueue.length) {
                 let promise = this.prepareQueue.shift();
                 promise.resolve();
             }
+        }
+    }
+
+    async importFromMaildrop(meta, path) {
+        let analyzer = await this.open(meta.project);
+
+        if (!analyzer) {
+            throw new Error('Project not found');
+        }
+
+        let res = await analyzer.import(
+            {
+                source: {
+                    format: 'maildrop',
+                    argv: meta.argv,
+                    envelope: meta.envelope
+                },
+                idate: new Date(),
+                returnPath: meta.envelope.mailFrom
+            },
+            fsCreateReadStream(path)
+        );
+
+        if (res && res.id) {
+            await this.updateImport(analyzer.id, null, { emails: 1, processed: 0, size: res.size });
+
+            if (this.projectWindows.has(meta.project)) {
+                for (let win of this.projectWindows.get(meta.project)) {
+                    try {
+                        win.webContents.send(
+                            'message-received',
+                            JSON.stringify({
+                                id: res.id,
+                                size: res.size
+                            })
+                        );
+                    } catch (err) {
+                        console.error(err);
+                    }
+                }
+            }
+
+            return res.id;
         }
     }
 
@@ -323,6 +433,14 @@ class Projects {
     async getPreferences() {
         let row;
         let preferences = {};
+
+        row = await this.sql.findOne('SELECT [value] FROM [appmeta] WHERE [key] = ?', ['prefs_general_json']);
+        try {
+            preferences.generalJson = (row && row.value && JSON.parse(row.value)) || {};
+        } catch (err) {
+            preferences.generalJson = {};
+        }
+        preferences.generalJson.disableRemote = !!preferences.generalJson.disableRemote;
 
         row = await this.sql.findOne('SELECT [value] FROM [appmeta] WHERE [key] = ?', ['prefs_smtp_json']);
         try {

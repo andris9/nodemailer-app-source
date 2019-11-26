@@ -4,7 +4,7 @@ const { app } = require('electron');
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 // eslint-disable-next-line global-require
 if (require('electron-squirrel-startup')) {
-    app.quit();
+    return app.quit();
 }
 
 const os = require('os');
@@ -15,6 +15,7 @@ const urllib = require('url');
 const pathlib = require('path');
 const crypto = require('crypto');
 const openAboutWindow = require('about-window').default;
+const cli = require('./cli/cli');
 
 const platform = os.platform() + '_' + os.arch();
 const server = 'https://downloads.nodemailer.com';
@@ -36,29 +37,16 @@ setTimeout(() => {
     autoUpdater.checkForUpdates();
 }, 10 * 1000);
 
-function checkIfCalledViaCLI(args) {
-    if (args && args.length > 1) {
-        return true;
-    }
-    return false;
-}
-
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow;
 let projects;
 
 const createWindow = () => {
-    let isCalledViaCLI = checkIfCalledViaCLI(process.argv);
-
-    if (isCalledViaCLI) {
-        console.log(1);
-        console.log(process.cwd());
-        console.log(process.argv.join(' ; '));
-        console.log(2);
-        return process.exit(0);
+    if (cli(app)) {
+        // cli process, do not invoke windows
+        return;
     }
-
     // Create the browser window.
     mainWindow = new BrowserWindow({
         width: 400,
