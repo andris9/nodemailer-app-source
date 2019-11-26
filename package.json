@@ -10,7 +10,7 @@
         "package": "electron-forge package",
         "make": "npm run sendmail && node build.js && electron-forge make && node teardown.js",
         "publish": "npm run sendmail && node build.js && electron-forge publish && node teardown.js",
-        "sendmail": "rm -rf ./sendmail && mkdir -p ./sendmail && pkg sendmail.js --target host --out-path ./sendmail",
+        "sendmail": "rimraf ./sendmail && mkdirp ./sendmail && pkg sendmail.js --target host --out-path ./sendmail",
         "test": "grunt"
     },
     "keywords": [],
