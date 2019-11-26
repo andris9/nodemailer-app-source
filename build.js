@@ -41,7 +41,7 @@ exec('git rev-parse HEAD', (err, stdout) => {
 
     packageData.config.forge.packagerConfig.extraResource = [];
     if (opsys === 'win32' || opsys === 'win64') {
-        let sendmailFiles = fs.readdirSync('.').filter(file => /^sendmail(.exe)?/.test(file));
+        let sendmailFiles = fs.readdirSync('.').filter(file => /^sendmail(.exe)?$/.test(file));
         sendmailFiles.forEach(file => {
             packageData.config.forge.packagerConfig.extraResource.push(pathlib.join(__dirname, file));
         });
