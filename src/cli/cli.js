@@ -81,8 +81,8 @@ function parseArgv(argv) {
                 break;
         }
     }
-    if (opts.sendmail) {
-        opts.sendmail = Number(opts.sendmail.replace(/[^0-9]+/g, '')) || false;
+    if (opts.project) {
+        opts.project = Number(opts.project.replace(/[^0-9]+/g, '')) || false;
     }
     return opts;
 }
@@ -193,7 +193,7 @@ function processStdin(app, opts) {
     let target = fs.createWriteStream(pathlib.join(dataPath, fname));
 
     target.on('close', () => {
-        fs.writeFile(pathlib.join(queuePath, fname), Buffer.from(JSON.stringify({ project: opts.sendmail, argv: process.argv.slice(1), envelope })), err => {
+        fs.writeFile(pathlib.join(queuePath, fname), Buffer.from(JSON.stringify({ project: opts.project, argv: process.argv.slice(1), envelope })), err => {
             if (err) {
                 console.error(err);
             } else {
@@ -225,7 +225,7 @@ module.exports = app => {
         return cliChecked === 1;
     }
     let opts = parseArgv(process.argv);
-    if (opts.sendmail) {
+    if (opts.project) {
         cliChecked = 1;
         setImmediate(() => {
             processStdin(app, opts);

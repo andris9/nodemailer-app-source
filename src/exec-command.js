@@ -1030,9 +1030,12 @@ async function updateMenu(curWin, projects, analyzer, params, menu) {
 }
 
 async function selfInfo(curWin, projects, analyzer) {
+    let sendmail = process.argv[0].replace(/MacOS\/NodemailerApp$/i, 'Resources/sendmail').replace(/\\NodemailerApp.exe$/i, 'resources\\sendmail.exe');
+
     return {
         id: analyzer.id,
-        cmdPath: process.argv[0]
+        cmdPath: process.argv[0],
+        sendmail
     };
 }
 

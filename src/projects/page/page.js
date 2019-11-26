@@ -92,12 +92,16 @@
                 elm.textContent = 'project.' + this.selfInfo.id;
             });
 
+            Array.from(document.querySelectorAll('.project-value')).forEach(elm => {
+                elm.textContent = this.selfInfo.id;
+            });
+
             Array.from(document.querySelectorAll('.server-password-value')).forEach(elm => {
                 elm.textContent = 'secret.' + this.selfInfo.id;
             });
 
-            Array.from(document.querySelectorAll('.cmd-path-value')).forEach(elm => {
-                elm.textContent = this.selfInfo.cmdPath;
+            Array.from(document.querySelectorAll('.sendmail-value')).forEach(elm => {
+                elm.textContent = this.selfInfo.sendmail;
             });
         }
 
