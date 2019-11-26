@@ -8,5 +8,6 @@ let packageData = JSON.parse(fs.readFileSync(packagePath), 'utf-8');
 
 packageData.config.forge.packagerConfig.buildVersion = '';
 packageData.config.forge.packagerConfig.icon = '';
+packageData.config.forge.packagerConfig.extraResource = [];
 
 fs.writeFileSync(packagePath, JSON.stringify(packageData, false, 4));
