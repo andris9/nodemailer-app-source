@@ -1031,7 +1031,8 @@ async function updateMenu(curWin, projects, analyzer, params, menu) {
 
 async function selfInfo(curWin, projects, analyzer) {
     return {
-        id: analyzer.id
+        id: analyzer.id,
+        cmdPath: process.argv[0]
     };
 }
 

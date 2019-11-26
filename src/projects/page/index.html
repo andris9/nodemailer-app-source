@@ -309,7 +309,30 @@ const transporter = nodemailer.createTransport({
                                         </div>
                                     </fieldset>
 
-                                    <fieldset>
+                                    <fieldset style="margin-top: 20px;">
+                                        <legend>Sendmail</legend>
+                                        <p>NodemailerApp is able to act as a drop-in replacement for <code>sendmail</code>.</p>
+                                        <p>
+                                            For example use the following config in you <code>php.ini</code> to route all emails sent from PHP
+                                            <code>mail()</code> command to this project:
+                                        </p>
+                                        <code class="field-select"
+                                            >sendmail_path = '"<span class="cmd-path-value text-select"></span>" --sendmail=<span
+                                                class="text-select server-user-value"
+                                            ></span>
+                                            -t -i'</code
+                                        >
+                                        <p>
+                                            <small
+                                                ><em
+                                                    ><strong>NB!</strong> Using NodemailerApp as sendmail replacement does not require local server or
+                                                    NodemailerApp to be running as message is piped directly to executable.</em
+                                                ></small
+                                            >
+                                        </p>
+                                    </fieldset>
+
+                                    <fieldset style="margin-top: 20px;">
                                         <legend>POP3</legend>
                                         <p>Use POP3 to read emails added to this project.</p>
 

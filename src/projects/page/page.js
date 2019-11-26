@@ -95,6 +95,10 @@
             Array.from(document.querySelectorAll('.server-password-value')).forEach(elm => {
                 elm.textContent = 'secret.' + this.selfInfo.id;
             });
+
+            Array.from(document.querySelectorAll('.cmd-path-value')).forEach(elm => {
+                elm.textContent = this.selfInfo.cmdPath;
+            });
         }
 
         formatDate(date) {
