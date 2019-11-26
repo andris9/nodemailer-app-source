@@ -8,8 +8,9 @@
     "scripts": {
         "start": "electron-forge start",
         "package": "electron-forge package",
-        "make": "node build.js && electron-forge make && node teardown.js",
-        "publish": "node build.js && electron-forge publish && node teardown.js",
+        "make": "npm run sendmail && node build.js && electron-forge make && node teardown.js",
+        "publish": "npm run sendmail && node build.js && electron-forge publish && node teardown.js",
+        "sendmail": "rm -rf ./sendmail && mkdir -p ./sendmail && pkg sendmail.js --target host --out-path ./sendmail",
         "test": "grunt"
     },
     "keywords": [],
@@ -31,18 +32,21 @@
                     "CompanyName": "Andris Reinman",
                     "requested-execution-level": "asInvoker"
                 },
-                "osxSign": {
+                "_osxSign": {
                     "identity": "Developer ID Application: Andris Reinman (8JM6VJ352Q)",
                     "hardenedRuntime": true,
                     "gatekeeper-assess": false,
                     "entitlements": "entitlements.mac.plist",
                     "entitlements-inherit": "entitlements.mac.plist"
                 },
-                "osxNotarize": {
+                "_osxNotarize": {
                     "appleId": "andris.reinman@kreata.ee",
                     "appleIdPassword": "@keychain:AC_PASSWORD",
                     "ascProvider": "8JM6VJ352Q"
-                }
+                },
+                "extraResource": [
+                    "/Users/andrisreinman/Projects/forensicat/sendmail/sendmail"
+                ]
             },
             "makers": [
                 {
@@ -102,6 +106,7 @@
     },
     "dependencies": {
         "about-window": "1.13.2",
+        "appdata-path": "^1.0.0",
         "base32.js": "0.1.0",
         "browserbox2": "1.0.5",
         "chokidar": "^3.3.0",
@@ -147,6 +152,7 @@
         "grunt": "1.0.4",
         "grunt-cli": "1.3.2",
         "grunt-eslint": "22.0.0",
-        "node-abi": "2.12.0"
+        "node-abi": "2.12.0",
+        "pkg": "^4.4.0"
     }
 }

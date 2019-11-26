@@ -39,5 +39,11 @@ exec('git rev-parse HEAD', (err, stdout) => {
 
     packageData.config.forge.packagerConfig.icon = icon;
 
+    packageData.config.forge.packagerConfig.extraResource = [];
+    let sendmailFiles = fs.readdirSync('./sendmail').filter(file => /^sendmail/.test(file));
+    sendmailFiles.forEach(file => {
+        packageData.config.forge.packagerConfig.extraResource.push(pathlib.join(__dirname, 'sendmail', file));
+    });
+
     fs.writeFileSync(packagePath, JSON.stringify(packageData, false, 4));
 });
