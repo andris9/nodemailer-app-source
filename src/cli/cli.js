@@ -25,12 +25,35 @@ const validateEmail = email => {
     }
 };
 
+function showHelp() {
+    console.log('NodemailerApp sendmail replacement. https://nodemailer.com/app');
+    console.log('');
+    console.log('Usage:');
+    console.log(`  ${process.argv[0]} <opts> recipientN@example.com < message.eml`);
+    console.log('');
+    console.log('Where <opts> is a list of command line argument options:');
+    console.log('  -t              Extract recipients from message headers. These are added to any recipients specified on the command line.');
+    console.log('  -f sender       Set the  envelope sender address. This is the address where delivery problems are sent to.');
+    console.log('  -F full_name    Set the sender full name. This is used only with messages that have no From: message header.');
+    console.log('  (any other standard sendmail option is silently ignored)');
+    console.log('  --help          Show this message.');
+    console.log('  --project=N     Project number to target for maildrop, this is the project in NodemailerApp where the messages end up.');
+    console.log('  --host=hostname SMTP target hostname, using it switches from maildrop to SMTP relay mode.');
+    console.log('  --port=port_nr  SMTP port number.');
+    console.log('  --user=username SMTP authentication username.');
+    console.log('  --pass=password SMTP authentication password.');
+    console.log('                  NB! sendmail_path in php.ini exposes the entire command line, including this password, in the phpinfo() output.');
+    console.log('                      So most probably you do not want to use a real online account here but some internal relay that is not');
+    console.log('                      accessible outside the firewall.');
+    console.log('  --tls=true      If true or yes then use TLS on SMTP connection. Usually set for port 465.');
+}
+
 function parseArgv(argv) {
     let opts = {};
     for (let i = 1; i < argv.length; i++) {
         let arg = argv[i].trim();
         if (arg.charAt(0) !== '-') {
-            if (!opts.messageRecipients && validateEmail(arg)) {
+            if (validateEmail(arg)) {
                 if (!opts.recipients) {
                     opts.recipients = [];
                 }
@@ -62,8 +85,14 @@ function parseArgv(argv) {
 
             case 'f': {
                 let val = arg.slice(2).trim();
+                let from;
                 if (val) {
-                    let from = addressparser(val).shift();
+                    from = addressparser(val).shift();
+                } else if (argv[i + 1] && argv[i + 1].charAt(0) !== '-') {
+                    from = addressparser(argv[++i].trim()).shift();
+                }
+
+                if (from) {
                     if (from.address) {
                         opts.fromAddress = from.address;
                     }
@@ -78,13 +107,14 @@ function parseArgv(argv) {
                 let val = arg.slice(2).trim();
                 if (val) {
                     opts.fromName = val;
+                } else if (argv[i + 1] && argv[i + 1].charAt(0) !== '-') {
+                    opts.fromName = argv[++i].trim();
                 }
                 break;
             }
 
             case 't':
                 opts.messageRecipients = true;
-                delete opts.recipients;
                 break;
 
             case 'i':
@@ -183,7 +213,7 @@ function processStdin(app, opts) {
 
     let envelope = {
         mailFrom: opts.fromAddress || `${USERNAME}@${HOSTNAME}`,
-        rcptTo: !opts.messageRecipients ? opts.recipients || [] : [],
+        rcptTo: opts.recipients || [],
         date: new Date()
     };
 
@@ -234,7 +264,7 @@ function processStdin(app, opts) {
             data.headers.add('From', (opts.fromName ? '"' + opts.fromName + '" ' : '') + `<${envelope.mailFrom}>`, Infinity);
         }
 
-        let list = new Set();
+        let list = new Set(envelope.rcptTo);
         if (opts.messageRecipients) {
             parsedAddresses.forEach(address => {
                 if (['to', 'cc', 'bcc'].includes(address.type) && address.address && validateEmail(address.address)) {
@@ -303,6 +333,9 @@ module.exports = app => {
         return cliChecked === 1;
     }
     let opts = parseArgv(process.argv);
+    if ('help' in opts) {
+        return showHelp();
+    }
     if (opts.project || opts.host) {
         cliChecked = 1;
         setImmediate(() => {
