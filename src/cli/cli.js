@@ -91,11 +91,24 @@ function parseArgv(argv) {
                 opts.ignoreDots = true;
                 break;
 
-            case 'B': {
-                let value = (argv[++i] || '').toString().toUpperCase();
-                if (value) {
-                    // 7BIT or 8BITMIME
-                    opts.mimeType = value;
+            // keys with an argument
+            case 'B':
+            case 'h':
+            case 'L':
+            case 'r':
+            case 'R':
+            case 'N':
+            case 'O':
+            case 'C': {
+                i++;
+                break;
+            }
+
+            // keys with 2 arguments
+            case 'o': {
+                // there are multiple keys that start with 'o', we need just'-o'
+                if (arg.slice(1) === 'o') {
+                    i += 2;
                 }
                 break;
             }
