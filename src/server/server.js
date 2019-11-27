@@ -5,6 +5,7 @@ const { SMTPServer } = require('smtp-server');
 const { POP3Server } = require('../pop3/pop3-server');
 const { ServerLogs } = require('../server-logs/server-logs');
 const util = require('util');
+const net = require('net');
 
 const DEFAULT_SMTP_PORT = 1025;
 const DEFAULT_POP3_PORT = 1110;
@@ -322,7 +323,7 @@ class Server {
                 reject(err);
             });
 
-            this.smtpServer.listen(serverConfig.smtpPort, '127.0.0.1', () => {
+            this.smtpServer.listen(serverConfig.smtpPort, serverConfig.ip, () => {
                 resolve();
             });
         });
@@ -349,7 +350,7 @@ class Server {
 
         const serverOptions = {
             port: serverConfig.pop3Port,
-            host: '127.0.0.1',
+            host: serverConfig.ip,
 
             disableVersionString: false,
 
@@ -501,7 +502,7 @@ class Server {
                 reject(err);
             });
 
-            this.pop3Server.listen(serverConfig.pop3Port, '127.0.0.1', () => {
+            this.pop3Server.listen(serverConfig.pop3Port, serverConfig.ip, () => {
                 resolve();
             });
         });
@@ -545,6 +546,9 @@ class Server {
 
         row = await this.sql.findOne('SELECT [value] FROM [appmeta] WHERE [key] = ?', ['server_autostart']);
         serverConfig.autostart = Number(row && row.value) ? true : false;
+
+        row = await this.sql.findOne('SELECT [value] FROM [appmeta] WHERE [key] = ?', ['server_ip']);
+        serverConfig.ip = row && row.value && net.isIP(row.value) ? row.value : '127.0.0.1';
 
         return serverConfig;
     }
@@ -597,7 +601,7 @@ class Server {
             return;
         }
 
-        if (oldConfig.smtpPort !== serverConfig.smtpPort) {
+        if (oldConfig.smtpPort !== serverConfig.smtpPort || oldConfig.ip !== serverConfig.ip) {
             // restart server
             try {
                 await this.stopSmtp();
@@ -618,7 +622,7 @@ class Server {
             }
         }
 
-        if (oldConfig.pop3Port !== serverConfig.pop3Port) {
+        if (oldConfig.pop3Port !== serverConfig.pop3Port || oldConfig.ip !== serverConfig.ip) {
             // restart server
             try {
                 await this.stopPop3();

@@ -50,6 +50,15 @@ const PROJECT_UPDATES = [
     ]
 ];
 
+const validateEmail = email => {
+    try {
+        return isemail.validate(email);
+    } catch (err) {
+        console.error(email, err);
+        return false;
+    }
+};
+
 class Analyzer {
     constructor(options) {
         this.options = options || {};
@@ -2200,12 +2209,12 @@ class Analyzer {
         let envelope = {};
 
         // MAIL FROM
-        if (emailData.source.envelope && emailData.source.envelope.mailFrom && isemail.validate(emailData.source.envelope.mailFrom.address)) {
-            envelope.mailFrom = emailData.source.envelope.mailFrom.address;
-        } else if (emailData.returnPath && isemail.validate(emailData.returnPath)) {
+        if (emailData.source.envelope && emailData.source.envelope.mailFrom && validateEmail(emailData.source.envelope.mailFrom)) {
+            envelope.mailFrom = emailData.source.envelope.mailFrom;
+        } else if (emailData.returnPath && validateEmail(emailData.returnPath)) {
             envelope.mailFrom = emailData.returnPath;
         } else {
-            let address = (emailData.addresses.from || []).find(addr => isemail.validate(addr.address));
+            let address = (emailData.addresses.from || []).find(addr => validateEmail(addr.address));
             if (address) {
                 envelope.mailFrom = address.address;
             } else {
@@ -2215,7 +2224,7 @@ class Analyzer {
 
         // RCPT TO
         if (emailData.source.envelope && emailData.source.envelope.rcptTo && emailData.source.envelope.rcptTo.length) {
-            let list = emailData.source.envelope.rcptTo.map(addr => addr.address).filter(address => isemail.validate(address));
+            let list = emailData.source.envelope.rcptTo.filter(address => validateEmail(address));
             list = new Set(list);
             envelope.rcptTo = Array.from(list);
         } else {
@@ -2225,7 +2234,7 @@ class Analyzer {
                     continue;
                 }
                 emailData.addresses[type].forEach(addr => {
-                    if (isemail.validate(addr.address)) {
+                    if (validateEmail(addr.address)) {
                         list.push(addr.address);
                     }
                 });

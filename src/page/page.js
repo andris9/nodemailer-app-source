@@ -21,10 +21,23 @@
         }).catch(() => false);
     };
 
+    let deactivate = async () => {
+        projectEditGroupElm.classList.add('hidden');
+
+        await exec({
+            command: 'updateMenu',
+            params: {
+                id: ['rename-project', 'delete-project'],
+                enabled: false
+            }
+        });
+    };
+
     let selectable = new window.Selectable(elements, (action, row) => {
         switch (action) {
             case 'open':
                 openProject(row.data.id);
+                deactivate().catch(() => false);
                 break;
 
             case 'active':
@@ -40,15 +53,7 @@
                 break;
 
             case 'deactivate':
-                projectEditGroupElm.classList.add('hidden');
-
-                exec({
-                    command: 'updateMenu',
-                    params: {
-                        id: ['rename-project', 'delete-project'],
-                        enabled: false
-                    }
-                }).catch(() => false);
+                deactivate().catch(() => false);
                 break;
         }
     });
@@ -130,6 +135,9 @@
 
         if (!projects.data.length) {
             document.getElementById('empty-project-list').classList.remove('hidden');
+
+            // hide project tools menu
+            deactivate().catch(() => false);
         } else {
             document.getElementById('empty-project-list').classList.add('hidden');
         }

@@ -14,12 +14,21 @@ const os = require('os');
 const HOSTNAME = (os.hostname() || 'localhost').toString().toLowerCase();
 const USERNAME = (os.userInfo().username || 'local').toString().toLowerCase();
 
+const validateEmail = email => {
+    try {
+        return isemail.validate(email);
+    } catch (err) {
+        console.error(email, err);
+        return false;
+    }
+};
+
 function parseArgv(argv) {
     let opts = {};
     for (let i = 1; i < argv.length; i++) {
         let arg = argv[i].trim();
         if (arg.charAt(0) !== '-') {
-            if (!opts.messageRecipients && isemail.validate(arg)) {
+            if (!opts.messageRecipients && validateEmail(arg)) {
                 if (!opts.recipients) {
                     opts.recipients = [];
                 }
@@ -180,7 +189,7 @@ function processStdin(app, opts) {
         let list = new Set();
         if (opts.messageRecipients) {
             parsedAddresses.forEach(address => {
-                if (['to', 'cc', 'bcc'].includes(address.type) && address.address && isemail.validate(address.address)) {
+                if (['to', 'cc', 'bcc'].includes(address.type) && address.address && validateEmail(address.address)) {
                     list.add(address.address);
                 }
             });
