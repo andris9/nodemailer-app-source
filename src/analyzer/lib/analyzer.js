@@ -2208,9 +2208,20 @@ class Analyzer {
     getEnvelope(emailData) {
         let envelope = {};
 
+        let sourceEnvelope = {};
+        if (emailData.source.envelope) {
+            if (emailData.source.envelope.mailFrom) {
+                sourceEnvelope.mailFrom =
+                    (emailData.source.envelope.mailFrom && emailData.source.envelope.mailFrom.address) || emailData.source.envelope.mailFrom;
+            }
+            if (emailData.source.envelope.rcptTo) {
+                sourceEnvelope.rcptTo = emailData.source.envelope.rcptTo.map(addr => (addr && addr.address) || addr);
+            }
+        }
+
         // MAIL FROM
-        if (emailData.source.envelope && emailData.source.envelope.mailFrom && validateEmail(emailData.source.envelope.mailFrom)) {
-            envelope.mailFrom = emailData.source.envelope.mailFrom;
+        if (sourceEnvelope.mailFrom && validateEmail(sourceEnvelope.mailFrom)) {
+            envelope.mailFrom = sourceEnvelope.mailFrom;
         } else if (emailData.returnPath && validateEmail(emailData.returnPath)) {
             envelope.mailFrom = emailData.returnPath;
         } else {
@@ -2223,8 +2234,8 @@ class Analyzer {
         }
 
         // RCPT TO
-        if (emailData.source.envelope && emailData.source.envelope.rcptTo && emailData.source.envelope.rcptTo.length) {
-            let list = emailData.source.envelope.rcptTo.filter(address => validateEmail(address));
+        if (sourceEnvelope.rcptTo && emailData.source.envelope.rcptTo.length) {
+            let list = sourceEnvelope.rcptTo.filter(address => validateEmail(address));
             list = new Set(list);
             envelope.rcptTo = Array.from(list);
         } else {

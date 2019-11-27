@@ -310,7 +310,7 @@ class Server {
 
                     handler()
                         .then(id => {
-                            callback(null, 'Message imported as ' + id);
+                            callback(null, id ? 'Message imported as ' + id : 'Duplicate message not imported');
                         })
                         .catch(callback);
                 });

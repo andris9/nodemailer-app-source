@@ -11,6 +11,7 @@
         "make": "npm run sendmail && node build.js && electron-forge make && node teardown.js",
         "publish": "npm run sendmail && node build.js && electron-forge publish && node teardown.js",
         "sendmail": "rimraf ./sendmail && nexe sendmail.js",
+        "sendmail-linux": "rimraf ./sendmail && nexe sendmail.js --target=linux-x64",
         "test": "grunt"
     },
     "keywords": [],

@@ -2,6 +2,7 @@
 
 const isemail = require('isemail');
 const addressparser = require('nodemailer/lib/addressparser');
+const nodemailer = require('nodemailer');
 const Newlines = require('../analyzer/lib/newlines');
 const HeaderSplitter = require('../analyzer/lib/header-splitter');
 const fs = require('fs');
@@ -10,9 +11,10 @@ const libmime = require('libmime');
 const punycode = require('punycode');
 const uuidv4 = require('uuid/v4');
 const os = require('os');
+const PassThrough = require('stream').PassThrough;
 
 const HOSTNAME = (os.hostname() || 'localhost').toString().toLowerCase();
-const USERNAME = (os.userInfo().username || 'local').toString().toLowerCase();
+const USERNAME = (os.userInfo().username || 'uid' + (typeof process.getuid === 'function' ? process.getuid() : '-local')).toString().toLowerCase();
 
 const validateEmail = email => {
     try {
@@ -167,6 +169,27 @@ function processStdin(app, opts) {
         .toString(36)
         .toUpperCase();
 
+    let transport;
+    let target;
+    if (!opts.host) {
+        target = fs.createWriteStream(pathlib.join(dataPath, fname));
+    } else {
+        target = new PassThrough();
+        transport = nodemailer.createTransport({
+            host: opts.host,
+            port: opts.port,
+            secure: opts.tls ? /true|1|yes|tls/i.test(opts.tls) : opts.port === 465, // true for 465, false for other ports
+            auth: opts.user
+                ? {
+                      user: opts.user,
+                      pass: opts.pass
+                  }
+                : false,
+            logger: /true|1|yes|tls/i.test(opts.debug),
+            debug: /true|1|yes|tls/i.test(opts.debug)
+        });
+    }
+
     let parsedAddresses = false;
     headerSplitter.on('headers', data => {
         parsedAddresses = processAddresses(data.headers);
@@ -180,7 +203,10 @@ function processStdin(app, opts) {
 
         if (!data.headers.get('Date').length) {
             data.headers.add('Date', envelope.date.toUTCString().replace(/GMT/, '+0000'), Infinity);
+        } else {
+            data.headers.add('X-Invoked-Date', envelope.date.toUTCString().replace(/GMT/, '+0000'), Infinity);
         }
+        data.headers.add('X-Invoked-User', USERNAME);
 
         if (!data.headers.get('From').length) {
             data.headers.add('From', (opts.fromName ? '"' + opts.fromName + '" ' : '') + `<${envelope.mailFrom}>`, Infinity);
@@ -196,21 +222,42 @@ function processStdin(app, opts) {
             envelope.rcptTo = Array.from(list);
         }
 
+        if (opts.host) {
+            // set up smtp client
+            transport.sendMail(
+                {
+                    envelope: {
+                        from: envelope.mailFrom,
+                        to: envelope.rcptTo
+                    },
+                    raw: target
+                },
+                (err, info) => {
+                    if (err) {
+                        console.error(err);
+                    } else {
+                        console.log((info && info.response) || 'Message processed');
+                    }
+                }
+            );
+        }
+
         data.done();
     });
 
-    let target = fs.createWriteStream(pathlib.join(dataPath, fname));
-
-    target.on('close', () => {
-        fs.writeFile(pathlib.join(queuePath, fname), Buffer.from(JSON.stringify({ project: opts.project, argv: process.argv.slice(1), envelope })), err => {
-            if (err) {
-                console.error(err);
-            } else {
-                console.log(`Message queued as ${fname}`);
-            }
-            app.quit();
+    if (!opts.host) {
+        // saving to message file, add metadata as well
+        target.on('close', () => {
+            fs.writeFile(pathlib.join(queuePath, fname), Buffer.from(JSON.stringify({ project: opts.project, argv: process.argv.slice(1), envelope })), err => {
+                if (err) {
+                    console.error(err);
+                } else {
+                    console.log(`Message queued as ${fname}`);
+                }
+                app.quit();
+            });
         });
-    });
+    }
 
     target.on('error', err => {
         console.error(err.stack);
@@ -234,7 +281,7 @@ module.exports = app => {
         return cliChecked === 1;
     }
     let opts = parseArgv(process.argv);
-    if (opts.project) {
+    if (opts.project || opts.host) {
         cliChecked = 1;
         setImmediate(() => {
             processStdin(app, opts);
