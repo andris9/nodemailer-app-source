@@ -2,7 +2,7 @@
     "name": "nodemailer-app",
     "private": true,
     "productName": "NodemailerApp",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "description": "The ultimate email debugging tool",
     "main": "src/index.js",
     "scripts": {
@@ -11,7 +11,7 @@
         "make": "npm run sendmail && node build.js && electron-forge make && node teardown.js",
         "publish": "npm run sendmail && node build.js && electron-forge publish && node teardown.js",
         "sendmail": "rimraf ./sendmail && nexe sendmail.js",
-        "sendmail-linux": "rimraf ./sendmail && nexe sendmail.js --target=linux-x64",
+        "sendmail-linux": "mkdirp builds && rimraf builds/sendmail && nexe sendmail.js --target=linux-x64 --output=builds/sendmail",
         "test": "grunt"
     },
     "keywords": [],
