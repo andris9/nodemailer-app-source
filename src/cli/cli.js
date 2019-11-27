@@ -90,6 +90,15 @@ function parseArgv(argv) {
             case 'i':
                 opts.ignoreDots = true;
                 break;
+
+            case 'B': {
+                let value = (argv[++i] || '').toString().toUpperCase();
+                if (value) {
+                    // 7BIT or 8BITMIME
+                    opts.mimeType = value;
+                }
+                break;
+            }
         }
     }
     if (opts.project) {
