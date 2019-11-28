@@ -48,6 +48,11 @@
                 },
                 "extraResource": []
             },
+            "plugins": [
+                [
+                    "@electron-forge/plugin-auto-unpack-natives"
+                ]
+            ],
             "makers": [
                 {
                     "name": "@electron-forge/maker-squirrel",
@@ -87,6 +92,15 @@
                         "isVersionChecked": false,
                         "hasStrictIdentifier": false
                     }
+                },
+                {
+                    "name": "@electron-forge/maker-snap",
+                    "config": {
+                        "features": {
+                            "browserSandbox": true
+                        },
+                        "summary": "The ultimate email debugging tool"
+                    }
                 }
             ],
             "publishers": [
@@ -99,6 +113,12 @@
                             "name": "nodemailer-app"
                         },
                         "prerelease": false
+                    }
+                },
+                {
+                    "name": "@electron-forge/publisher-snapcraft",
+                    "config": {
+                        "release": "stable"
                     }
                 }
             ]
@@ -140,9 +160,12 @@
         "@electron-forge/maker-dmg": "6.0.0-beta.45",
         "@electron-forge/maker-pkg": "6.0.0-beta.45",
         "@electron-forge/maker-rpm": "6.0.0-beta.45",
+        "@electron-forge/maker-snap": "^6.0.0-beta.45",
         "@electron-forge/maker-squirrel": "6.0.0-beta.45",
         "@electron-forge/maker-zip": "6.0.0-beta.45",
+        "@electron-forge/plugin-auto-unpack-natives": "^6.0.0-beta.45",
         "@electron-forge/publisher-github": "6.0.0-beta.45",
+        "@electron-forge/publisher-snapcraft": "^6.0.0-beta.45",
         "dotenv": "8.2.0",
         "electron": "7.1.2",
         "electron-notarize": "0.2.1",
