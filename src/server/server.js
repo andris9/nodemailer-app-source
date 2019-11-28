@@ -180,7 +180,7 @@ class Server {
                 title: 'Error',
                 buttons: ['Dismiss'],
                 type: 'error',
-                message: 'Failed to start SMTP server\n' + err.message
+                message: err.message
             });
             throw err;
         }
@@ -331,6 +331,17 @@ class Server {
         return new Promise((resolve, reject) => {
             this.smtpServer.on('error', err => {
                 console.error(err);
+                switch (err.code) {
+                    case 'EADDRNOTAVAIL':
+                        err = new Error(`Selected IP address (${err.address}) is not available`);
+                        break;
+                    case 'EADDRINUSE':
+                        err = new Error(`Selected address (${err.address}:${err.port}) is already in use`);
+                        break;
+                    case 'EACCES':
+                        err = new Error(`Not enough privileges to use selected address (${err.address}:${err.port})`);
+                        break;
+                }
                 reject(err);
             });
 
@@ -348,7 +359,7 @@ class Server {
                 title: 'Error',
                 buttons: ['Dismiss'],
                 type: 'error',
-                message: 'Failed to start POP3 server\n' + err.message
+                message: err.message
             });
             throw err;
         }
@@ -510,6 +521,17 @@ class Server {
         return new Promise((resolve, reject) => {
             this.pop3Server.on('error', err => {
                 console.error(err);
+                switch (err.code) {
+                    case 'EADDRNOTAVAIL':
+                        err = new Error(`Selected IP address (${err.address}) is not available`);
+                        break;
+                    case 'EADDRINUSE':
+                        err = new Error(`Selected address (${err.address}:${err.port}) is already in use`);
+                        break;
+                    case 'EACCES':
+                        err = new Error(`Not enough privileges to use selected address (${err.address}:${err.port})`);
+                        break;
+                }
                 reject(err);
             });
 

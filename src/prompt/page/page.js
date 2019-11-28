@@ -116,18 +116,28 @@
 
             if (promptOptions.query && dataFieldElm.name in promptOptions.query) {
                 if (/^select$/i.test(dataFieldElm.tagName)) {
-                    console.log(promptOptions.selectOptions, dataFieldElm.name, promptOptions.selectOptions[dataFieldElm.name]);
-
                     if (promptOptions.selectOptions[dataFieldElm.name]) {
                         // populate select options
                         dataFieldElm.innerHTML = '';
+                        let groups = new Map();
                         for (let j = 0; j < promptOptions.selectOptions[dataFieldElm.name].length; j++) {
                             let opt = promptOptions.selectOptions[dataFieldElm.name][j];
-                            console.log(opt);
                             let elm = document.createElement('option');
                             elm.value = opt.value.toString();
                             elm.textContent = opt.title;
-                            dataFieldElm.appendChild(elm);
+
+                            if (opt.group) {
+                                let groupElm = groups.get(opt.group);
+                                if (!groupElm) {
+                                    groupElm = document.createElement('optgroup');
+                                    groupElm.label = opt.group;
+                                    groups.set(opt.group, groupElm);
+                                    dataFieldElm.appendChild(groupElm);
+                                }
+                                groupElm.appendChild(elm);
+                            } else {
+                                dataFieldElm.appendChild(elm);
+                            }
                         }
                     }
                     for (let j = 0; j < dataFieldElm.options.length; j++) {

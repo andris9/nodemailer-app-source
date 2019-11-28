@@ -118,6 +118,19 @@ const createWindow = () => {
     projects.server.init().catch(err => console.error(err));
 };
 
+if (!app.requestSingleInstanceLock()) {
+    return app.quit();
+}
+
+app.on('second-instance', () => {
+    if (mainWindow) {
+        if (mainWindow.isMinimized()) {
+            mainWindow.restore();
+        }
+        mainWindow.focus();
+    }
+});
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.

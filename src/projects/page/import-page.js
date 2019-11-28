@@ -183,12 +183,14 @@
                     importRow.data = data;
                     this.paintImportCell(importRow.elm, data);
 
+                    this.updateProgressbar().catch(() => false);
+
                     window.__hasChanges++;
                 }
             });
 
             window.events.subscribe('import-list', data => {
-                this.renderImports(data);
+                this.renderImports(data).catch(() => false);
             });
 
             window.events.subscribe('menu-click', data => {
@@ -220,6 +222,26 @@
 
                 return false;
             };
+        }
+
+        async updateProgressbar() {
+            // update progress bar
+            let lowestProgress = false;
+            this.rows.forEach(entry => {
+                let importData = entry.data;
+                if (!importData.finished && !importData.errored && importData.totalsize) {
+                    let progress = Math.min(importData.processed / importData.totalsize, 1);
+                    if (lowestProgress === false || progress < lowestProgress) {
+                        lowestProgress = progress;
+                    }
+                }
+            });
+            await exec({
+                command: 'progress',
+                params: {
+                    progress: lowestProgress
+                }
+            });
         }
 
         formatRunTime(ms) {
@@ -307,9 +329,9 @@
             this.paintImportCell(rowElm, importData);
         }
 
-        renderImports(list) {
+        async renderImports(list) {
             if (!list || !list.data) {
-                return;
+                return this.updateProgressbar();
             }
 
             this.rows.forEach(importData => {
@@ -325,6 +347,8 @@
 
             this.selectable.update(this.rows);
 
+            await this.updateProgressbar();
+
             return true;
         }
 
@@ -333,7 +357,7 @@
                 command: 'listImports'
             });
 
-            this.renderImports(list);
+            await this.renderImports(list);
         }
     }
 

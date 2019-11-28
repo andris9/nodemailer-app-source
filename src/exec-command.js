@@ -756,8 +756,8 @@ async function preferences(curWin, projects, analyzer, params) {
             query,
 
             selectOptions: {
-                'server:default-project': [{ value: 0, title: 'Only authenticated emails' }].concat(
-                    (await projects.list()).map(pr => ({ value: pr.id, title: pr.name }))
+                'server:default-project': [{ value: 0, title: '–– Not set ––' }].concat(
+                    (await projects.list()).map(pr => ({ value: pr.id, title: pr.name, group: 'Existing Projects:' }))
                 )
             },
 
@@ -832,6 +832,14 @@ async function serverStatus(curWin, projects) {
         running: projects.server.running,
         config: await projects.server.getConfig()
     };
+}
+
+async function progress(curWin, projects, analyzer, params) {
+    if (typeof params.progress === 'number') {
+        curWin.setProgressBar(params.progress);
+    } else {
+        curWin.setProgressBar(-1);
+    }
 }
 
 async function searchAttachments(curWin, projects, analyzer, params) {
@@ -1163,6 +1171,9 @@ module.exports = async (curWin, projects, analyzer, data, menu) => {
 
         case 'runUploadEmail':
             return await runUploadEmail(curWin, projects, analyzer, data.params);
+
+        case 'progress':
+            return await progress(curWin, projects, analyzer, data.params);
 
         default:
             throw new Error('Unknown command ' + JSON.stringify(data));
