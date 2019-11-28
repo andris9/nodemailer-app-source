@@ -272,6 +272,9 @@ class Server {
                         if (!session.user && projectId) {
                             session.user = projectId;
                         }
+                        if (!projectId) {
+                            throw new Error('Authentication required');
+                        }
 
                         let analyzer = await this.projects.open(projectId);
 
