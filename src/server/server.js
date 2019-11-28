@@ -196,6 +196,7 @@ class Server {
             disabledCommands: ['STARTTLS'],
             allowInsecureAuth: true,
             banner: 'Nodemailer App SMTP',
+            authOptional: true,
             logger: {
                 info: (...args) => {
                     let meta = args.shift();
@@ -251,6 +252,7 @@ class Server {
                     })
                     .catch(err => callback(err));
             },
+
             onData: (stream, session, callback) => {
                 let chunks = [];
                 let chunklen = 0;
@@ -265,7 +267,13 @@ class Server {
                     let message = Buffer.concat(chunks, chunklen);
 
                     let handler = async () => {
-                        let analyzer = await this.projects.open(session.user);
+                        let conf = await this.getConfig();
+                        let projectId = session.user || conf.defaultProject;
+                        if (!session.user && projectId) {
+                            session.user = projectId;
+                        }
+
+                        let analyzer = await this.projects.open(projectId);
 
                         if (!analyzer) {
                             throw new Error('Project not found');
@@ -286,8 +294,8 @@ class Server {
                         if (res && res.id) {
                             await this.projects.updateImport(analyzer.id, null, { emails: 1, processed: 0, size: res.size });
 
-                            if (this.projects.projectWindows.has(session.user)) {
-                                for (let win of this.projects.projectWindows.get(session.user)) {
+                            if (this.projects.projectWindows.has(projectId)) {
+                                for (let win of this.projects.projectWindows.get(projectId)) {
                                     try {
                                         win.webContents.send(
                                             'message-received',
@@ -549,6 +557,9 @@ class Server {
 
         row = await this.sql.findOne('SELECT [value] FROM [appmeta] WHERE [key] = ?', ['server_ip']);
         serverConfig.ip = row && row.value && net.isIP(row.value) ? row.value : '127.0.0.1';
+
+        row = await this.sql.findOne('SELECT [value] FROM [appmeta] WHERE [key] = ?', ['server_default_project']);
+        serverConfig.defaultProject = Number(row && row.value) || 0;
 
         return serverConfig;
     }

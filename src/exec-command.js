@@ -755,6 +755,12 @@ async function preferences(curWin, projects, analyzer, params) {
             label: false,
             query,
 
+            selectOptions: {
+                'server:default-project': [{ value: 0, title: 'Only authenticated emails' }].concat(
+                    (await projects.list()).map(pr => ({ value: pr.id, title: pr.name }))
+                )
+            },
+
             values: {
                 'active-tab': (params && params.tab) || 'general'
             },

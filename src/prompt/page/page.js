@@ -114,10 +114,24 @@
                 }
             });
 
-            if (promptOptions.query && promptOptions.query[dataFieldElm.name]) {
+            if (promptOptions.query && dataFieldElm.name in promptOptions.query) {
                 if (/^select$/i.test(dataFieldElm.tagName)) {
+                    console.log(promptOptions.selectOptions, dataFieldElm.name, promptOptions.selectOptions[dataFieldElm.name]);
+
+                    if (promptOptions.selectOptions[dataFieldElm.name]) {
+                        // populate select options
+                        dataFieldElm.innerHTML = '';
+                        for (let j = 0; j < promptOptions.selectOptions[dataFieldElm.name].length; j++) {
+                            let opt = promptOptions.selectOptions[dataFieldElm.name][j];
+                            console.log(opt);
+                            let elm = document.createElement('option');
+                            elm.value = opt.value.toString();
+                            elm.textContent = opt.title;
+                            dataFieldElm.appendChild(elm);
+                        }
+                    }
                     for (let j = 0; j < dataFieldElm.options.length; j++) {
-                        if (dataFieldElm.options[j] && dataFieldElm.options[j].value === promptOptions.query[dataFieldElm.name]) {
+                        if (dataFieldElm.options[j] && dataFieldElm.options[j].value === promptOptions.query[dataFieldElm.name].toString()) {
                             dataFieldElm.selectedIndex = j;
                             break;
                         }
