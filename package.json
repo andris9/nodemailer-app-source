@@ -56,12 +56,18 @@
             "makers": [
                 {
                     "name": "@electron-forge/maker-squirrel",
+                    "platforms": [
+                        "win32"
+                    ],
                     "config": {
                         "name": "NodemailerApp"
                     }
                 },
                 {
                     "name": "@electron-forge/maker-dmg",
+                    "platforms": [
+                        "darwin"
+                    ],
                     "config": {
                         "backgroundColor": "#ffffff",
                         "format": "ULFO",
@@ -74,6 +80,9 @@
                 },
                 {
                     "name": "@electron-forge/maker-pkg",
+                    "platforms": [
+                        "darwin"
+                    ],
                     "config": {
                         "identity": "Developer ID Installer: Andris Reinman (8JM6VJ352Q)",
                         "license": "./eula.html",
@@ -83,7 +92,7 @@
                 },
                 {
                     "name": "@electron-forge/maker-snap",
-                    "platform": [
+                    "platforms": [
                         "linux"
                     ],
                     "config": {
@@ -97,6 +106,10 @@
             "publishers": [
                 {
                     "name": "@electron-forge/publisher-github",
+                    "platforms": [
+                        "darwin",
+                        "win32"
+                    ],
                     "config": {
                         "authToken": "0c31a67f143987790e43acfe38ffb4c45d92f803",
                         "repository": {
@@ -108,6 +121,9 @@
                 },
                 {
                     "name": "@electron-forge/publisher-snapcraft",
+                    "platforms": [
+                        "linux"
+                    ],
                     "config": {
                         "release": "stable"
                     }
