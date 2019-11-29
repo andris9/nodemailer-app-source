@@ -112,7 +112,9 @@
                             "browserSandbox": true
                         },
                         "summary": "The ultimate email debugging tool",
-                        "icon": "./src/icons/png/512x512.png"
+                        "appConfig": {
+                            "icon": "./src/icons/png/512x512.png"
+                        }
                     }
                 }
             ],
