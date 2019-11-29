@@ -91,6 +91,18 @@
                     }
                 },
                 {
+                    "name": "@electron-forge/maker-deb",
+                    "platforms": [
+                        "linux"
+                    ],
+                    "config": {
+                        "options": {
+                            "maintainer": "Joe Bloggs",
+                            "homepage": "https://example.com"
+                        }
+                    }
+                },
+                {
                     "name": "@electron-forge/maker-snap",
                     "platforms": [
                         "linux"
@@ -132,6 +144,7 @@
         }
     },
     "dependencies": {
+        "@electron-forge/maker-deb": "6.0.0-beta.45",
         "about-window": "1.13.2",
         "appdata-path": "1.0.0",
         "base32.js": "0.1.0",
@@ -165,12 +178,12 @@
         "@electron-forge/cli": "6.0.0-beta.45",
         "@electron-forge/maker-dmg": "6.0.0-beta.45",
         "@electron-forge/maker-pkg": "6.0.0-beta.45",
-        "@electron-forge/maker-snap": "^6.0.0-beta.45",
+        "@electron-forge/maker-snap": "6.0.0-beta.45",
         "@electron-forge/maker-squirrel": "6.0.0-beta.45",
         "@electron-forge/maker-zip": "6.0.0-beta.45",
-        "@electron-forge/plugin-auto-unpack-natives": "^6.0.0-beta.45",
+        "@electron-forge/plugin-auto-unpack-natives": "6.0.0-beta.45",
         "@electron-forge/publisher-github": "6.0.0-beta.45",
-        "@electron-forge/publisher-snapcraft": "^6.0.0-beta.45",
+        "@electron-forge/publisher-snapcraft": "6.0.0-beta.45",
         "dotenv": "8.2.0",
         "electron": "7.1.2",
         "electron-notarize": "0.2.1",
