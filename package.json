@@ -10,7 +10,7 @@
         "package": "electron-forge package",
         "make": "npm run sendmail && node build.js && electron-forge make && node teardown.js",
         "publish": "npm run sendmail && node build.js && electron-forge publish && node teardown.js",
-        "sendmail": "rimraf ./sendmail && nexe sendmail.js",
+        "sendmail": "rimraf ./sendmail && nexe sendmail.js --build --ico=./src/icons/win/icon.ico",
         "sendmail-linux": "mkdirp builds && rimraf builds/sendmail && nexe sendmail.js --target=linux-x64 --output=builds/sendmail",
         "sendmail-windows": "mkdirp builds && rimraf builds/sendmail.exe && nexe sendmail.js --build --ico=./src/icons/win/icon.ico --target=win32-x86_x64 --output=builds/sendmail",
         "test": "grunt"
@@ -73,18 +73,6 @@
                     }
                 },
                 {
-                    "name": "@electron-forge/maker-deb",
-                    "config": {}
-                },
-                {
-                    "name": "@electron-forge/maker-zip",
-                    "config": {}
-                },
-                {
-                    "name": "@electron-forge/maker-rpm",
-                    "config": {}
-                },
-                {
                     "name": "@electron-forge/maker-pkg",
                     "config": {
                         "identity": "Developer ID Installer: Andris Reinman (8JM6VJ352Q)",
@@ -95,6 +83,9 @@
                 },
                 {
                     "name": "@electron-forge/maker-snap",
+                    "platform": [
+                        "linux"
+                    ],
                     "config": {
                         "features": {
                             "browserSandbox": true
@@ -156,10 +147,8 @@
     },
     "devDependencies": {
         "@electron-forge/cli": "6.0.0-beta.45",
-        "@electron-forge/maker-deb": "6.0.0-beta.45",
         "@electron-forge/maker-dmg": "6.0.0-beta.45",
         "@electron-forge/maker-pkg": "6.0.0-beta.45",
-        "@electron-forge/maker-rpm": "6.0.0-beta.45",
         "@electron-forge/maker-snap": "^6.0.0-beta.45",
         "@electron-forge/maker-squirrel": "6.0.0-beta.45",
         "@electron-forge/maker-zip": "6.0.0-beta.45",
