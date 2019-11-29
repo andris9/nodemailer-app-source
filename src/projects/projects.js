@@ -655,6 +655,7 @@ class Projects {
         });
 
         projectWindow.loadURL(windowUrl);
+        projectWindow.setTouchBar(this.touchBar);
         this.windows.add(projectWindow);
 
         // Emitted when the window is closed.

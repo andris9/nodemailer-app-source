@@ -48,4 +48,5 @@ module.exports = async (id, curWin, projects, analyzer) => {
     });
 
     uploadWindow.loadURL(pageUrl);
+    uploadWindow.setTouchBar(projects.touchBar);
 };

@@ -6,12 +6,15 @@ const { POP3Server } = require('../pop3/pop3-server');
 const { ServerLogs } = require('../server-logs/server-logs');
 const util = require('util');
 const net = require('net');
+const { EventEmitter } = require('events');
 
 const DEFAULT_SMTP_PORT = 1025;
 const DEFAULT_POP3_PORT = 1110;
 
-class Server {
+class Server extends EventEmitter {
     constructor(options) {
+        super();
+
         this.options = options || {};
 
         this.running = false;
@@ -76,8 +79,13 @@ class Server {
             }
         }
 
+        this._stopping = false;
         this._starting = false;
         this.running = true;
+
+        this.emit('change', {
+            running: this.running
+        });
     }
 
     async setStopped() {
@@ -123,6 +131,10 @@ class Server {
         this._starting = false;
         this._stopping = false;
         this.running = false;
+
+        this.emit('change', {
+            running: this.running
+        });
     }
 
     async start() {

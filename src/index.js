@@ -8,7 +8,8 @@ if (require('electron-squirrel-startup')) {
 }
 
 const os = require('os');
-const { BrowserWindow, ipcMain, dialog, Menu, shell, autoUpdater } = require('electron');
+const { BrowserWindow, ipcMain, dialog, Menu, shell, autoUpdater, TouchBar } = require('electron');
+const { TouchBarLabel, TouchBarButton, TouchBarSpacer } = TouchBar;
 const execCommand = require('./exec-command');
 const Projects = require('./projects/projects');
 const urllib = require('url');
@@ -42,6 +43,24 @@ setTimeout(() => {
 let mainWindow;
 let projects;
 
+const toggleServerTb = new TouchBarButton({
+    label: 'Start Server',
+    //backgroundColor: '#7851A9',
+    click: () => {
+        execCommand(mainWindow, projects, false, {
+            command: projects.server.running ? 'serverStop' : 'serverStart'
+        }).catch(err => console.error(err));
+    }
+});
+
+const serverStatusTb = new TouchBarLabel();
+serverStatusTb.label = 'Server is stopped';
+serverStatusTb.textColor = '#fc605b';
+
+const touchBar = new TouchBar({
+    items: [toggleServerTb, new TouchBarSpacer({ size: 'large' }), serverStatusTb]
+});
+
 const createWindow = () => {
     if (cli(app)) {
         // cli process, do not invoke windows
@@ -62,6 +81,7 @@ const createWindow = () => {
         icon: pathlib.join(__dirname, 'icons/png/64x64.png')
     });
     projects.mainWindow = mainWindow;
+    projects.touchBar = touchBar;
 
     const windowUrl = urllib.format({
         protocol: 'file',
@@ -71,6 +91,7 @@ const createWindow = () => {
 
     // and load the index.html of the app.
     mainWindow.loadURL(windowUrl);
+    mainWindow.setTouchBar(touchBar);
 
     mainWindow.on('close', e => {
         if (projects._imports) {
@@ -116,6 +137,17 @@ const createWindow = () => {
     });
 
     projects.server.init().catch(err => console.error(err));
+    projects.server.on('change', ev => {
+        if (ev.running) {
+            toggleServerTb.label = 'Stop server';
+            serverStatusTb.label = 'Server is running';
+            serverStatusTb.textColor = '#34c84a';
+        } else {
+            toggleServerTb.label = 'Start server';
+            serverStatusTb.label = 'Server is stopped';
+            serverStatusTb.textColor = '#fc605b';
+        }
+    });
 };
 
 if (!app.requestSingleInstanceLock()) {
