@@ -44,11 +44,21 @@ let mainWindow;
 let projects;
 
 const toggleServerTb = new TouchBarButton({
-    label: 'Start Server',
+    label: '▶️ Start Server',
     //backgroundColor: '#7851A9',
     click: () => {
         execCommand(mainWindow, projects, false, {
             command: projects.server.running ? 'serverStop' : 'serverStart'
+        }).catch(err => console.error(err));
+    }
+});
+
+const preferencesTb = new TouchBarButton({
+    label: '🛠 Preferences',
+    //backgroundColor: '#7851A9',
+    click: () => {
+        execCommand(mainWindow, projects, false, {
+            command: 'preferences'
         }).catch(err => console.error(err));
     }
 });
@@ -58,7 +68,7 @@ serverStatusTb.label = 'Server is stopped';
 serverStatusTb.textColor = '#fc605b';
 
 const touchBar = new TouchBar({
-    items: [toggleServerTb, new TouchBarSpacer({ size: 'large' }), serverStatusTb]
+    items: [preferencesTb, toggleServerTb, new TouchBarSpacer({ size: 'large' }), serverStatusTb]
 });
 
 const createWindow = () => {
@@ -139,11 +149,11 @@ const createWindow = () => {
     projects.server.init().catch(err => console.error(err));
     projects.server.on('change', ev => {
         if (ev.running) {
-            toggleServerTb.label = 'Stop server';
+            toggleServerTb.label = '⏹ Stop server';
             serverStatusTb.label = 'Server is running';
             serverStatusTb.textColor = '#34c84a';
         } else {
-            toggleServerTb.label = 'Start server';
+            toggleServerTb.label = '▶️ Start server';
             serverStatusTb.label = 'Server is stopped';
             serverStatusTb.textColor = '#fc605b';
         }
