@@ -88,7 +88,7 @@ const createWindow = () => {
             nodeIntegration: true
         },
 
-        icon: pathlib.join(__dirname, 'icons/png/64x64.png')
+        icon: pathlib.join(__dirname, 'icons/png/512x512.png')
     });
     projects.mainWindow = mainWindow;
     projects.touchBar = touchBar;
@@ -422,7 +422,7 @@ const aboutMenuItem = {
     enabled: true,
     click: async () => {
         openAboutWindow({
-            icon_path: pathlib.join(__dirname, 'icons/png/256x256.png'),
+            icon_path: pathlib.join(__dirname, 'icons/png/512x512.png'),
             use_inner_html: true,
             copyright:
                 '<div style="text-align: center">Copyright &copy; 2019 Andris Reinman<br>Licensed for non-commercial use<br/><br>The Nodemailer logo was designed by <a href="https://www.behance.net/kristjansen"  class="link">Sven Kristjansen</a></div>',

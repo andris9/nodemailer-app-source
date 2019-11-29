@@ -637,7 +637,7 @@ class Projects {
                 nodeIntegration: true
             },
 
-            icon: pathlib.join(__dirname, '..', 'icons/png/64x64.png')
+            icon: pathlib.join(__dirname, '..', 'icons/png/512x512.png')
         });
 
         let windowId = projectWindow.id;

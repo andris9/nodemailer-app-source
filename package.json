@@ -111,7 +111,8 @@
                         "features": {
                             "browserSandbox": true
                         },
-                        "summary": "The ultimate email debugging tool"
+                        "summary": "The ultimate email debugging tool",
+                        "icon": "./src/icons/png/512x512.png"
                     }
                 }
             ],

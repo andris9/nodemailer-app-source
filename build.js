@@ -34,7 +34,7 @@ exec('git rev-parse HEAD', (err, stdout) => {
     } else if (opsys === 'win32' || opsys === 'win64') {
         icon = './src/icons/win/icon.ico';
     } else {
-        icon = './src/icons/png/128x128.png';
+        icon = './src/icons/png/512x512.png';
     }
 
     packageData.config.forge.packagerConfig.icon = icon;
