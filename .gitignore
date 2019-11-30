@@ -30,8 +30,7 @@ coverage
 # node-waf configuration
 .lock-wscript
 
-# Compiled binary addons (https://nodejs.org/api/addons.html)
-build/Release
+build/
 
 sendmail
 sendmail.exe
@@ -93,3 +92,4 @@ typings/
 out/
 
 .snapcraft
+!build/icons/*

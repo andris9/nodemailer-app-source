@@ -13,7 +13,7 @@
         "sendmail": "rimraf ./sendmail && nexe sendmail.js --ico=./src/icons/win/icon.ico",
         "sendmail-linux": "mkdirp builds && rimraf builds/sendmail && nexe sendmail.js --target=linux-x64 --output=builds/sendmail",
         "sendmail-windows": "mkdirp builds && rimraf builds/sendmail.exe && nexe sendmail.js --build --ico=./src/icons/win/icon.ico --target=win32-x86_x64 --output=builds/sendmail",
-        "dist": "electron-builder build --linux snap",
+        "snap": "node build.js && electron-builder build --linux snap && node teardown.js",
         "test": "grunt"
     },
     "keywords": [],
@@ -139,6 +139,17 @@
                 }
             ]
         }
+    },
+    "build": {
+        "appId": "com.kreata.nodemailer",
+        "copyright": "© 2019 Andris Reinman",
+        "snap": {
+            "confinement": "classic",
+            "assumes": "browserSandbox",
+            "summary": "The ultimate email debugging tool",
+            "icon": "./src/icons/png/256x256.png"
+        },
+        "asar": true
     },
     "dependencies": {
         "@electron-forge/maker-deb": "6.0.0-beta.45",
