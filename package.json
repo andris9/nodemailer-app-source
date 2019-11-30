@@ -145,7 +145,6 @@
         "copyright": "© 2019 Andris Reinman",
         "snap": {
             "confinement": "classic",
-            "assumes": "browserSandbox",
             "summary": "The ultimate email debugging tool"
         },
         "linux": {
