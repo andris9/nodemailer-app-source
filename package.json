@@ -146,8 +146,7 @@
         "snap": {
             "confinement": "classic",
             "assumes": "browserSandbox",
-            "summary": "The ultimate email debugging tool",
-            "icon": "./src/icons/png/256x256.png"
+            "summary": "The ultimate email debugging tool"
         },
         "asar": true
     },
