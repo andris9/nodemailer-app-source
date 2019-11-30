@@ -135,15 +135,6 @@
                         },
                         "prerelease": false
                     }
-                },
-                {
-                    "name": "@electron-forge/publisher-snapcraft",
-                    "platforms": [
-                        "linux"
-                    ],
-                    "config": {
-                        "release": "stable"
-                    }
                 }
             ]
         }
