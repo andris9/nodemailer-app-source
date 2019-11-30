@@ -31,6 +31,7 @@ coverage
 .lock-wscript
 
 build/
+builds/
 
 sendmail
 sendmail.exe
@@ -92,4 +93,3 @@ typings/
 out/
 
 .snapcraft
-!build/icons/*
