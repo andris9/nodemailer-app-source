@@ -149,7 +149,8 @@
             "summary": "The ultimate email debugging tool"
         },
         "linux": {
-            "category": "Network"
+            "category": "Network",
+            "icon": "./src/icons/png/256x256.png"
         },
         "asar": true
     },
