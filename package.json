@@ -13,6 +13,7 @@
         "sendmail": "rimraf ./sendmail && nexe sendmail.js --ico=./src/icons/win/icon.ico",
         "sendmail-linux": "mkdirp builds && rimraf builds/sendmail && nexe sendmail.js --target=linux-x64 --output=builds/sendmail",
         "sendmail-windows": "mkdirp builds && rimraf builds/sendmail.exe && nexe sendmail.js --build --ico=./src/icons/win/icon.ico --target=win32-x86_x64 --output=builds/sendmail",
+        "dist": "electron-builder build --linux snap",
         "test": "grunt"
     },
     "keywords": [],
@@ -182,6 +183,7 @@
         "@electron-forge/publisher-snapcraft": "6.0.0-beta.45",
         "dotenv": "8.2.0",
         "electron": "7.1.2",
+        "electron-builder": "21.2.0",
         "electron-notarize": "0.2.1",
         "eslint": "6.7.1",
         "eslint-config-nodemailer": "1.2.0",
