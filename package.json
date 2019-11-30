@@ -148,6 +148,9 @@
             "assumes": "browserSandbox",
             "summary": "The ultimate email debugging tool"
         },
+        "linux": {
+            "category": "Network"
+        },
         "asar": true
     },
     "dependencies": {
