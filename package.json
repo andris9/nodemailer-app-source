@@ -144,7 +144,7 @@
         "appId": "com.kreata.nodemailer",
         "copyright": "© 2019 Andris Reinman",
         "snap": {
-            "confinement": "classic",
+            "confinement": "strict",
             "summary": "The ultimate email debugging tool"
         },
         "linux": {
