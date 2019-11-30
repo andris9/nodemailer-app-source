@@ -116,7 +116,7 @@
 
             if (promptOptions.query && dataFieldElm.name in promptOptions.query) {
                 if (/^select$/i.test(dataFieldElm.tagName)) {
-                    if (promptOptions.selectOptions[dataFieldElm.name]) {
+                    if (promptOptions.selectOptions && promptOptions.selectOptions[dataFieldElm.name]) {
                         // populate select options
                         dataFieldElm.innerHTML = '';
                         let groups = new Map();

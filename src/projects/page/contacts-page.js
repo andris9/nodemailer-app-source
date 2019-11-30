@@ -8,7 +8,7 @@
 
     class ContactsPage {
         constructor() {
-            this.buttonGroupElms = Array.from(document.querySelectorAll('.contacts-button-group'));
+            this.componentElms = Array.from(document.querySelectorAll('.contacts-component'));
             this.pageElm = document.getElementById('page-contacts');
             this.pageMenuElm = document.getElementById('page-menu-contacts');
 
@@ -39,7 +39,7 @@
         }
 
         async show() {
-            this.buttonGroupElms.forEach(elm => elm.classList.remove('hidden'));
+            this.componentElms.forEach(elm => elm.classList.remove('hidden'));
             this.pageElm.classList.remove('hidden');
             this.pageMenuElm.classList.add('active');
             this.visible = true;
@@ -57,7 +57,7 @@
         }
 
         async hide() {
-            this.buttonGroupElms.forEach(elm => elm.classList.add('hidden'));
+            this.componentElms.forEach(elm => elm.classList.add('hidden'));
             this.pageElm.classList.add('hidden');
             this.pageMenuElm.classList.remove('active');
             this.visible = false;
@@ -145,13 +145,27 @@
             await hideLoader();
         }
 
+        find() {
+            this.search().catch(() => false);
+        }
+
         async search() {
-            let term = await exec({
-                command: 'searchContacts',
-                params: {
-                    term: this.term || ''
-                }
-            });
+            if (this.searchPending) {
+                return;
+            }
+            this.searchPending = true;
+            let term;
+            try {
+                term = await exec({
+                    command: 'searchContacts',
+                    params: {
+                        term: this.term || ''
+                    }
+                });
+            } finally {
+                this.searchPending = false;
+            }
+
             term = (term || '').trim();
             if (term) {
                 this.term = term;

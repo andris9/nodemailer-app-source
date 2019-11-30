@@ -111,7 +111,7 @@
 
     class EmailsPage {
         constructor() {
-            this.buttonGroupElms = Array.from(document.querySelectorAll('.emails-component'));
+            this.componentElms = Array.from(document.querySelectorAll('.emails-component'));
             this.pageElm = document.getElementById('page-emails');
             this.pageMenuElm = document.getElementById('page-menu-emails');
 
@@ -655,7 +655,7 @@
         }
 
         async show() {
-            this.buttonGroupElms.forEach(elm => elm.classList.remove('hidden'));
+            this.componentElms.forEach(elm => elm.classList.remove('hidden'));
             this.pageElm.classList.remove('hidden');
             this.pageMenuElm.classList.add('active');
 
@@ -677,7 +677,7 @@
         }
 
         async hide() {
-            this.buttonGroupElms.forEach(elm => elm.classList.add('hidden'));
+            this.componentElms.forEach(elm => elm.classList.add('hidden'));
             this.pageElm.classList.add('hidden');
             this.pageMenuElm.classList.remove('active');
             this.visible = false;
@@ -863,10 +863,19 @@
 
         async search(search, term) {
             if (!search) {
-                let terms = await exec({
-                    command: 'searchEmails',
-                    params: this.fromSearchQuery(this.query) || {}
-                });
+                if (this.searchPending) {
+                    return;
+                }
+                this.searchPending = true;
+                let terms;
+                try {
+                    terms = await exec({
+                        command: 'searchEmails',
+                        params: this.fromSearchQuery(this.query) || {}
+                    });
+                } finally {
+                    this.searchPending = false;
+                }
 
                 search = this.toSearchQuery(terms);
 
@@ -957,6 +966,10 @@
                 )
                 .catch(() => false)
                 .finally(() => hideLoader());
+        }
+
+        find() {
+            this.search().catch(() => false);
         }
 
         async init() {

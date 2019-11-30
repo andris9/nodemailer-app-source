@@ -43,7 +43,8 @@ window.events = {
         'server-status',
         'message-received',
         'log',
-        'preferences'
+        'preferences',
+        'find'
     ].forEach(channel => {
         ipcRenderer.on(channel, (event, arg) => {
             let payload;

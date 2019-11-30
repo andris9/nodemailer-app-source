@@ -185,3 +185,15 @@ hr {
     font-size: 16px;
     color: #9f9f9f;
 }
+
+.toolbar-block {
+    position: relative;
+    display: inline-block;
+    vertical-align: middle;
+    -webkit-app-region: no-drag;
+}
+
+.toolbar-block .btn {
+    position: relative;
+    float: left;
+}

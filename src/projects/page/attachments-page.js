@@ -9,7 +9,7 @@
 
     class AttachmentsPage {
         constructor() {
-            this.buttonGroupElms = Array.from(document.querySelectorAll('.attachments-component'));
+            this.componentElms = Array.from(document.querySelectorAll('.attachments-component'));
             this.pageElm = document.getElementById('page-attachments');
             this.pageMenuElm = document.getElementById('page-menu-attachments');
 
@@ -43,7 +43,7 @@
         }
 
         async show() {
-            this.buttonGroupElms.forEach(elm => elm.classList.remove('hidden'));
+            this.componentElms.forEach(elm => elm.classList.remove('hidden'));
             this.pageElm.classList.remove('hidden');
             this.pageMenuElm.classList.add('active');
 
@@ -65,7 +65,7 @@
         }
 
         async hide() {
-            this.buttonGroupElms.forEach(elm => elm.classList.add('hidden'));
+            this.componentElms.forEach(elm => elm.classList.add('hidden'));
             this.pageElm.classList.add('hidden');
             this.pageMenuElm.classList.remove('active');
             this.visible = false;
@@ -355,6 +355,7 @@
         }
 
         fromSearchQuery(query) {
+            query = query || {};
             return {
                 'email-content': query.term || '',
                 'email-date-end': this.toLocaleDate(query.date && query.date.end),
@@ -469,12 +470,25 @@
             return query;
         }
 
+        find() {
+            this.search().catch(() => false);
+        }
+
         async search(search, term) {
             if (!search) {
-                let terms = await exec({
-                    command: 'searchAttachments',
-                    params: this.fromSearchQuery(this.query) || {}
-                });
+                if (this.searchPending) {
+                    return;
+                }
+                this.searchPending = true;
+                let terms;
+                try {
+                    terms = await exec({
+                        command: 'searchAttachments',
+                        params: this.fromSearchQuery(this.query) || {}
+                    });
+                } finally {
+                    this.searchPending = false;
+                }
 
                 search = this.toSearchQuery(terms);
 

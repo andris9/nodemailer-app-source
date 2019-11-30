@@ -15,7 +15,7 @@
             this.importListElm = document.getElementById('import-list');
             this.rows = [];
 
-            this.buttonGroupElms = Array.from(document.querySelectorAll('.import-button-group'));
+            this.componentElms = Array.from(document.querySelectorAll('.import-button-group'));
             this.pageElm = document.getElementById('page-imports');
             this.pageMenuElm = document.getElementById('page-menu-imports');
 
@@ -52,7 +52,7 @@
         }
 
         async show() {
-            this.buttonGroupElms.forEach(elm => elm.classList.remove('hidden'));
+            this.componentElms.forEach(elm => elm.classList.remove('hidden'));
             this.pageElm.classList.remove('hidden');
             this.pageMenuElm.classList.add('active');
             this.visible = true;
@@ -61,7 +61,7 @@
         }
 
         async hide() {
-            this.buttonGroupElms.forEach(elm => elm.classList.add('hidden'));
+            this.componentElms.forEach(elm => elm.classList.add('hidden'));
             this.pageElm.classList.add('hidden');
             this.pageMenuElm.classList.remove('active');
             this.visible = false;

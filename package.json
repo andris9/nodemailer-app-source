@@ -2,7 +2,7 @@
     "name": "NodemailerApp",
     "private": true,
     "productName": "NodemailerApp",
-    "version": "1.0.8",
+    "version": "1.0.9",
     "description": "The ultimate email debugging tool",
     "main": "src/index.js",
     "scripts": {
@@ -97,8 +97,8 @@
                     ],
                     "config": {
                         "options": {
-                            "maintainer": "Joe Bloggs",
-                            "homepage": "https://example.com"
+                            "maintainer": "Andris Reinman",
+                            "homepage": "https://nodemailer.com"
                         }
                     }
                 },
@@ -112,8 +112,9 @@
                             "browserSandbox": true
                         },
                         "summary": "The ultimate email debugging tool",
-                        "icon": "./src/icons/png/512x512.png"
-                    }
+                        "icon": "./src/icons/png/256x256.png"
+                    },
+                    "icon": "./src/icons/png/256x256.png"
                 }
             ],
             "publishers": [

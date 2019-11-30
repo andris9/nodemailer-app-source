@@ -23,13 +23,16 @@
 
                     <!-- contacts -->
 
-                    <div class="btn-group hidden contacts-button-group">
+                    <div class="btn-group hidden contacts-component">
                         <button class="btn btn-default" id="contacts-reload">
                             <span class="icon icon-ccw"></span>
                         </button>
                         <button class="btn btn-default" id="contacts-search">
                             <span class="icon icon-search"></span>
                         </button>
+                    </div>
+
+                    <div class="toolbar-block hidden emails-component">
                         <button class="btn btn-default hidden" id="contacts-search-clear">
                             Clear Search
                         </button>
@@ -44,6 +47,9 @@
                         <button class="btn btn-default" id="attachments-search">
                             <span class="icon icon-search"></span>
                         </button>
+                    </div>
+
+                    <div class="toolbar-block hidden emails-component">
                         <button class="btn btn-default hidden" id="attachments-search-clear">
                             Clear Search
                         </button>
@@ -58,6 +64,9 @@
                         <button class="btn btn-default" id="emails-search">
                             <span class="icon icon-search"></span>
                         </button>
+                    </div>
+
+                    <div class="toolbar-block hidden emails-component">
                         <button class="btn btn-default hidden" id="emails-search-clear">
                             Clear Search
                         </button>
@@ -71,7 +80,7 @@
 
                     <!-- contacts -->
 
-                    <div class="btn-group hidden contacts-button-group pull-right">
+                    <div class="btn-group hidden contacts-component pull-right">
                         <button class="btn btn-default" id="contacts-page-prev">
                             <span class="icon icon-left-circled"></span>
                         </button>
@@ -80,12 +89,12 @@
                         </button>
                     </div>
 
-                    <div class="hidden contacts-button-group pull-right toolbar-text">
+                    <div class="hidden contacts-component pull-right toolbar-text">
                         Page <span id="contacts-page-nr">0</span> of
                         <span id="contacts-page-total">0</span>
                     </div>
 
-                    <div class=" pull-right hidden contacts-button-group">
+                    <div class=" pull-right hidden contacts-component">
                         <div id="contacts-search-block" class="pull-right hidden toolbar-text" style="margin-right:5px;">
                             Searching for "<span id="contacts-search-term"></span>."
                         </div>
@@ -129,7 +138,7 @@
                         <span id="emails-page-total">0</span>
                     </div>
 
-                    <div class=" pull-right hidden emails-component">
+                    <div class="pull-right hidden emails-component">
                         <div id="emails-search-block" class="pull-right hidden toolbar-text" style="margin-right:5px;">
                             Searching for <span id="emails-search-term"></span>.
                         </div>

@@ -145,10 +145,16 @@
         selectable.update(elements);
     };
 
+    let serverStatus = {
+        running: false
+    };
+
     let main = async () => {
         let projects = await exec({
             command: 'listProjects'
         });
+
+        let iconElm = document.getElementById('server-toggle-btn').querySelector('.icon');
 
         let container = document.getElementById('project-list');
         projects.data.forEach(projectData => {
@@ -168,26 +174,27 @@
             return redrawList();
         });
 
-        window.events.subscribe('server-status', serverStatus => {
-            if (serverStatus.running) {
-                document.getElementById('server-start-btn').classList.add('hidden');
-                document.getElementById('server-stop-btn').classList.remove('hidden');
-            } else {
-                document.getElementById('server-start-btn').classList.remove('hidden');
-                document.getElementById('server-stop-btn').classList.add('hidden');
-            }
-        });
-
-        let serverStatus = await exec({
+        serverStatus = await exec({
             command: 'serverStatus'
         });
 
-        if (!serverStatus || !serverStatus.running) {
-            document.getElementById('server-start-btn').classList.remove('hidden');
-            document.getElementById('server-stop-btn').classList.add('hidden');
+        window.events.subscribe('server-status', update => {
+            serverStatus = update;
+            if (serverStatus.running) {
+                iconElm.classList.remove('icon-play');
+                iconElm.classList.add('icon-stop');
+            } else {
+                iconElm.classList.add('icon-play');
+                iconElm.classList.remove('icon-stop');
+            }
+        });
+
+        if (serverStatus.running) {
+            iconElm.classList.remove('icon-play');
+            iconElm.classList.add('icon-stop');
         } else {
-            document.getElementById('server-start-btn').classList.add('hidden');
-            document.getElementById('server-stop-btn').classList.remove('hidden');
+            iconElm.classList.add('icon-play');
+            iconElm.classList.remove('icon-stop');
         }
 
         window.events.subscribe('focus-change', data => {
@@ -302,27 +309,15 @@
             });
     });
 
-    let serverStartBtn = document.getElementById('server-start-btn');
+    let serverStartBtn = document.getElementById('server-toggle-btn');
     serverStartBtn.addEventListener('click', () => {
         serverStartBtn.classList.add('active');
         exec({
-            command: 'serverStart'
+            command: serverStatus.running ? 'serverStop' : 'serverStart'
         })
             .catch(() => false)
             .finally(() => {
                 serverStartBtn.classList.remove('active');
-            });
-    });
-
-    let serverStopBtn = document.getElementById('server-stop-btn');
-    serverStopBtn.addEventListener('click', () => {
-        serverStopBtn.classList.add('active');
-        exec({
-            command: 'serverStop'
-        })
-            .catch(() => false)
-            .finally(() => {
-                serverStopBtn.classList.remove('active');
             });
     });
 
@@ -361,6 +356,11 @@
 
     searchElm.addEventListener('change', onSearchChange);
     searchElm.addEventListener('keyup', onSearchChange);
+
+    window.events.subscribe('find', () => {
+        searchElm.focus();
+        searchElm.select();
+    });
 
     deleteActiveBtn.addEventListener('click', () => {
         deleteActiveBtn.classList.add('active');

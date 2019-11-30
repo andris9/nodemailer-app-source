@@ -88,7 +88,7 @@ const createWindow = () => {
             nodeIntegration: true
         },
 
-        icon: pathlib.join(__dirname, 'icons/png/512x512.png')
+        icon: pathlib.join(__dirname, 'icons/png/256x256.png')
     });
     projects.mainWindow = mainWindow;
     projects.touchBar = touchBar;
@@ -203,6 +203,7 @@ app.on('will-quit', () => {
 const newProjectMenuItem = {
     id: 'new-project',
     label: 'New Project…',
+    accelerator: 'CmdOrCtrl+N',
     click: async () => {
         mainWindow.webContents.focus();
         try {
@@ -252,6 +253,7 @@ const renameProjectMenuItem = {
 const deleteProjectMenuItem = {
     id: 'delete-project',
     label: 'Delete Project',
+    accelerator: 'CmdOrCtrl+Backspace',
     enabled: false,
     click: () => {
         let focused = BrowserWindow.getFocusedWindow();
@@ -269,6 +271,7 @@ const deleteProjectMenuItem = {
 const importMenuItem = {
     id: 'import-files',
     label: 'From email files…',
+    accelerator: 'CmdOrCtrl+O',
     enabled: false,
     click: () => {
         let focused = BrowserWindow.getFocusedWindow();
@@ -398,6 +401,7 @@ const serverConfigureMenuItem = {
 const preferencesMenuItem = {
     id: 'server-configure',
     label: 'Preferences',
+    accelerator: 'CmdOrCtrl+,',
     enabled: true,
     click: async () => {
         mainWindow.webContents.focus();
@@ -422,7 +426,7 @@ const aboutMenuItem = {
     enabled: true,
     click: async () => {
         openAboutWindow({
-            icon_path: pathlib.join(__dirname, 'icons/png/512x512.png'),
+            icon_path: pathlib.join(__dirname, 'icons/png/256x256.png'),
             use_inner_html: true,
             copyright:
                 '<div style="text-align: center">Copyright &copy; 2019 Andris Reinman<br>Licensed for non-commercial use<br/><br>The Nodemailer logo was designed by <a href="https://www.behance.net/kristjansen"  class="link">Sven Kristjansen</a></div>',
@@ -433,6 +437,23 @@ const aboutMenuItem = {
             license: 'Free for personal usage',
             adjust_window_size: true
         });
+    }
+};
+
+const findMenuItem = {
+    id: 'find',
+    label: 'Find…',
+    accelerator: 'CmdOrCtrl+F',
+    enabled: true,
+    click: () => {
+        let focused = BrowserWindow.getFocusedWindow();
+        focused &&
+            focused.webContents.send(
+                'find',
+                JSON.stringify({
+                    id: 'static'
+                })
+            );
     }
 };
 
@@ -481,6 +502,8 @@ const template = [
     {
         label: 'Edit',
         submenu: [
+            findMenuItem,
+            { type: 'separator' },
             { role: 'undo' },
             { role: 'redo' },
             { type: 'separator' },
