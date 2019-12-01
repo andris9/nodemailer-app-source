@@ -5,7 +5,7 @@ const cli = require('./src/cli/cli');
 
 const APPNAME = 'NodemailerApp';
 cli({
-    quit() {
+    exit() {
         process.exit();
     },
     getPath() {

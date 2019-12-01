@@ -658,6 +658,11 @@ ipcMain.on('navigate', (event, url) => {
 });
 
 function prepare(next) {
+    if (cli(app)) {
+        // cli process, do not invoke windows
+        return;
+    }
+
     if (projects) {
         return next();
     }

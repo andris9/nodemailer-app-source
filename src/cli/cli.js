@@ -306,19 +306,19 @@ function processStdin(app, opts) {
                 } else {
                     console.log(`Message queued as ${fname}`);
                 }
-                app.quit();
+                app.exit();
             });
         });
     }
 
     target.on('error', err => {
         console.error(err.stack);
-        app.quit();
+        app.exit();
     });
 
     process.stdin.on('error', err => {
         console.error(err.stack);
-        app.quit();
+        app.exit();
     });
 
     process.stdin
