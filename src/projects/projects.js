@@ -262,9 +262,7 @@ class Projects {
             };
 
             try {
-                console.log(`watch ${this.sendmailPaths.queue}`);
                 chokidar.watch(this.sendmailPaths.queue).on('add', path => {
-                    console.log('chikidar event', path);
                     handleFile('add', path).catch(err => console.error(err));
                 });
             } catch (err) {

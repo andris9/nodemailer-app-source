@@ -15,7 +15,7 @@
             this.importListElm = document.getElementById('import-list');
             this.rows = [];
 
-            this.componentElms = Array.from(document.querySelectorAll('.import-button-group'));
+            this.componentElms = Array.from(document.querySelectorAll('.import-component'));
             this.pageElm = document.getElementById('page-imports');
             this.pageMenuElm = document.getElementById('page-menu-imports');
 
