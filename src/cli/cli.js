@@ -211,6 +211,8 @@ function processStdin(app, opts) {
     let dataPath = pathlib.join(app.getPath('userData'), 'maildrop', 'data');
     let queuePath = pathlib.join(app.getPath('userData'), 'maildrop', 'queue');
 
+    console.log(dataPath);
+
     let envelope = {
         mailFrom: opts.fromAddress || `${USERNAME}@${HOSTNAME}`,
         rcptTo: opts.recipients || [],
