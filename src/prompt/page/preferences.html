@@ -27,7 +27,7 @@
                             Local Server
                         </div>
                         <div id="preferences-catchall" class="tab-item">
-                            Catchall Email
+                            Catchall
                         </div>
                     </div>
 
@@ -39,43 +39,48 @@
                                 <div class="checkbox">
                                     <label>
                                         <input class="prompt-field" type="checkbox" name="catchall:enabled" id="data-catchall:enabled" />
-                                        Enable catchall address
+                                        Enable catchall server
                                     </label>
                                 </div>
 
-                                <div class="form-group">
-                                    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
-                                        <div style="padding: 0px 10px 0 0">
-                                            <label id="label-catchall:project" for="data-catchall:project">Target project</label>
-                                        </div>
-                                        <div>
-                                            <select class="form-control prompt-field" id="data-catchall:project" name="catchall:project"> </select>
-                                        </div>
-                                    </div>
-                                    <div><small>Where to store emails received from catchall domain?</small></div>
-                                </div>
+                                <p>Use catchall server to receive emails from the internet. Any email sent to your catchall domain name will be routed here.</p>
 
-                                <div class="form-group">
-                                    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
-                                        <div style="padding: 0px 10px 0 0">
-                                            <label id="label-catchall:domain" for="data-catchall:domain">Domain name</label>
+                                <div class="can-use-catchall hidden">
+                                    <div class="form-group">
+                                        <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                                            <div style="padding: 0px 10px 0 0">
+                                                <label id="label-catchall:project" for="data-catchall:project">Target project</label>
+                                            </div>
+                                            <div>
+                                                <select class="form-control prompt-field" id="data-catchall:project" name="catchall:project"> </select>
+                                            </div>
+                                        </div>
+                                        <div><small>Where to store emails received from catchall domain?</small></div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                                            <div style="padding: 0px 10px 0 0">
+                                                <label id="label-catchall:domain" for="data-catchall:domain">Domain name</label>
+                                            </div>
+                                            <div>
+                                                <input
+                                                    type="text"
+                                                    class="form-control prompt-field"
+                                                    name="catchall:domain"
+                                                    id="data-catchall:domain"
+                                                    style="max-width: 160px;"
+                                                    readonly disabled
+                                                />
+                                            </div>
                                         </div>
                                         <div>
-                                            <input
-                                                type="text"
-                                                class="form-control prompt-field"
-                                                name="catchall:domain"
-                                                id="data-catchall:domain"
-                                                style="max-width: 160px;"
-                                                readonly
-                                            />
+                                            <small
+                                                >Emails sent to <em class="text-select">anyuser@<span class="value-catchall_domain text-select"></span></em> will be routed to target project.
+                                                
                                         </div>
                                     </div>
-                                    <div>
-                                        <small
-                                            >Emails sent to <em class="text-select">anyuser@<span class="value-catchall_domain text-select"></span></em> will be catched and routed here.
-                                            
-                                    </div>
+
                                 </div>
                             </div>
                         </div>
@@ -355,6 +360,7 @@
             </footer>
         </div>
 
+        <script src="../../js/renderer.js" charset="utf-8"></script>
         <script src="../../js/tabs.js" charset="utf-8"></script>
         <script src="page.js"></script>
         <script src="preferences.js"></script>

@@ -2,7 +2,7 @@
 // Licensed under MIT by p-sam
 
 /* eslint global-require:0 */
-/* global window, document, alert */
+/* global window, document, alert, exec, showLoader, hideLoader */
 'use strict';
 
 (() => {
@@ -106,6 +106,30 @@
         document.querySelector('#ok').addEventListener('click', () => promptSubmit());
         document.querySelector('#cancel').addEventListener('click', () => promptCancel());
 
+        let renderSelectBox = dataFieldElm => {
+            dataFieldElm.innerHTML = '';
+            let groups = new Map();
+            for (let j = 0; j < promptOptions.selectOptions[dataFieldElm.name].length; j++) {
+                let opt = promptOptions.selectOptions[dataFieldElm.name][j];
+                let elm = document.createElement('option');
+                elm.value = opt.value.toString();
+                elm.textContent = opt.title;
+
+                if (opt.group) {
+                    let groupElm = groups.get(opt.group);
+                    if (!groupElm) {
+                        groupElm = document.createElement('optgroup');
+                        groupElm.label = opt.group;
+                        groups.set(opt.group, groupElm);
+                        dataFieldElm.appendChild(groupElm);
+                    }
+                    groupElm.appendChild(elm);
+                } else {
+                    dataFieldElm.appendChild(elm);
+                }
+            }
+        };
+
         let dataFieldElms = document.querySelectorAll('.prompt-field');
         for (let i = 0; i < dataFieldElms.length; i++) {
             let dataFieldElm = dataFieldElms[i];
@@ -123,27 +147,7 @@
                 if (/^select$/i.test(dataFieldElm.tagName)) {
                     if (promptOptions.selectOptions && promptOptions.selectOptions[dataFieldElm.name]) {
                         // populate select options
-                        dataFieldElm.innerHTML = '';
-                        let groups = new Map();
-                        for (let j = 0; j < promptOptions.selectOptions[dataFieldElm.name].length; j++) {
-                            let opt = promptOptions.selectOptions[dataFieldElm.name][j];
-                            let elm = document.createElement('option');
-                            elm.value = opt.value.toString();
-                            elm.textContent = opt.title;
-
-                            if (opt.group) {
-                                let groupElm = groups.get(opt.group);
-                                if (!groupElm) {
-                                    groupElm = document.createElement('optgroup');
-                                    groupElm.label = opt.group;
-                                    groups.set(opt.group, groupElm);
-                                    dataFieldElm.appendChild(groupElm);
-                                }
-                                groupElm.appendChild(elm);
-                            } else {
-                                dataFieldElm.appendChild(elm);
-                            }
-                        }
+                        renderSelectBox(dataFieldElm);
                     }
                     for (let j = 0; j < dataFieldElm.options.length; j++) {
                         if (dataFieldElm.options[j] && dataFieldElm.options[j].value === promptOptions.query[dataFieldElm.name].toString()) {
@@ -165,7 +169,6 @@
         }
 
         Object.keys(promptOptions.query || {}).forEach(key => {
-            console.log(key);
             try {
                 let elms = document.querySelectorAll('.value-' + key.replace(/:/g, '_'));
                 for (let i = 0; i < elms.length; i++) {
@@ -181,6 +184,64 @@
                 console.error(err);
             }
         });
+
+        let catchAllEnabledElm = document.getElementById('data-catchall:enabled');
+
+        let list = document.querySelectorAll('.can-use-catchall');
+        let displayCatchall = () => {
+            for (let elm of list) {
+                if (promptOptions.query['catchall:domain']) {
+                    elm.classList.remove('hidden');
+                } else {
+                    elm.classList.add('hidden');
+                }
+            }
+        };
+
+        let checkingCatchall = false;
+        let checkCatchallStatus = async () => {
+            if (promptOptions.query['catchall:domain']) {
+                return displayCatchall();
+            }
+
+            if (checkingCatchall || !catchAllEnabledElm.checked) {
+                return;
+            }
+            checkingCatchall = true;
+
+            // no domain set, have to request for new
+            await showLoader();
+            try {
+                let catchallConfig = await exec({
+                    command: 'setupCatchall'
+                });
+
+                if (catchallConfig) {
+                    if (catchallConfig.domain) {
+                        promptOptions.query['catchall:domain'] = catchallConfig.domain;
+                    }
+
+                    // update field values
+                    document.getElementById('data-catchall:domain').value = catchallConfig.domain;
+
+                    for (let elm of document.querySelectorAll('.value-catchall_domain')) {
+                        elm.textContent = catchallConfig.domain;
+                    }
+
+                    renderSelectBox(document.getElementById('data-catchall:project'));
+
+                    return displayCatchall();
+                }
+            } finally {
+                await hideLoader();
+                checkingCatchall = false;
+            }
+        };
+
+        catchAllEnabledElm.addEventListener('click', () => checkCatchallStatus().catch(err => console.error(err)));
+        catchAllEnabledElm.addEventListener('change', () => checkCatchallStatus().catch(err => console.error(err)));
+
+        displayCatchall();
 
         if (typeof window.afterReady === 'function') {
             window.afterReady();

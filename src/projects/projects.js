@@ -600,10 +600,8 @@ class Projects {
         await this.enableCatchall();
     }
 
-    async enableCatchall() {
+    async setupCatchall() {
         let catchallConfig = await this.getCatchallConfig();
-        let hasUpdates = false;
-
         if (!catchallConfig.account || !catchallConfig.secret) {
             // try to get an account
             let secret = [0, 0].map(() => parseInt(crypto.randomBytes(7).toString('hex'), 16).toString(36)).join('');
@@ -623,21 +621,23 @@ class Projects {
                 }
             }).then(res => res.json());
             if (!info.account || !info.domain) {
-                throw new Error('Failed to get catchall address');
+                throw new Error('Failed to acquire catchall address');
             }
 
             catchallConfig.account = info.account;
             catchallConfig.domain = info.domain;
             catchallConfig.secret = secret;
-            hasUpdates = true;
+
+            await this.setCatchallConfig(catchallConfig, true);
         }
+        return catchallConfig;
+    }
+
+    async enableCatchall() {
+        let catchallConfig = await this.setupCatchall();
 
         if (!catchallConfig.enabled) {
             catchallConfig.enabled = true;
-            hasUpdates = true;
-        }
-
-        if (hasUpdates) {
             await this.setCatchallConfig(catchallConfig, true);
         }
 
@@ -672,7 +672,7 @@ class Projects {
         });
 
         this.es.addEventListener('email', ev => {
-            this.receiveEmail(catchallConfig, ev).catch(err => console.error(err));
+            this.receiveEmail(ev).catch(err => console.error(err));
         });
     }
 
@@ -696,7 +696,9 @@ class Projects {
         }
     }
 
-    async receiveEmail(catchallConfig, ev) {
+    async receiveEmail(ev) {
+        let catchallConfig = await this.setupCatchall();
+
         if (ev.lastEventId) {
             await this.setPreference('catchall', 'lastEventId', ev.lastEventId);
         }

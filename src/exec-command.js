@@ -772,7 +772,7 @@ async function preferences(curWin, projects, analyzer, params) {
             pagename: 'preferences',
 
             width: 450,
-            height: 330
+            height: 360
         },
         curWin
     );
@@ -1077,6 +1077,10 @@ async function runUploadEmail(curWin, projects, analyzer, params) {
     return uploader(curWin, projects, analyzer, params);
 }
 
+async function setupCatchall(curWin, projects) {
+    return await projects.setupCatchall();
+}
+
 module.exports = async (curWin, projects, analyzer, data, menu) => {
     switch (data.command) {
         case 'listProjects':
@@ -1192,6 +1196,9 @@ module.exports = async (curWin, projects, analyzer, data, menu) => {
 
         case 'progress':
             return await progress(curWin, projects, analyzer, data.params);
+
+        case 'setupCatchall':
+            return await setupCatchall(curWin, projects, analyzer, data.params);
 
         default:
             throw new Error('Unknown command ' + JSON.stringify(data));

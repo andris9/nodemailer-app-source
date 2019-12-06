@@ -10,7 +10,7 @@ const ipcMain = electron.ipcMain || electron.remote.ipcMain;
 const url = require('url');
 const pathlib = require('path');
 
-const DEFAULT_WIDTH = 470;
+const DEFAULT_WIDTH = 370;
 const DEFAULT_HEIGHT = 160;
 
 function electronPrompt(options, parentWindow) {
@@ -53,7 +53,7 @@ function electronPrompt(options, parentWindow) {
             parent: parentWindow,
             skipTaskbar: true,
             alwaysOnTop: opts.alwaysOnTop,
-            // useContentSize: opts.resizable,
+            useContentSize: opts.resizable,
             modal: Boolean(parentWindow),
             title: opts.title,
 

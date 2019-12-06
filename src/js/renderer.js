@@ -185,4 +185,30 @@ window.events = {
 
         run(arg).catch(err => console.error(err));
     });
+
+    let loaderQueue = 0;
+    let loaderElm = document.createElement('div');
+    loaderElm.classList.add('loader');
+
+    async function showLoader() {
+        loaderQueue++;
+        if (loaderQueue === 1) {
+            // show loader
+            document.body.appendChild(loaderElm);
+        }
+    }
+    window.showLoader = showLoader;
+
+    async function hideLoader() {
+        loaderQueue--;
+        if (loaderQueue < 0) {
+            loaderQueue = 0;
+        }
+        if (!loaderQueue) {
+            // clear loader
+            document.body.removeChild(loaderElm);
+        }
+    }
+
+    window.hideLoader = hideLoader;
 })();
