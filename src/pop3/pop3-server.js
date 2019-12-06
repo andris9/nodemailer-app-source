@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const shared = require('nodemailer/lib/shared');
 const POP3Connection = require('./connection');
 const punycode = require('punycode');
-const packageData = require('../../package.json');
+const packageData = require('../meta.json');
 const base32 = require('base32.js');
 
 const CLOSE_TIMEOUT = 1 * 1000; // how much to wait until pending connections are terminated

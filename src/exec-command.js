@@ -18,6 +18,7 @@ const recursiveReaddir = require('recursive-readdir');
 const zlib = require('zlib');
 const upload = require('./upload/upload.js');
 const uploader = require('./upload/uploader.js');
+const viewSource = require('./view-source/view-source.js');
 
 const PAGE_SIZE = 30;
 
@@ -758,6 +759,9 @@ async function preferences(curWin, projects, analyzer, params) {
             selectOptions: {
                 'server:default-project': [{ value: 0, title: '–– Not set ––' }].concat(
                     (await projects.list()).map(pr => ({ value: pr.id, title: pr.name, group: 'Existing Projects:' }))
+                ),
+                'catchall:project': [{ value: 0, title: '–– Not set ––' }].concat(
+                    (await projects.list()).map(pr => ({ value: pr.id, title: pr.name, group: 'Existing Projects:' }))
                 )
             },
 
@@ -767,7 +771,7 @@ async function preferences(curWin, projects, analyzer, params) {
 
             pagename: 'preferences',
 
-            width: 400,
+            width: 450,
             height: 330
         },
         curWin
@@ -970,6 +974,10 @@ async function getAttachment(curWin, projects, analyzer, params) {
     return await analyzer.getAttachmentBufferByCid(params.email, params.cid);
 }
 
+async function emailSource(curWin, projects, analyzer, params) {
+    return ((await analyzer.getMessageBuffer(params.id)) || false).toString();
+}
+
 async function saveEmail(curWin, projects, analyzer, params) {
     let fileName = params.filename
         // eslint-disable-next-line no-control-regex
@@ -989,6 +997,10 @@ async function saveEmail(curWin, projects, analyzer, params) {
     }
 
     await analyzer.saveEmail(params.email, res.filePath);
+}
+
+async function showViewSource(curWin, projects, analyzer, params) {
+    return viewSource(params.email, curWin, projects, analyzer);
 }
 
 async function uploadEmail(curWin, projects, analyzer, params) {
@@ -1171,6 +1183,12 @@ module.exports = async (curWin, projects, analyzer, data, menu) => {
 
         case 'runUploadEmail':
             return await runUploadEmail(curWin, projects, analyzer, data.params);
+
+        case 'emailSource':
+            return await emailSource(curWin, projects, analyzer, data.params);
+
+        case 'showViewSource':
+            return await showViewSource(curWin, projects, analyzer, data.params);
 
         case 'progress':
             return await progress(curWin, projects, analyzer, data.params);

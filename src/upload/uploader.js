@@ -1,7 +1,7 @@
 'use strict';
 
 const humanize = require('humanize');
-const packageData = require('../../package.json');
+const packageData = require('../meta.json');
 const BrowserBox = require('browserbox2');
 const nodemailer = require('nodemailer');
 const util = require('util');

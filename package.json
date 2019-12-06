@@ -163,6 +163,7 @@
         "chokidar": "3.3.0",
         "doc-ready": "1.0.4",
         "electron-squirrel-startup": "1.0.0",
+        "eventsource": "^1.0.7",
         "html-to-text": "5.1.1",
         "humanize": "0.0.9",
         "humanparser": "1.11.0",

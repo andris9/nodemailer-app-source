@@ -12,6 +12,16 @@ exec('git rev-parse HEAD', (err, stdout) => {
         console.error(err);
         return process.exit(1);
     }
+
+    fs.writeFileSync(
+        pathlib.join(__dirname, 'src', 'meta.json'),
+        JSON.stringify({
+            name: packageData.name,
+            version: packageData.version,
+            commit: (stdout || '').toString().trim()
+        })
+    );
+
     let hash = parseInt(
         (stdout || '')
             .toString()

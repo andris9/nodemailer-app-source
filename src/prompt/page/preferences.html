@@ -26,11 +26,60 @@
                         <div id="preferences-server" class="tab-item">
                             Local Server
                         </div>
+                        <div id="preferences-catchall" class="tab-item">
+                            Catchall Email
+                        </div>
                     </div>
 
                     <input type="hidden" id="active-tab" value="" />
 
                     <form id="form">
+                        <div id="preferences-catchall-content" class="padded-sides hidden">
+                            <div class="padded-more">
+                                <div class="checkbox">
+                                    <label>
+                                        <input class="prompt-field" type="checkbox" name="catchall:enabled" id="data-catchall:enabled" />
+                                        Enable catchall address
+                                    </label>
+                                </div>
+
+                                <div class="form-group">
+                                    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                                        <div style="padding: 0px 10px 0 0">
+                                            <label id="label-catchall:project" for="data-catchall:project">Target project</label>
+                                        </div>
+                                        <div>
+                                            <select class="form-control prompt-field" id="data-catchall:project" name="catchall:project"> </select>
+                                        </div>
+                                    </div>
+                                    <div><small>Where to store emails received from catchall domain?</small></div>
+                                </div>
+
+                                <div class="form-group">
+                                    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                                        <div style="padding: 0px 10px 0 0">
+                                            <label id="label-catchall:domain" for="data-catchall:domain">Domain name</label>
+                                        </div>
+                                        <div>
+                                            <input
+                                                type="text"
+                                                class="form-control prompt-field"
+                                                name="catchall:domain"
+                                                id="data-catchall:domain"
+                                                style="max-width: 160px;"
+                                                readonly
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <small
+                                            >Emails sent to <em class="text-select">anyuser@<span class="value-catchall_domain text-select"></span></em> will be catched and routed here.
+                                            
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div id="preferences-general-content" class="padded-sides hidden">
                             <div class="padded-more">
                                 <div class="checkbox">

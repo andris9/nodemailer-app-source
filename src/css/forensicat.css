@@ -180,6 +180,11 @@ hr {
     white-space: pre;
 }
 
+.view-source {
+    font-family: monospace;
+    white-space: pre;
+}
+
 .empty-ad {
     padding: 5px 20px;
     font-size: 16px;

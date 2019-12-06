@@ -11,6 +11,10 @@ const fs = require('fs').promises;
 const fsCreateReadStream = require('fs').createReadStream;
 const Analyzer = require('../analyzer/lib/analyzer.js');
 const chokidar = require('chokidar');
+const EventSource = require('eventsource');
+const crypto = require('crypto');
+const fetch = require('node-fetch');
+const packageData = require('../meta.json');
 
 const Server = require('../server/server.js');
 
@@ -270,6 +274,8 @@ class Projects {
                 // ignore?
             }
 
+            await this.checkCatchall();
+
             while (this.prepareQueue.length) {
                 let promise = this.prepareQueue.shift();
                 promise.resolve();
@@ -468,6 +474,7 @@ class Projects {
         preferences.imapJson.pass = preferences.imapJson.pass || '';
 
         preferences.server = await this.server.getConfig();
+        preferences.catchall = await this.getCatchallConfig();
 
         return preferences;
     }
@@ -477,6 +484,11 @@ class Projects {
         for (let key of Object.keys(preferences)) {
             if (key === 'server') {
                 await this.server.setConfig(preferences[key]);
+                continue;
+            }
+
+            if (key === 'catchall') {
+                await this.setCatchallConfig(preferences[key]);
                 continue;
             }
 
@@ -518,6 +530,249 @@ class Projects {
                     console.error(err);
                 }
             }
+        }
+    }
+
+    async getCatchallConfig() {
+        let catchallConfig = {
+            enabled: !!(await this.getPreference('catchall', 'enabled')),
+            domain: ((await this.getPreference('catchall', 'domain')) || '').toString(),
+            account: ((await this.getPreference('catchall', 'account')) || '').toString(),
+            secret: ((await this.getPreference('catchall', 'secret')) || '').toString(),
+            project: Number(await this.getPreference('catchall', 'project')) || 0,
+            lastEventId: ((await this.getPreference('catchall', 'lastEventId')) || '').toString()
+        };
+
+        return catchallConfig;
+    }
+
+    async setCatchallConfig(catchallConfig, skipEnableCheck) {
+        let oldCatchallEnabled = !!(await this.getPreference('catchall', 'enabled'));
+        for (let key of Object.keys(catchallConfig)) {
+            let lkey = 'catchall_' + key.replace(/[A-Z]/g, c => '_' + c.toLowerCase());
+
+            let value = catchallConfig[key];
+            if (typeof value === 'boolean') {
+                value = value ? '1' : null;
+            }
+
+            await this.sql.run(`INSERT INTO appmeta ([key], [value]) VALUES ($key, $value) ON CONFLICT([key]) DO UPDATE SET [value] = $value`, {
+                $key: lkey,
+                $value: value
+            });
+        }
+
+        if (!skipEnableCheck && !oldCatchallEnabled && catchallConfig.enabled) {
+            await this.enableCatchall();
+        } else if (!catchallConfig.enabled && this.es) {
+            try {
+                this.es.close();
+                this.es = null;
+            } catch (err) {
+                console.error(err);
+            }
+        }
+    }
+
+    async setPreference(prefix, key, value) {
+        if (typeof value === 'boolean') {
+            value = value ? '1' : null;
+        }
+        let lkey = `${prefix}_` + key.replace(/[A-Z]/g, c => '_' + c.toLowerCase());
+        await this.sql.run(`INSERT INTO appmeta ([key], [value]) VALUES ($key, $value) ON CONFLICT([key]) DO UPDATE SET [value] = $value`, {
+            $key: lkey,
+            $value: value
+        });
+    }
+
+    async getPreference(prefix, key) {
+        let lkey = `${prefix}_` + key.replace(/[A-Z]/g, c => '_' + c.toLowerCase());
+        let row = await this.sql.findOne('SELECT [value] FROM [appmeta] WHERE [key] = ?', [lkey]);
+        let value = row && row.value;
+        return value;
+    }
+
+    async checkCatchall() {
+        let catchallEnabled = !!(await this.getPreference('catchall', 'enabled'));
+        if (!catchallEnabled) {
+            return;
+        }
+        await this.enableCatchall();
+    }
+
+    async enableCatchall() {
+        let catchallConfig = await this.getCatchallConfig();
+        let hasUpdates = false;
+
+        if (!catchallConfig.account || !catchallConfig.secret) {
+            // try to get an account
+            let secret = [0, 0].map(() => parseInt(crypto.randomBytes(7).toString('hex'), 16).toString(36)).join('');
+            let body = {
+                secret,
+                client: {
+                    name: packageData.name,
+                    version: packageData.version + ' ' + process.platform
+                }
+            };
+            let info = await fetch('https://catchall.delivery/api/account', {
+                method: 'post',
+                body: JSON.stringify(body),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Client': `${packageData.name} (${packageData.version} ${process.platform})`
+                }
+            }).then(res => res.json());
+            if (!info.account || !info.domain) {
+                throw new Error('Failed to get catchall address');
+            }
+
+            catchallConfig.account = info.account;
+            catchallConfig.domain = info.domain;
+            catchallConfig.secret = secret;
+            hasUpdates = true;
+        }
+
+        if (!catchallConfig.enabled) {
+            catchallConfig.enabled = true;
+            hasUpdates = true;
+        }
+
+        if (hasUpdates) {
+            await this.setCatchallConfig(catchallConfig, true);
+        }
+
+        let headers = {
+            'X-Secret': catchallConfig.secret,
+            'X-Client': `${packageData.name} (${packageData.version} ${process.platform})`
+        };
+
+        if (catchallConfig.lastEventId) {
+            headers['Last-Event-ID'] = catchallConfig.lastEventId;
+        }
+
+        if (this.es) {
+            try {
+                this.es.close();
+                this.es = null;
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        this.es = new EventSource(`https://catchall.delivery/api/account/${catchallConfig.account}/feed`, {
+            headers
+        });
+
+        this.es.on('error', err => {
+            console.error(err);
+            if (err.status === 401) {
+                this.clearEventSource().catch(err => console.error(err));
+                return;
+            }
+        });
+
+        this.es.addEventListener('email', ev => {
+            this.receiveEmail(catchallConfig, ev).catch(err => console.error(err));
+        });
+    }
+
+    async clearEventSource() {
+        // invalid or expired credentials, reset catchall config
+        let catchallConfig = {
+            enabled: false,
+            account: '',
+            secret: '',
+            domain: '',
+            lastEventId: ''
+        };
+        await this.setCatchallConfig(catchallConfig, true);
+        if (this.es) {
+            try {
+                this.es.close();
+            } catch (err) {
+                // ignore
+            }
+            this.es = null;
+        }
+    }
+
+    async receiveEmail(catchallConfig, ev) {
+        if (ev.lastEventId) {
+            await this.setPreference('catchall', 'lastEventId', ev.lastEventId);
+        }
+
+        let data;
+        try {
+            data = JSON.parse(ev.data);
+        } catch (err) {
+            console.error(err);
+            return;
+        }
+
+        if (!data.email || !catchallConfig.project) {
+            return;
+        }
+
+        let res = await fetch(`https://catchall.delivery/api/account/${catchallConfig.account}/email/${data.email}`, {
+            method: 'get',
+            headers: {
+                'X-Secret': catchallConfig.secret,
+                'X-Client': `${packageData.name} (${packageData.version} ${process.platform})`
+            }
+        });
+
+        if (res.status === 401) {
+            this.clearEventSource().catch(err => console.error(err));
+            return;
+        }
+
+        let target = 1;
+        let analyzer = await this.open(catchallConfig.project);
+
+        if (!analyzer) {
+            console.error(new Error(`Project not found: ${target}`));
+            await this.setCatchallConfig({ enabled: false });
+            await this.clearEventSource();
+            return;
+        }
+
+        let content = await res.buffer();
+
+        let importResponse = await analyzer.import(
+            {
+                source: {
+                    format: 'catchall',
+                    envelope: {
+                        mailFrom: data.from,
+                        rcptTo: [data.to]
+                    }
+                },
+                idate: new Date(data.created),
+                returnPath: data.from
+            },
+            content
+        );
+
+        if (importResponse && importResponse.id) {
+            await this.updateImport(analyzer.id, null, { emails: 1, processed: 0, size: importResponse.size });
+
+            if (this.projectWindows.has(target)) {
+                for (let win of this.projectWindows.get(target)) {
+                    try {
+                        win.webContents.send(
+                            'message-received',
+                            JSON.stringify({
+                                id: importResponse.id,
+                                size: importResponse.size
+                            })
+                        );
+                    } catch (err) {
+                        console.error(err);
+                    }
+                }
+            }
+
+            return importResponse.id;
         }
     }
 

@@ -952,6 +952,24 @@
             }
         }
 
+        async actionViewSource() {
+            if (!this.renderedData) {
+                return false;
+            }
+            await showLoader();
+            try {
+                let data = this.renderedData;
+                await exec({
+                    command: 'showViewSource',
+                    params: {
+                        email: data.id
+                    }
+                });
+            } finally {
+                await hideLoader();
+            }
+        }
+
         createExportMbox() {
             showLoader()
                 .then(() => this.focus())
@@ -1036,6 +1054,16 @@
                     .catch(() => false)
                     .finally(() => {
                         actionUploadElm.classList.remove('active');
+                    });
+            });
+
+            let actionViewSourceElm = document.getElementById('email-action-view-source');
+            actionViewSourceElm.addEventListener('click', () => {
+                actionViewSourceElm.classList.add('active');
+                this.actionViewSource()
+                    .catch(() => false)
+                    .finally(() => {
+                        actionViewSourceElm.classList.remove('active');
                     });
             });
 

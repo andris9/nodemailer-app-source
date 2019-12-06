@@ -29,6 +29,11 @@
         let result = {};
         for (let i = 0; i < dataFieldElms.length; i++) {
             let dataFieldElm = dataFieldElms[i];
+
+            if (dataFieldElm.disabled || dataFieldElm.readOnly) {
+                continue;
+            }
+
             if (dataFieldElm.type === 'checkbox') {
                 result[dataFieldElm.name] = !!dataFieldElm.checked;
             } else {
@@ -158,6 +163,24 @@
                 dataFieldElm.select();
             }
         }
+
+        Object.keys(promptOptions.query || {}).forEach(key => {
+            console.log(key);
+            try {
+                let elms = document.querySelectorAll('.value-' + key.replace(/:/g, '_'));
+                for (let i = 0; i < elms.length; i++) {
+                    let elm = elms[i];
+                    if (/^input$/i.test(elm.tagName)) {
+                        elm.value = promptOptions.query[key] || '';
+                    } else {
+                        elm.textContent = promptOptions.query[key] || '';
+                    }
+                }
+            } catch (err) {
+                // ignore
+                console.error(err);
+            }
+        });
 
         if (typeof window.afterReady === 'function') {
             window.afterReady();
