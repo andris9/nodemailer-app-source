@@ -106,20 +106,6 @@
                             "homepage": "https://nodemailer.com"
                         }
                     }
-                },
-                {
-                    "name": "@electron-forge/maker-snap",
-                    "platforms": [
-                        "linux"
-                    ],
-                    "config": {
-                        "features": {
-                            "browserSandbox": true
-                        },
-                        "summary": "The ultimate email debugging tool",
-                        "icon": "./src/icons/png/256x256.png"
-                    },
-                    "icon": "./src/icons/png/256x256.png"
                 }
             ],
             "publishers": [
