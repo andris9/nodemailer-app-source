@@ -223,6 +223,7 @@ const newProjectMenuItem = {
                 });
             }
         } catch (err) {
+            console.error(err);
             dialog.showMessageBox(mainWindow, {
                 title: 'Error',
                 buttons: ['Dismiss'],
@@ -347,6 +348,7 @@ const serverStartMenuItem = {
                 command: 'serverStart'
             });
         } catch (err) {
+            console.error(err);
             dialog.showMessageBox(mainWindow, {
                 title: 'Error',
                 buttons: ['Dismiss'],
@@ -367,6 +369,7 @@ const serverStopMenuItem = {
                 command: 'serverStop'
             });
         } catch (err) {
+            console.error(err);
             dialog.showMessageBox(mainWindow, {
                 title: 'Error',
                 buttons: ['Dismiss'],
@@ -388,6 +391,7 @@ const serverConfigureMenuItem = {
                 command: 'serverConfig'
             });
         } catch (err) {
+            console.error(err);
             dialog.showMessageBox(mainWindow, {
                 title: 'Error',
                 buttons: ['Dismiss'],
@@ -410,6 +414,7 @@ const preferencesMenuItem = {
                 command: 'preferences'
             });
         } catch (err) {
+            console.error(err);
             dialog.showMessageBox(mainWindow, {
                 title: 'Error',
                 buttons: ['Dismiss'],
@@ -588,6 +593,8 @@ ipcMain.on('cmdreq', (event, arg) => {
             event.reply('cmdres', JSON.stringify(responsePayload));
         })
         .catch(err => {
+            console.error(err);
+
             let responsePayload = {
                 cid: payload.cid,
                 error: err.message

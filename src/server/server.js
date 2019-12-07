@@ -188,6 +188,7 @@ class Server extends EventEmitter {
         try {
             await this.startSmtpWrapped(serverConfig);
         } catch (err) {
+            console.error(err);
             dialog.showMessageBox(this.projects.mainWindow, {
                 title: 'Error',
                 buttons: ['Dismiss'],
@@ -367,6 +368,7 @@ class Server extends EventEmitter {
         try {
             await this.startPop3Wrapped(serverConfig);
         } catch (err) {
+            console.error(err);
             dialog.showMessageBox(this.projects.mainWindow, {
                 title: 'Error',
                 buttons: ['Dismiss'],

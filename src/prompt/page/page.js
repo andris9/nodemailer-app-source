@@ -168,24 +168,44 @@
             }
         }
 
-        Object.keys(promptOptions.query || {}).forEach(key => {
-            try {
-                let elms = document.querySelectorAll('.value-' + key.replace(/:/g, '_'));
-                for (let i = 0; i < elms.length; i++) {
-                    let elm = elms[i];
-                    if (/^input$/i.test(elm.tagName)) {
-                        elm.value = promptOptions.query[key] || '';
+        let setValueKeys = () => {
+            Object.keys(promptOptions.query || {}).forEach(key => {
+                try {
+                    let elms = document.querySelectorAll('.value-' + key.replace(/:/g, '_'));
+                    let valueElm = document.getElementById('data-' + key);
+                    let value;
+                    if (valueElm.selectedIndex && valueElm.options && valueElm.options[valueElm.selectedIndex]) {
+                        value = valueElm.options[valueElm.selectedIndex].textContent.trim();
                     } else {
-                        elm.textContent = promptOptions.query[key] || '';
+                        value = (valueElm && valueElm.value) || promptOptions.query[key] || '';
                     }
+                    if ((!value || value === '0') && valueElm && valueElm.dataset.defaultValue) {
+                        value = valueElm.dataset.defaultValue;
+                    }
+
+                    for (let i = 0; i < elms.length; i++) {
+                        let elm = elms[i];
+                        if (/^input$/i.test(elm.tagName)) {
+                            elm.value = value;
+                        } else {
+                            elm.textContent = value;
+                        }
+                    }
+                } catch (err) {
+                    // ignore
+                    console.error(err);
                 }
-            } catch (err) {
-                // ignore
-                console.error(err);
-            }
-        });
+            });
+        };
+        setValueKeys();
 
         let catchAllEnabledElm = document.getElementById('data-catchall:enabled');
+        let catchAllProjectElm = document.getElementById('data-catchall:project');
+
+        if (catchAllProjectElm) {
+            catchAllProjectElm.addEventListener('change', setValueKeys);
+            catchAllProjectElm.addEventListener('click', setValueKeys);
+        }
 
         let list = document.querySelectorAll('.can-use-catchall');
         let displayCatchall = () => {
@@ -238,8 +258,10 @@
             }
         };
 
-        catchAllEnabledElm.addEventListener('click', () => checkCatchallStatus().catch(err => console.error(err)));
-        catchAllEnabledElm.addEventListener('change', () => checkCatchallStatus().catch(err => console.error(err)));
+        if (catchAllEnabledElm) {
+            catchAllEnabledElm.addEventListener('click', () => checkCatchallStatus().catch(err => console.error(err)));
+            catchAllEnabledElm.addEventListener('change', () => checkCatchallStatus().catch(err => console.error(err)));
+        }
 
         displayCatchall();
 

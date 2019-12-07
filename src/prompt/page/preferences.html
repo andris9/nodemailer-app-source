@@ -39,11 +39,11 @@
                                 <div class="checkbox">
                                     <label>
                                         <input class="prompt-field" type="checkbox" name="catchall:enabled" id="data-catchall:enabled" />
-                                        Enable catchall server
+                                        Enable catchall address
                                     </label>
                                 </div>
 
-                                <p>Use catchall server to receive emails from the internet. Any email sent to your catchall domain name will be routed here.</p>
+                                <p>Use catchall address to receive emails from the internet. Any email sent to your catchall domain name will be routed here.</p>
 
                                 <div class="can-use-catchall hidden">
                                     <div class="form-group">
@@ -52,7 +52,7 @@
                                                 <label id="label-catchall:project" for="data-catchall:project">Target project</label>
                                             </div>
                                             <div>
-                                                <select class="form-control prompt-field" id="data-catchall:project" name="catchall:project"> </select>
+                                                <select class="form-control prompt-field" id="data-catchall:project" name="catchall:project" data-default-value="target project"> </select>
                                             </div>
                                         </div>
                                         <div><small>Where to store emails received from catchall domain?</small></div>
@@ -76,7 +76,7 @@
                                         </div>
                                         <div>
                                             <small
-                                                >Emails sent to <em class="text-select">anyuser@<span class="value-catchall_domain text-select"></span></em> will be routed to target project.
+                                                >Emails to <em class="text-select">any@<span class="value-catchall_domain text-select"></span></em> will be routed to <span class="value-catchall_project">target project</span>.
                                                 
                                         </div>
                                     </div>

@@ -609,7 +609,8 @@ class Projects {
                 secret,
                 client: {
                     name: packageData.name,
-                    version: packageData.version + ' ' + process.platform
+                    version: packageData.version,
+                    platform: process.platform
                 }
             };
             let info = await fetch('https://catchall.delivery/api/account', {
@@ -671,7 +672,7 @@ class Projects {
             }
         });
 
-        this.es.addEventListener('email', ev => {
+        this.es.on('email', ev => {
             this.receiveEmail(ev).catch(err => console.error(err));
         });
     }
