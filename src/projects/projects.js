@@ -50,7 +50,8 @@ class Projects {
 
         this.sendmailPaths = {
             data: pathlib.join(this.appDataPath, 'maildrop', 'data'),
-            queue: pathlib.join(this.appDataPath, 'maildrop', 'queue')
+            queue: pathlib.join(this.appDataPath, 'maildrop', 'queue'),
+            tmp: pathlib.join(this.appDataPath, 'maildrop', 'tmp')
         };
 
         this.thumbnailGenerator = options.thumbnailGenerator;
@@ -99,6 +100,7 @@ class Projects {
         try {
             await mkdirp(this.sendmailPaths.data);
             await mkdirp(this.sendmailPaths.queue);
+            await mkdirp(this.sendmailPaths.tmp);
         } catch (err) {
             // ignore?
         }
