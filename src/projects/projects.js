@@ -259,6 +259,8 @@ class Projects {
                 console.error(err);
             }
         }
+
+        this.importing = false;
     }
 
     async handleFile(event, path) {
