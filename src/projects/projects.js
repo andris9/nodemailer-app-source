@@ -55,6 +55,9 @@ class Projects {
 
         this.thumbnailGenerator = options.thumbnailGenerator;
 
+        this.importQueue = [];
+        this.importing = false;
+
         this.server = false;
     }
 
@@ -220,55 +223,8 @@ class Projects {
                 projects: this
             });
 
-            let handleFile = async (event, path) => {
-                let dataPath = pathlib.join(this.sendmailPaths.data, pathlib.parse(path).base);
-                let paths = [];
-
-                try {
-                    let queueStats = await fs.stat(path);
-                    if (queueStats.isFile()) {
-                        paths.push(path);
-                    }
-
-                    let dataStats = await fs.stat(dataPath);
-                    if (dataStats.isFile()) {
-                        paths.push(dataPath);
-                    }
-                } catch (err) {
-                    console.error(err);
-                }
-
-                try {
-                    if (paths.length !== 2) {
-                        return false;
-                    }
-                    let meta = JSON.parse(await fs.readFile(path, 'utf-8'));
-                    let basename = pathlib.parse(dataPath).base;
-                    let message = await this.importFromMaildrop(meta, dataPath);
-                    if (message) {
-                        console.log(`Imported ${basename} from maildrop to ${meta.project} as ${message}`);
-                    } else {
-                        console.log(`Failed to import ${basename}`);
-                    }
-                } catch (err) {
-                    console.error(err);
-                } finally {
-                    for (let uPath of paths) {
-                        // delete queue entry
-                        try {
-                            await fs.unlink(uPath);
-                        } catch (err) {
-                            // ignore
-                            console.error(err);
-                        }
-                    }
-                }
-            };
-
             try {
-                chokidar.watch(this.sendmailPaths.queue).on('add', path => {
-                    handleFile('add', path).catch(err => console.error(err));
-                });
+                chokidar.watch(this.sendmailPaths.queue).on('add', path => this.pushToImportQueue(path));
             } catch (err) {
                 console.error(err);
                 // ignore?
@@ -281,6 +237,77 @@ class Projects {
                 promise.resolve();
             }
         }
+    }
+
+    pushToImportQueue(path) {
+        this.importQueue.push(path);
+        this.processImport().catch(err => console.error(err));
+    }
+
+    async processImport() {
+        if (this.importing) {
+            return false;
+        }
+        this.importing = true;
+
+        while (this.importQueue.length) {
+            let path = this.importQueue.shift();
+            try {
+                await this.importNext(path);
+            } catch (err) {
+                console.error(`Failed to import ${path}`);
+                console.error(err);
+            }
+        }
+    }
+
+    async handleFile(event, path) {
+        let dataPath = pathlib.join(this.sendmailPaths.data, pathlib.parse(path).base);
+        let paths = [];
+
+        try {
+            let queueStats = await fs.stat(path);
+            if (queueStats.isFile()) {
+                paths.push(path);
+            }
+
+            let dataStats = await fs.stat(dataPath);
+            if (dataStats.isFile()) {
+                paths.push(dataPath);
+            }
+        } catch (err) {
+            console.error(err);
+        }
+
+        try {
+            if (paths.length !== 2) {
+                return false;
+            }
+            let meta = JSON.parse(await fs.readFile(path, 'utf-8'));
+            let basename = pathlib.parse(dataPath).base;
+            let message = await this.importFromMaildrop(meta, dataPath);
+            if (message) {
+                console.log(`Imported ${basename} from maildrop to ${meta.project} as ${message}`);
+            } else {
+                console.log(`Failed to import ${basename}`);
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            for (let uPath of paths) {
+                // delete queue entry
+                try {
+                    await fs.unlink(uPath);
+                } catch (err) {
+                    // ignore
+                    console.error(err);
+                }
+            }
+        }
+    }
+
+    async importNext(path) {
+        await this.handleFile('add', path);
     }
 
     async importFromMaildrop(meta, path) {

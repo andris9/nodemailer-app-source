@@ -161,6 +161,10 @@ const createWindow = () => {
 };
 
 if (!app.requestSingleInstanceLock()) {
+    if (cli(app)) {
+        // process message from stdin
+        return;
+    }
     return app.quit();
 }
 

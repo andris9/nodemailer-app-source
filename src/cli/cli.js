@@ -210,6 +210,7 @@ function processStdin(app, opts) {
     let headerSplitter = new HeaderSplitter();
     let dataPath = pathlib.join(app.getPath('userData'), 'maildrop', 'data');
     let queuePath = pathlib.join(app.getPath('userData'), 'maildrop', 'queue');
+    let tmpPath = pathlib.join(app.getPath('userData'), 'maildrop', 'tmp');
 
     let envelope = {
         mailFrom: opts.fromAddress || `${USERNAME}@${HOSTNAME}`,
@@ -300,13 +301,21 @@ function processStdin(app, opts) {
     if (!opts.host) {
         // saving to message file, add metadata as well
         target.on('close', () => {
-            fs.writeFile(pathlib.join(queuePath, fname), Buffer.from(JSON.stringify({ project: opts.project, argv: process.argv.slice(1), envelope })), err => {
+            // can not write directly to queue folder as the file might be processed while still writing
+            fs.writeFile(pathlib.join(tmpPath, fname), Buffer.from(JSON.stringify({ project: opts.project, argv: process.argv.slice(1), envelope })), err => {
                 if (err) {
                     console.error(err);
-                } else {
-                    console.log(`Message queued as ${fname}`);
+                    app.exit();
                 }
-                app.exit();
+                fs.rename(pathlib.join(tmpPath, fname), pathlib.join(queuePath, fname), err => {
+                    if (err) {
+                        console.error(err);
+                        app.exit();
+                    }
+
+                    console.log(`Message queued as ${fname}`);
+                    app.exit();
+                });
             });
         });
     }
