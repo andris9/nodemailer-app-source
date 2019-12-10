@@ -250,6 +250,18 @@
             }
         });
 
+        let flushViews = async () => {
+            // clear all
+            await showLoader();
+
+            await Promise.all([pageViews.imports.flush(), pageViews.contacts.flush(), pageViews.attachments.flush(), pageViews.emails.flush()]);
+            await hideLoader();
+        };
+
+        window.events.subscribe('flush', () => {
+            flushViews().catch(err => alert(err.message));
+        });
+
         await hideLoader();
     }
 

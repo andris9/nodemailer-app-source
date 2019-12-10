@@ -913,7 +913,9 @@ class Projects {
         await analyzer.close();
         await this.open(id);
 
-        // TODO: notify open windows to repaint
+        this.sendToProjectWindows(id, 'flush', {
+            id
+        });
 
         return true;
     }

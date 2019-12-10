@@ -1002,6 +1002,14 @@
                 .finally(() => hideLoader());
         }
 
+        async flush() {
+            await this.render({
+                page: 1,
+                pages: 0,
+                data: []
+            });
+        }
+
         find() {
             this.search().catch(() => false);
         }

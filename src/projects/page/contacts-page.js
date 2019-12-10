@@ -149,6 +149,14 @@
             this.search().catch(() => false);
         }
 
+        async flush() {
+            await this.render({
+                page: 1,
+                pages: 0,
+                data: []
+            });
+        }
+
         async search() {
             if (this.searchPending) {
                 return;

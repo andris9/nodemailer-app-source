@@ -51,6 +51,12 @@
             // overriden by main
         }
 
+        async flush() {
+            await this.renderImports({
+                data: []
+            });
+        }
+
         async show() {
             this.componentElms.forEach(elm => elm.classList.remove('hidden'));
             this.pageElm.classList.remove('hidden');
