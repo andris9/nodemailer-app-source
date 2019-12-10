@@ -184,7 +184,7 @@
         "@electron-forge/publisher-github": "6.0.0-beta.45",
         "@electron-forge/publisher-snapcraft": "6.0.0-beta.45",
         "dotenv": "8.2.0",
-        "electron": "7.1.3",
+        "electron": "7.1.4",
         "electron-builder": "21.2.0",
         "electron-notarize": "0.2.1",
         "eslint": "6.7.2",
