@@ -878,6 +878,46 @@ class Projects {
         return true;
     }
 
+    async flush(id) {
+        let analyzer = this.opened.get(id);
+        if (analyzer) {
+            this.opened.delete(id);
+            try {
+                await analyzer.close();
+            } catch (err) {
+                // ignore
+            }
+        }
+        let row = await this.sql.findOne('SELECT [id], [name], [version], folder_name AS folderName, created FROM [projects] WHERE id = ?', [id]);
+        if (!row || !row.id) {
+            return false;
+        }
+
+        let path = pathlib.join(this.appDataPath, row.folderName);
+        // delete all files form folder
+        await rimraf(path, {});
+
+        await this.sql.findOne('UPDATE [projects] SET emails=0, size=0 WHERE id = ?', [id]);
+        await this.sql.findOne('DELETE FROM imports WHERE project = ?', [id]);
+
+        analyzer = new Analyzer({
+            projectName: row.name,
+            appDataPath: this.appDataPath,
+            folderName: row.folderName,
+            thumbnailGenerator: this.thumbnailGenerator,
+            fid: this.fid
+        });
+        analyzer.id = id;
+
+        await analyzer.prepare();
+        await analyzer.close();
+        await this.open(id);
+
+        // TODO: notify open windows to repaint
+
+        return true;
+    }
+
     async close() {
         let promises = [];
         for (let entry of this.opened.entries()) {
@@ -978,7 +1018,7 @@ class Projects {
         projectWindow.on('blur', () => {
             let menu = Menu.getApplicationMenu();
             if (menu) {
-                ['import-files', 'import-maildir', 'import-folder', 'export-mbox'].forEach(key => {
+                ['import-files', 'import-maildir', 'import-folder', 'export-mbox', 'flush-messages'].forEach(key => {
                     let menuItem = menu.getMenuItemById(key);
                     if (menuItem) {
                         menuItem.enabled = false;
@@ -990,7 +1030,7 @@ class Projects {
         projectWindow.on('focus', () => {
             let menu = Menu.getApplicationMenu();
             if (menu) {
-                ['import-files', 'import-maildir', 'import-folder', 'export-mbox'].forEach(key => {
+                ['import-files', 'import-maildir', 'import-folder', 'export-mbox', 'flush-messages'].forEach(key => {
                     let menuItem = menu.getMenuItemById(key);
                     if (menuItem) {
                         menuItem.enabled = true;

@@ -1,5 +1,5 @@
 /* eslint global-require: 0 */
-/* global window, document, exec, showLoader, hideLoader, DOMPurify, Tabs */
+/* global window, document, exec, showLoader, hideLoader, DOMPurify, Tabs, confirm */
 
 'use strict';
 
@@ -970,6 +970,22 @@
             }
         }
 
+        flushMessages() {
+            if (!confirm(`Are you sure you want to flush all messages from this project?`)) {
+                return;
+            }
+            showLoader()
+                .then(() => this.focus())
+                .then(() =>
+                    exec({
+                        command: 'flushMessages'
+                    })
+                )
+                .then(() => this.reload())
+                .catch(() => false)
+                .finally(() => hideLoader());
+        }
+
         createExportMbox() {
             showLoader()
                 .then(() => this.focus())
@@ -1097,6 +1113,8 @@
                 switch (data.type) {
                     case 'export-mbox':
                         return this.createExportMbox();
+                    case 'flush-messages':
+                        return this.flushMessages();
                 }
             });
 

@@ -618,6 +618,12 @@ async function createImportFromFolder(curWin, projects, analyzer) {
     return await processFolderImport(curWin, projects, analyzer, res.filePaths);
 }
 
+async function flushMessages(curWin, projects, analyzer) {
+    return {
+        flushed: await projects.flush(analyzer.id)
+    };
+}
+
 async function createExportMbox(curWin, projects, analyzer, params) {
     let fileName = params.filename
         // eslint-disable-next-line no-control-regex
@@ -1109,6 +1115,9 @@ module.exports = async (curWin, projects, analyzer, data, menu) => {
 
         case 'createExportMbox':
             return await createExportMbox(curWin, projects, analyzer, data.params);
+
+        case 'flushMessages':
+            return await flushMessages(curWin, projects, analyzer, data.params);
 
         case 'listImports':
             return await listImports(curWin, projects, analyzer, data.params);

@@ -273,6 +273,23 @@ const deleteProjectMenuItem = {
     }
 };
 
+const flushMessagesMenuItem = {
+    id: 'flush-messages',
+    label: 'Flush all messages',
+    enabled: false,
+    click: () => {
+        let focused = BrowserWindow.getFocusedWindow();
+        focused &&
+            focused.webContents.send(
+                'menu-click',
+                JSON.stringify({
+                    id: 'static',
+                    type: 'flush-messages'
+                })
+            );
+    }
+};
+
 const importMenuItem = {
     id: 'import-files',
     label: 'From email files…',
@@ -512,6 +529,7 @@ const template = [
         label: 'Edit',
         submenu: [
             findMenuItem,
+            flushMessagesMenuItem,
             { type: 'separator' },
             { role: 'undo' },
             { role: 'redo' },
