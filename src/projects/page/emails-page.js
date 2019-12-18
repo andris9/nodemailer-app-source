@@ -176,6 +176,8 @@
             let infoList = document.getElementById('email-info-list');
             let dataList = [];
 
+            console.log(data);
+
             const formatAddressEntries = addr => {
                 let list = addr.map(a => {
                     let baseElm = document.createElement('span');
@@ -361,12 +363,14 @@
             let tabPlainContentElm = document.getElementById('email-tab-plain-content');
             let tabHeadersContentElm = document.getElementById('email-tab-headers-content');
             let tabFilesListElm = document.getElementById('email-file-list');
+            let tabMetadataListElm = document.getElementById('email-metadata-list');
             let tabHtmlSourceContentElm = document.getElementById('email-tab-html-source-content');
 
             tabHtmlContentElm.innerHTML = '';
             tabPlainContentElm.innerHTML = '';
             tabHeadersContentElm.innerHTML = '';
             tabFilesListElm.innerHTML = '';
+            tabMetadataListElm.innerHTML = '';
             tabHtmlSourceContentElm.innerHTML = '';
 
             this.currentHtml = '';
@@ -566,6 +570,27 @@
                 document.getElementById('email-file-list').appendChild(rowElm);
             };
 
+            let addMetadataRow = info => {
+                info = info || {};
+                let rowElm = document.createElement('tr');
+
+                let cell01Elm = document.createElement('td');
+                let cell02Elm = document.createElement('td');
+
+                cell01Elm.style.width = '20%';
+
+                cell01Elm.textContent = info.key;
+                cell01Elm.title = info.key;
+
+                cell02Elm.textContent = info.value;
+                cell02Elm.title = info.value;
+
+                rowElm.appendChild(cell01Elm);
+                rowElm.appendChild(cell02Elm);
+
+                document.getElementById('email-metadata-list').appendChild(rowElm);
+            };
+
             let getPrefs = async () => {
                 let preferences = await exec({
                     command: 'getPreferences'
@@ -629,6 +654,51 @@
             if (!activeTab) {
                 this.viewTabs.activate('headers');
                 activeTab = 'headers';
+            }
+
+            if (data.source) {
+                this.viewTabs.show('metadata');
+
+                let getTextValue = address => {
+                    return (address && address.address) || address || '';
+                };
+
+                if (data.source.format) {
+                    addMetadataRow({ key: 'Source format', value: data.source.format.replace(/^./, c => c.toUpperCase()) });
+                }
+
+                if (data.source.filename) {
+                    addMetadataRow({ key: 'File path', value: data.source.filename });
+                }
+
+                if (data.idate) {
+                    addMetadataRow({ key: 'Date', value: moment(data.idate).format('LLL') });
+                }
+
+                if (data.source.envelope) {
+                    if (data.source.envelope.mailFrom) {
+                        addMetadataRow({ key: 'From', value: getTextValue(data.source.envelope.mailFrom) });
+                    } else if (data.source.envelope.sender) {
+                        addMetadataRow({ key: 'From', value: getTextValue(data.source.envelope.sender) });
+                    } else if (data.returnPath) {
+                        addMetadataRow({ key: 'From', value: getTextValue(data.returnPath) });
+                    }
+
+                    for (let addr of [].concat(data.source.envelope.rcptTo || [])) {
+                        addMetadataRow({ key: 'Recipient', value: getTextValue(addr) });
+                    }
+
+                    for (let addr of [].concat(data.source.envelope.recipient || [])) {
+                        addMetadataRow({ key: 'Recipient', value: getTextValue(addr) });
+                    }
+
+                    Object.keys(data.source.envelope.attributes || {}).forEach(key => {
+                        let fKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase());
+                        addMetadataRow({ key: fKey, value: data.source.envelope.attributes[key] });
+                    });
+                }
+            } else {
+                this.viewTabs.hide('metadata');
             }
 
             // keep reference for button actions

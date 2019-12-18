@@ -1564,7 +1564,8 @@ class Analyzer {
             `[emails].[idate] AS idate`,
             `[emails].[hdate] AS hdate`,
             `[emails].[attachments] AS attachments`,
-            `[emails].[key] AS key`
+            `[emails].[key] AS key`,
+            `[emails].[source] AS source`
         ];
         let countFields = ['COUNT([emails].[id]) AS total'];
 
@@ -1636,21 +1637,16 @@ class Analyzer {
         }
 
         if (options.tags && options.tags.length) {
-            let where = [];
             options.tags.forEach((tag, i) => {
                 tag = (tag || '').trim().toLowerCase();
                 if (tag) {
+                    whereTerms.push(`[emails].[id] in (
+                        SELECT [email] FROM [tags]
+                            WHERE tag = $tag_${i}
+                        )`);
                     queryParams[`$tag_${i}`] = tag;
-                    where.push(`$tag_${i}`);
                 }
             });
-
-            if (where.length) {
-                whereTerms.push(`[emails].[id] in (
-                SELECT [email] FROM [tags]
-                    WHERE tag IN (${where.join(', ')})
-                )`);
-            }
         }
 
         ['from', 'to', 'cc', 'bcc', 'returnPath', 'deliveredTo', 'any', 'anyTo'].forEach(key => {
@@ -1793,6 +1789,16 @@ class Analyzer {
 
             if (emailData.hdate) {
                 emailData.hdate = new Date(emailData.hdate + 'Z').toISOString();
+            }
+
+            if (emailData.source) {
+                try {
+                    emailData.source = JSON.parse(emailData.source);
+                } catch (err) {
+                    console.log(emailData.source);
+                    console.error(err);
+                    emailData.source = null;
+                }
             }
 
             if (emailData.attachments) {

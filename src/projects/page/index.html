@@ -452,6 +452,9 @@ const transporter = nodemailer.createTransport({
                                 <div id="email-tab-files" class="tab-item">
                                     Files
                                 </div>
+                                <div id="email-tab-metadata" class="tab-item">
+                                    Metadata
+                                </div>
                             </div>
                             <div class="padded-contain">
                                 <dl class="info-dl" id="email-info-list"></dl>
@@ -474,6 +477,11 @@ const transporter = nodemailer.createTransport({
                             <div id="email-tab-files-content" class="hidden">
                                 <table class="table-striped" style="table-layout: fixed;">
                                     <tbody id="email-file-list"></tbody>
+                                </table>
+                            </div>
+                            <div id="email-tab-metadata-content" class="hidden">
+                                <table class="table-striped" style="table-layout: fixed;">
+                                    <tbody id="email-metadata-list"></tbody>
                                 </table>
                             </div>
                         </div>
