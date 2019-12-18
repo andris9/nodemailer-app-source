@@ -236,6 +236,22 @@ class Analyzer {
                     REFERENCES emails ([id]) ON DELETE CASCADE
             );`);
 
+            await this.sql.run(`CREATE TABLE IF NOT EXISTS tags (
+                [id] INTEGER PRIMARY KEY,
+                [email] INTEGER,
+                [tag] TEXT,
+                [display] TEXT,
+
+                FOREIGN KEY ([email])
+                    REFERENCES emails ([id]) ON DELETE CASCADE
+            );`);
+
+            await this.sql.run(`CREATE TABLE IF NOT EXISTS project_tags (
+                [id] INTEGER PRIMARY KEY,
+                [tag] TEXT UNIQUE,
+                [display] TEXT
+            );`);
+
             try {
                 // may fail on non-updated dbs
                 await this.sql.run(`CREATE INDEX IF NOT EXISTS [email_import] ON emails (
@@ -244,6 +260,15 @@ class Analyzer {
             } catch (err) {
                 // ignore
             }
+
+            await this.sql.run(`CREATE INDEX IF NOT EXISTS [email_tag] ON tags (
+                [email],
+                [tag]
+            )`);
+
+            await this.sql.run(`CREATE INDEX IF NOT EXISTS [tag_name] ON tags (
+                [tag]
+            )`);
 
             await this.sql.run(`CREATE INDEX IF NOT EXISTS [hdate] ON emails (
                 [hdate]
@@ -1610,6 +1635,24 @@ class Analyzer {
                 )`);
         }
 
+        if (options.tags && options.tags.length) {
+            let where = [];
+            options.tags.forEach((tag, i) => {
+                tag = (tag || '').trim().toLowerCase();
+                if (tag) {
+                    queryParams[`$tag_${i}`] = tag;
+                    where.push(`$tag_${i}`);
+                }
+            });
+
+            if (where.length) {
+                whereTerms.push(`[emails].[id] in (
+                SELECT [email] FROM [tags]
+                    WHERE tag IN (${where.join(', ')})
+                )`);
+            }
+        }
+
         ['from', 'to', 'cc', 'bcc', 'returnPath', 'deliveredTo', 'any', 'anyTo'].forEach(key => {
             let hkey = key.replace(/[A-Z]/g, c => '-' + c.toLowerCase());
             let lkey = hkey.replace(/-/g, '_');
@@ -2258,6 +2301,90 @@ class Analyzer {
         envelope.flags = emailData.flags || [];
 
         return envelope;
+    }
+
+    async getProjectTags() {
+        let rows = await this.sql.findMany('SELECT display, tag FROM project_tags WHERE tag IS NOT NULL ORDER BY tag');
+        return (rows || []).map(row => row.display);
+    }
+
+    async getEmailTags(email) {
+        let rows = await this.sql.findMany('SELECT display, tag FROM tags WHERE email=? AND tag IS NOT NULL ORDER BY tag', [email]);
+        return (rows || []).map(row => row.display);
+    }
+
+    async setEmailTags(email, tags) {
+        tags = (tags || []).map(entry => ({
+            display: entry.trim(),
+            tag: (entry || '').toLowerCase().trim()
+        }));
+
+        let rows = await this.sql.findMany('SELECT id, display, tag FROM tags WHERE email=?', [email]);
+
+        let missing = [];
+        let extra = [];
+
+        let currentTags = rows || [];
+
+        for (let tagData of currentTags) {
+            if (!tags.find(tag => tag.tag === tagData.tag)) {
+                extra.push(tagData);
+            }
+        }
+
+        for (let tagData of tags) {
+            if (!currentTags.find(tag => tag.tag === tagData.tag)) {
+                missing.push(tagData);
+            }
+        }
+
+        if (missing.length || extra.length) {
+            await this.sql.run('BEGIN TRANSACTION');
+            try {
+                for (let tagData of missing) {
+                    await this.sql.run(`INSERT INTO tags (email, tag, display) VALUES ($email, $tag, $display)`, {
+                        $email: email,
+                        $tag: tagData.tag,
+                        $display: tagData.display
+                    });
+                }
+                for (let tagData of extra) {
+                    await this.sql.run(`DELETE FROM tags WHERE id=$id`, {
+                        $id: tagData.id
+                    });
+                    let countRes = await this.sql.findOne(`SELECT COUNT(id) AS tags FROM tags WHERE tag=?`, [tagData.tag]);
+                    if (countRes && !countRes.tags) {
+                        // delete from list
+                    }
+                }
+            } finally {
+                await this.sql.run('COMMIT TRANSACTION');
+            }
+
+            for (let tagData of missing) {
+                let countRes = await this.sql.findOne(`SELECT COUNT(id) AS tags FROM tags WHERE tag=?`, [tagData.tag]);
+                if (countRes && countRes.tags) {
+                    // add to list
+                    await this.sql.run(
+                        `INSERT INTO project_tags (tag, display) VALUES ($tag, $display) ON CONFLICT([tag]) DO UPDATE SET [display] = $display`,
+                        {
+                            $tag: tagData.tag,
+                            $display: tagData.display
+                        }
+                    );
+                }
+            }
+
+            for (let tagData of extra) {
+                let countRes = await this.sql.findOne(`SELECT COUNT(id) AS tags FROM tags WHERE tag=?`, [tagData.tag]);
+                if (countRes && !countRes.tags) {
+                    // delete from list
+                    await this.sql.run(`DELETE FROM project_tags WHERE tag=$tag`, {
+                        $tag: tagData.tag
+                    });
+                }
+            }
+        }
     }
 }
 

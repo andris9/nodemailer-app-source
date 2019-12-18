@@ -1,5 +1,5 @@
 /* eslint global-require: 0 */
-/* global window, document, exec, showLoader, hideLoader, DOMPurify, Tabs, confirm */
+/* global window, document, exec, showLoader, hideLoader, DOMPurify, Tabs, confirm, Tagify */
 
 'use strict';
 
@@ -264,6 +264,94 @@
                 }
                 infoList.appendChild(valElm);
             });
+
+            let setupTags = () => {
+                let currentList = [];
+
+                let keyElm = document.createElement('dt');
+                keyElm.textContent = 'Labels';
+                infoList.appendChild(keyElm);
+
+                let valElm = document.createElement('dd');
+                valElm.style.minHeight = '32px';
+
+                let tagsElm = document.createElement('input');
+                tagsElm.classList.add('tags-input');
+                tagsElm.setAttribute('value', currentList.join(','));
+
+                valElm.appendChild(tagsElm);
+
+                infoList.appendChild(valElm);
+
+                let initializing = true;
+                let hasChanges = list => {
+                    if (initializing) {
+                        return false;
+                    }
+                    try {
+                        if (list.length !== currentList.length) {
+                            return true;
+                        }
+
+                        for (let i = 0; i < currentList.length; i++) {
+                            if (currentList[i] !== list[i]) {
+                                return true;
+                            }
+                        }
+
+                        return false;
+                    } finally {
+                        currentList = list;
+                    }
+                };
+
+                let tagify = new Tagify(tagsElm);
+
+                let checkChanges = () => {
+                    if (!hasChanges(tagify.value.map(tag => tag.value))) {
+                        return;
+                    }
+                    exec({
+                        command: 'updateTags',
+                        params: {
+                            email: data.id,
+                            tags: currentList
+                        }
+                    });
+                };
+
+                let suggestions = e => {
+                    exec({
+                        command: 'getTags',
+                        params: {
+                            email: data.id
+                        }
+                    }).then(function(result) {
+                        tagify.settings.whitelist.length = 0; // reset current whitelist
+                        tagify.settings.whitelist.splice(0, result.length, ...result);
+                        // render the suggestions dropdown. "newValue" is when "input" event is called while editing a tag
+                        tagify.loading(false).dropdown.show.call(tagify, e.detail.value);
+                    });
+                };
+
+                tagify
+                    .on('input', suggestions)
+                    .on('add', checkChanges)
+                    .on('remove', checkChanges);
+
+                exec({
+                    command: 'getEmailTags',
+                    params: {
+                        email: data.id
+                    }
+                }).then(list => {
+                    currentList = [].concat(list || []);
+                    tagify.addTags([].concat(list || []));
+                    initializing = false;
+                });
+            };
+
+            setupTags();
 
             if (this.actionExternalElm.parentNode) {
                 this.actionButtonsElm.removeChild(this.actionExternalElm);
@@ -760,6 +848,7 @@
                 'email-from': query.from || '',
                 'email-any-to': query.anyTo || '',
                 'email-subject': query.subject || '',
+                'email-tags': (query.tags && query.tags.join(', ')) || '',
                 filename: (query.attachments && query.filename) || '',
                 headers: query.headers
                     ? Object.keys(query.headers)
@@ -813,6 +902,17 @@
                 let value = terms['email-subject'].toString().trim();
                 if (value) {
                     query.subject = value;
+                }
+            }
+
+            if (terms['email-tags']) {
+                let value = terms['email-tags']
+                    .toString()
+                    .split(',')
+                    .map(val => val.trim())
+                    .filter(val => val);
+                if (value) {
+                    query.tags = value;
                 }
             }
 

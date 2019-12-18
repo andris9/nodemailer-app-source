@@ -1087,6 +1087,21 @@ async function setupCatchall(curWin, projects) {
     return await projects.setupCatchall();
 }
 
+async function getTags(curWin, projects, analyzer, params) {
+    let list = await analyzer.getProjectTags(params.email);
+    return list;
+}
+
+async function updateTags(curWin, projects, analyzer, params) {
+    await analyzer.setEmailTags(params.email, params.tags);
+    return true;
+}
+
+async function getEmailTags(curWin, projects, analyzer, params) {
+    let list = await analyzer.getEmailTags(params.email);
+    return list;
+}
+
 module.exports = async (curWin, projects, analyzer, data, menu) => {
     switch (data.command) {
         case 'listProjects':
@@ -1208,6 +1223,15 @@ module.exports = async (curWin, projects, analyzer, data, menu) => {
 
         case 'setupCatchall':
             return await setupCatchall(curWin, projects, analyzer, data.params);
+
+        case 'getTags':
+            return await getTags(curWin, projects, analyzer, data.params);
+
+        case 'updateTags':
+            return await updateTags(curWin, projects, analyzer, data.params);
+
+        case 'getEmailTags':
+            return await getEmailTags(curWin, projects, analyzer, data.params);
 
         default:
             throw new Error('Unknown command ' + JSON.stringify(data));

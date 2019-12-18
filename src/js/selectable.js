@@ -23,7 +23,7 @@
             this.emitTimer = false;
             let keyPressCount = 0;
             this._keyDownEvent = ev => {
-                if (ev.target && typeof ev.target.form !== 'undefined') {
+                if (ev.target && (typeof ev.target.form !== 'undefined' || /tagify/.test(ev.target.className))) {
                     return;
                 }
 
@@ -40,7 +40,7 @@
             };
 
             this._keyUpEvent = ev => {
-                if (ev.target && typeof ev.target.form !== 'undefined') {
+                if (ev.target && (typeof ev.target.form !== 'undefined' || /tagify/.test(ev.target.className))) {
                     return;
                 }
 

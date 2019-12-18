@@ -202,3 +202,72 @@ hr {
     position: relative;
     float: left;
 }
+
+.tagify {
+    --tags-border-color: #ddd;
+    --tag-bg: #e5e5e5;
+    --tag-hover: #e5e5e5;
+    --tag-text-color: black;
+    --tag-text-color--edit: black;
+    --tag-pad: 0.3em 0.5em;
+    --tag-inset-shadow-size: 1.1em;
+    --tag-invalid-color: #d39494;
+    --tag-invalid-bg: rgba(211, 148, 148, 0.5);
+    --tag-remove-bg: #e5e5e5;
+    --tag-remove-btn-bg: none;
+    --tag-remove-btn-bg--hover: #333;
+    --tag--min-width: 1ch;
+    --tag--max-width: auto;
+    --loader-size: 0.8em;
+
+    color: #333;
+    border-width: 1px;
+    border-top-color: #fafafa;
+    border-right-color: #fafafa;
+    border-bottom-color: #fafafa;
+    border-left-color: #fafafa;
+    background-color: #fff;
+
+    margin: 0;
+    padding: 0;
+
+    border-radius: 4px;
+
+    cursor: text;
+}
+
+.tags-input,
+.tagify__input {
+    cursor: text;
+}
+
+.tagify__input {
+    margin: 2px;
+}
+
+.tagify__tag {
+    margin: 2px 0 2px 2px;
+}
+
+.tagify__dropdown__item--active {
+    background: #116cd6;
+    color: #fff;
+}
+
+.tagify.tagify--focus {
+    transition: 0s;
+    border-color: #c2c0c2;
+    border-top-color: #c2c0c2;
+    border-right-color: #c2c0c2;
+    border-bottom-color: #a19fa1;
+    border-left-color: #c2c0c2;
+}
+
+.tagify__dropdown__wrapper {
+    border: 1px solid #c2c0c2;
+}
+
+.tagify__dropdown__item,
+.tagify__dropdown__item--active {
+    font-size: 12px;
+}
