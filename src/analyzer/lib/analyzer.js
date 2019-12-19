@@ -553,7 +553,7 @@ class Analyzer {
         });
     }
 
-    async import(metadata, sourceStream) {
+    async import(metadata, sourceStream, skipTransaction) {
         await this.prepare();
 
         let key = 'email:' + uuidv4();
@@ -993,7 +993,9 @@ class Analyzer {
         });
 
         let emailId;
-        await this.sql.run('BEGIN TRANSACTION');
+        if (!skipTransaction) {
+            await this.sql.run('BEGIN TRANSACTION');
+        }
         try {
             emailId = await this.sql.run(
                 `INSERT INTO emails 
@@ -1116,7 +1118,9 @@ class Analyzer {
                 );
             }
         } finally {
-            await this.sql.run('COMMIT TRANSACTION');
+            if (!skipTransaction) {
+                await this.sql.run('COMMIT TRANSACTION');
+            }
         }
 
         return {
@@ -2347,26 +2351,21 @@ class Analyzer {
         }
 
         if (missing.length || extra.length) {
-            await this.sql.run('BEGIN TRANSACTION');
-            try {
-                for (let tagData of missing) {
-                    await this.sql.run(`INSERT INTO tags (email, tag, display) VALUES ($email, $tag, $display)`, {
-                        $email: email,
-                        $tag: tagData.tag,
-                        $display: tagData.display
-                    });
+            for (let tagData of missing) {
+                await this.sql.run(`INSERT INTO tags (email, tag, display) VALUES ($email, $tag, $display)`, {
+                    $email: email,
+                    $tag: tagData.tag,
+                    $display: tagData.display
+                });
+            }
+            for (let tagData of extra) {
+                await this.sql.run(`DELETE FROM tags WHERE id=$id`, {
+                    $id: tagData.id
+                });
+                let countRes = await this.sql.findOne(`SELECT COUNT(id) AS tags FROM tags WHERE tag=?`, [tagData.tag]);
+                if (countRes && !countRes.tags) {
+                    // delete from list
                 }
-                for (let tagData of extra) {
-                    await this.sql.run(`DELETE FROM tags WHERE id=$id`, {
-                        $id: tagData.id
-                    });
-                    let countRes = await this.sql.findOne(`SELECT COUNT(id) AS tags FROM tags WHERE tag=?`, [tagData.tag]);
-                    if (countRes && !countRes.tags) {
-                        // delete from list
-                    }
-                }
-            } finally {
-                await this.sql.run('COMMIT TRANSACTION');
             }
 
             for (let tagData of missing) {

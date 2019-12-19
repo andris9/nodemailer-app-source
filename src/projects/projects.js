@@ -232,7 +232,9 @@ class Projects {
                 // ignore?
             }
 
-            await this.checkCatchall();
+            setTimeout(() => {
+                this.checkCatchall().catch(err => console.error(err));
+            }, 5000);
 
             while (this.prepareQueue.length) {
                 let promise = this.prepareQueue.shift();
@@ -771,7 +773,8 @@ class Projects {
                 idate: new Date(data.created),
                 returnPath: data.from
             },
-            content
+            content,
+            true
         );
 
         if (importResponse && importResponse.id) {
@@ -1072,28 +1075,23 @@ class Projects {
             queryParams.$processed = Number(options.processed) || 0;
         }
 
-        await this.sql.run('BEGIN TRANSACTION');
-        try {
-            if (options.emails || options.size) {
-                let query = 'UPDATE projects SET [emails] = [emails] + $emails, [size] = [size] + $size WHERE [id] = $id';
-                await this.sql.run(query, {
-                    $id: id,
-                    $emails: Number(options.emails) || 0,
-                    $size: Number(options.size) || 0
-                });
+        if (options.emails || options.size) {
+            let query = 'UPDATE projects SET [emails] = [emails] + $emails, [size] = [size] + $size WHERE [id] = $id';
+            await this.sql.run(query, {
+                $id: id,
+                $emails: Number(options.emails) || 0,
+                $size: Number(options.size) || 0
+            });
+        }
+
+        if (sets.length) {
+            if (!options.finished) {
+                sets.push('[updated] = $updated');
+                queryParams.$updated = formatDate(now);
             }
 
-            if (sets.length) {
-                if (!options.finished) {
-                    sets.push('[updated] = $updated');
-                    queryParams.$updated = formatDate(now);
-                }
-
-                let query = `UPDATE imports SET ${sets.join(',')} WHERE [id] = $importId`;
-                await this.sql.run(query, queryParams);
-            }
-        } finally {
-            await this.sql.run('COMMIT TRANSACTION');
+            let query = `UPDATE imports SET ${sets.join(',')} WHERE [id] = $importId`;
+            await this.sql.run(query, queryParams);
         }
 
         if (sets.length) {
