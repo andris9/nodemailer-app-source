@@ -232,14 +232,14 @@ class Projects {
                 // ignore?
             }
 
-            setTimeout(() => {
-                this.checkCatchall().catch(err => console.error(err));
-            }, 5000);
-
             while (this.prepareQueue.length) {
                 let promise = this.prepareQueue.shift();
                 promise.resolve();
             }
+
+            setTimeout(() => {
+                this.checkCatchall().catch(err => console.error(err));
+            }, 5000);
         }
     }
 
