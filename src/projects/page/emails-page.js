@@ -274,11 +274,13 @@
                 let currentList = [];
 
                 let keyElm = document.createElement('dt');
+                keyElm.classList.add('pdf-hide');
                 keyElm.textContent = 'Labels';
                 infoList.appendChild(keyElm);
 
                 let valElm = document.createElement('dd');
                 valElm.style.minHeight = '32px';
+                valElm.classList.add('pdf-hide');
 
                 let tagsElm = document.createElement('input');
                 tagsElm.classList.add('tags-input');
@@ -750,7 +752,17 @@
                 return;
             }
 
-            let infoHtml = '<dl class="info-dl">' + document.getElementById('email-info-list').innerHTML + '</dl>';
+            let tempInfoElm = document.createElement('div');
+            let infoHtmlElm = document.createElement('dl');
+            infoHtmlElm.classList.add('info-dl');
+            tempInfoElm.appendChild(infoHtmlElm);
+
+            infoHtmlElm.innerHTML = document.getElementById('email-info-list').innerHTML;
+            for (let removeElm of infoHtmlElm.querySelectorAll('.pdf-hide')) {
+                removeElm.parentNode.removeChild(removeElm);
+            }
+
+            let infoHtml = tempInfoElm.innerHTML;
 
             let html = this.currentHtml;
 
