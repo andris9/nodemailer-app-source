@@ -1451,7 +1451,9 @@
                             .then(() => {
                                 this.selectable.select(data.id);
                             })
-                            .catch(() => false);
+                            .catch(err => {
+                                console.error(err);
+                            });
                     } else {
                         window.__hasChanges++;
                     }

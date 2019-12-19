@@ -309,23 +309,10 @@ class Server extends EventEmitter {
 
                         if (res && res.id) {
                             await this.projects.updateImport(analyzer.id, null, { emails: 1, processed: 0, size: res.size });
-
-                            if (this.projects.projectWindows.has(projectId)) {
-                                for (let win of this.projects.projectWindows.get(projectId)) {
-                                    try {
-                                        win.webContents.send(
-                                            'message-received',
-                                            JSON.stringify({
-                                                id: res.id,
-                                                size: res.size
-                                            })
-                                        );
-                                    } catch (err) {
-                                        console.error(err);
-                                    }
-                                }
-                            }
-
+                            this.projects.sendToProjectWindows(analyzer.id, 'message-received', {
+                                id: res.id,
+                                size: res.size
+                            });
                             return res.id;
                         }
 

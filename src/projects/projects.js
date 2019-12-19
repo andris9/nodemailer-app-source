@@ -336,23 +336,10 @@ class Projects {
 
         if (res && res.id) {
             await this.updateImport(analyzer.id, null, { emails: 1, processed: 0, size: res.size });
-
-            if (this.projectWindows.has(meta.project)) {
-                for (let win of this.projectWindows.get(meta.project)) {
-                    try {
-                        win.webContents.send(
-                            'message-received',
-                            JSON.stringify({
-                                id: res.id,
-                                size: res.size
-                            })
-                        );
-                    } catch (err) {
-                        console.error(err);
-                    }
-                }
-            }
-
+            this.sendToProjectWindows(analyzer.id, 'message-received', {
+                id: res.id,
+                size: res.size
+            });
             return res.id;
         }
     }
@@ -789,23 +776,10 @@ class Projects {
 
         if (importResponse && importResponse.id) {
             await this.updateImport(analyzer.id, null, { emails: 1, processed: 0, size: importResponse.size });
-
-            if (this.projectWindows.has(target)) {
-                for (let win of this.projectWindows.get(target)) {
-                    try {
-                        win.webContents.send(
-                            'message-received',
-                            JSON.stringify({
-                                id: importResponse.id,
-                                size: importResponse.size
-                            })
-                        );
-                    } catch (err) {
-                        console.error(err);
-                    }
-                }
-            }
-
+            this.sendToProjectWindows(analyzer.id, 'message-received', {
+                id: importResponse.id,
+                size: importResponse.size
+            });
             return importResponse.id;
         }
     }
