@@ -62,21 +62,14 @@ class Server extends EventEmitter {
             })
         );
 
+        let statusPayload = {
+            id: 'server-start',
+            running: true,
+            config: await this.getConfig()
+        };
+
         for (let id of this.projects.projectWindows.keys()) {
-            for (let win of this.projects.projectWindows.get(id)) {
-                try {
-                    win.webContents.send(
-                        'server-status',
-                        JSON.stringify({
-                            id: 'server-start',
-                            running: true,
-                            config: await this.getConfig()
-                        })
-                    );
-                } catch (err) {
-                    console.error(err);
-                }
-            }
+            this.projects.sendToProjectWindows(id, 'server-status', statusPayload);
         }
 
         this._stopping = false;
@@ -111,21 +104,14 @@ class Server extends EventEmitter {
             })
         );
 
+        let statusPayload = {
+            id: 'server-stop',
+            running: false,
+            config: await this.getConfig()
+        };
+
         for (let id of this.projects.projectWindows.keys()) {
-            for (let win of this.projects.projectWindows.get(id)) {
-                try {
-                    win.webContents.send(
-                        'server-status',
-                        JSON.stringify({
-                            id: 'server-stop',
-                            running: false,
-                            config: await this.getConfig()
-                        })
-                    );
-                } catch (err) {
-                    console.error(err);
-                }
-            }
+            this.projects.sendToProjectWindows(id, 'server-status', statusPayload);
         }
 
         this._starting = false;
