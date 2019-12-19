@@ -1262,7 +1262,7 @@
 
             this.reload()
                 .then(() => {
-                    this.selectable.selectFirst();
+                    this.selectable.selectFirst(true);
                 })
                 .catch(() => false);
         }
@@ -1447,7 +1447,6 @@
             });
 
             window.events.subscribe('tagchange', () => {
-                console.log('TAGCHANGE');
                 this.drawTagsList().catch(err => console.error(err));
             });
         }

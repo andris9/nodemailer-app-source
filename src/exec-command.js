@@ -1095,7 +1095,6 @@ async function getTags(curWin, projects, analyzer) {
 async function updateTags(curWin, projects, analyzer, params) {
     let { tagChanges } = await analyzer.setEmailTags(params.email, params.tags);
     if (tagChanges) {
-        console.log(tagChanges, analyzer.id);
         projects.sendToProjectWindows(analyzer.id, 'tagchange', {
             id: analyzer.id,
             tagChanges

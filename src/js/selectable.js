@@ -168,10 +168,14 @@
             }
         }
 
-        selectFirst() {
+        selectFirst(onlyEmpty) {
             if (!this.activated || !this.list) {
                 return;
             }
+            if (onlyEmpty && this.active) {
+                return;
+            }
+
             this.select(this.list.length && this.list[0]);
         }
 
