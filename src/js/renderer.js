@@ -45,7 +45,8 @@ window.events = {
         'log',
         'preferences',
         'find',
-        'flush'
+        'flush',
+        'tagchange'
     ].forEach(channel => {
         ipcRenderer.on(channel, (event, arg) => {
             let payload;

@@ -168,6 +168,13 @@
             }
         }
 
+        selectFirst() {
+            if (!this.activated || !this.list) {
+                return;
+            }
+            this.select(this.list.length && this.list[0]);
+        }
+
         select(entry) {
             if (!this.activated || !this.list) {
                 return;

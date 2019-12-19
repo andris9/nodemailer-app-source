@@ -2325,6 +2325,8 @@ class Analyzer {
             tag: (entry || '').toLowerCase().trim()
         }));
 
+        let tagChanges = 0;
+
         let rows = await this.sql.findMany('SELECT id, display, tag FROM tags WHERE email=?', [email]);
 
         let missing = [];
@@ -2378,6 +2380,7 @@ class Analyzer {
                             $display: tagData.display
                         }
                     );
+                    tagChanges++;
                 }
             }
 
@@ -2388,9 +2391,12 @@ class Analyzer {
                     await this.sql.run(`DELETE FROM project_tags WHERE tag=$tag`, {
                         $tag: tagData.tag
                     });
+                    tagChanges++;
                 }
             }
         }
+
+        return { tagChanges };
     }
 }
 

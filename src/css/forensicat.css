@@ -81,6 +81,8 @@ dl.info-dl dd {
     margin: 0;
     padding: 2px 4px;
     line-height: 1.1rem;
+    max-height: 100px;
+    overflow: auto;
 }
 
 .contain-text {
@@ -270,4 +272,11 @@ hr {
 .tagify__dropdown__item,
 .tagify__dropdown__item--active {
     font-size: 12px;
+}
+
+.emails-component .nav-group-item:active {
+    background-color: transparent;
+}
+.emails-component .nav-group-item.active {
+    background-color: #dcdfe1;
 }

@@ -125,6 +125,11 @@
             this.actionExternalElm = document.getElementById('email-action-external');
             this.actionButtonsElm.removeChild(this.actionExternalElm);
 
+            this.activeTag = false;
+            this.emailsTagsRows = [];
+            this.emailsTagsList = document.getElementById('email-tags-list');
+            this.emailsTagsAll = document.getElementById('email-tags-all');
+
             this.rowListElm = document.getElementById('emails-list');
             this.rows = [];
 
@@ -175,8 +180,6 @@
             let data = active.data;
             let infoList = document.getElementById('email-info-list');
             let dataList = [];
-
-            console.log(data);
 
             const formatAddressEntries = addr => {
                 let list = addr.map(a => {
@@ -576,6 +579,7 @@
 
                 let cell01Elm = document.createElement('td');
                 let cell02Elm = document.createElement('td');
+                cell02Elm.classList.add('text-select');
 
                 cell01Elm.style.width = '20%';
 
@@ -599,6 +603,30 @@
             };
 
             let activeTab = false;
+
+            let currentActiveTab = this.viewTabs.getActive();
+            switch (currentActiveTab) {
+                case 'html':
+                case 'plain':
+                    // do nothing, use default
+                    break;
+
+                case 'html-source':
+                    if (data.text.html) {
+                        activeTab = 'html-source';
+                    }
+                    break;
+                case 'headers':
+                case 'files':
+                    activeTab = currentActiveTab;
+                    break;
+                case 'metadata':
+                    if (data.source) {
+                        activeTab = 'metadata';
+                    }
+                    break;
+            }
+
             if (data.text.html) {
                 getPrefs()
                     .then(prefs => drawHtml(data.text.html, !prefs.disableRemote))
@@ -607,9 +635,13 @@
 
                 this.viewTabs.show('html');
                 this.viewTabs.show('html-source');
-                if (!activeTab) {
+                if (!activeTab || activeTab === 'html') {
                     this.viewTabs.activate('html');
                     activeTab = 'html';
+                }
+
+                if (activeTab === 'html-source') {
+                    this.viewTabs.activate('html-source');
                 }
 
                 addFileRow({
@@ -628,7 +660,7 @@
                 drawPlain(data.text.plain);
 
                 this.viewTabs.show('plain');
-                if (!activeTab) {
+                if (!activeTab || activeTab === 'plain') {
                     this.viewTabs.activate('plain');
                     activeTab = 'plain';
                 }
@@ -644,14 +676,17 @@
                 this.viewTabs.hide('plain');
             }
 
-            drawHeaders(data.headers);
-
             for (let attachmentData of data.attachments) {
                 addFileRow(attachmentData);
             }
 
+            if (activeTab === 'files') {
+                this.viewTabs.activate('files');
+            }
+
+            drawHeaders(data.headers);
             this.viewTabs.show('headers');
-            if (!activeTab) {
+            if (!activeTab || activeTab === 'headers') {
                 this.viewTabs.activate('headers');
                 activeTab = 'headers';
             }
@@ -696,6 +731,11 @@
                         let fKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase());
                         addMetadataRow({ key: fKey, value: data.source.envelope.attributes[key] });
                     });
+                }
+
+                if (!activeTab || activeTab === 'metadata') {
+                    this.viewTabs.activate('metadata');
+                    activeTab = 'metadata';
                 }
             } else {
                 this.viewTabs.hide('metadata');
@@ -840,12 +880,15 @@
             this.pageMenuElm.classList.remove('active');
             this.visible = false;
 
+            this.viewTabs.clear();
+
             document.getElementById('middle-pane').classList.remove('fixed-pane');
 
             this.selectable.disable();
         }
 
         async reload() {
+            this._reloading = true;
             await showLoader();
             try {
                 let params = {
@@ -872,6 +915,10 @@
                     }
                 }
 
+                if (this.activeTag) {
+                    params.tags = [this.activeTag];
+                }
+
                 let list = await exec({
                     command: 'listEmails',
                     params
@@ -879,6 +926,7 @@
                 await this.render(list);
             } finally {
                 await hideLoader();
+                this._reloading = false;
             }
         }
 
@@ -918,7 +966,7 @@
                 'email-from': query.from || '',
                 'email-any-to': query.anyTo || '',
                 'email-subject': query.subject || '',
-                'email-tags': (query.tags && query.tags.join(', ')) || '',
+                //'email-tags': (query.tags && query.tags.join(', ')) || '',
                 filename: (query.attachments && query.filename) || '',
                 headers: query.headers
                     ? Object.keys(query.headers)
@@ -975,6 +1023,7 @@
                 }
             }
 
+            /*
             if (terms['email-tags']) {
                 let value = terms['email-tags']
                     .toString()
@@ -985,6 +1034,7 @@
                     query.tags = value;
                 }
             }
+            */
 
             if (terms['email-date-start']) {
                 let value = this.fromLocaleDate(terms['email-date-start'] + 'T00:00:00');
@@ -1184,6 +1234,88 @@
             this.search().catch(() => false);
         }
 
+        setActiveEmailTag(tag) {
+            if (tag === this.activeTag || this._reloading) {
+                return;
+            }
+
+            this.page = 1;
+
+            if (this.activeTag) {
+                let active = this.emailsTagsRows.find(row => row.tag === this.activeTag);
+                if (active) {
+                    active.row.classList.remove('active');
+                }
+            } else {
+                this.emailsTagsAll.classList.remove('active');
+            }
+
+            this.activeTag = tag;
+            if (this.activeTag) {
+                let active = this.emailsTagsRows.find(row => row.tag === this.activeTag);
+                if (active) {
+                    active.row.classList.add('active');
+                }
+            } else {
+                this.emailsTagsAll.classList.add('active');
+            }
+
+            this.reload()
+                .then(() => {
+                    this.selectable.selectFirst();
+                })
+                .catch(() => false);
+        }
+
+        async drawTagsList() {
+            let currentRows = this.emailsTagsList.querySelectorAll('.emails-tags-item');
+            for (let row of currentRows) {
+                this.emailsTagsList.removeChild(row);
+            }
+            this.emailsTagsRows = [];
+            let hasActiveTag = false;
+            try {
+                let tags = await exec({
+                    command: 'getTags'
+                });
+                for (let tag of tags) {
+                    let linkElm = document.createElement('a');
+                    linkElm.classList.add('nav-group-item', 'emails-tags-item');
+                    let iconElm = document.createElement('span');
+                    iconElm.classList.add('icon', 'icon-bookmark');
+                    let textElm = document.createElement('span');
+                    textElm.textContent = ' ' + tag;
+
+                    linkElm.dataset.tag = tag;
+
+                    linkElm.appendChild(iconElm);
+                    linkElm.appendChild(textElm);
+                    this.emailsTagsList.appendChild(linkElm);
+
+                    if (this.activeTag === tag) {
+                        linkElm.classList.add('active');
+                        hasActiveTag = true;
+                    }
+
+                    linkElm.addEventListener('click', () => this.setActiveEmailTag(tag));
+                    linkElm.addEventListener('touchstart', () => this.setActiveEmailTag(tag));
+                    this.emailsTagsRows.push({
+                        tag,
+                        row: linkElm
+                    });
+                }
+                if (!this.activeTag) {
+                    this.emailsTagsAll.classList.add('active');
+                }
+                if (this.activeTag && !hasActiveTag) {
+                    // no suitable tag element found, reset
+                    this.setActiveEmailTag();
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
         async init() {
             await this.reload();
 
@@ -1287,6 +1419,9 @@
                 this.reload().catch(() => false);
             });
 
+            await this.drawTagsList();
+            this.emailsTagsAll.addEventListener('click', () => this.setActiveEmailTag());
+
             window.events.subscribe('menu-click', data => {
                 switch (data.type) {
                     case 'export-mbox':
@@ -1309,6 +1444,11 @@
                         window.__hasChanges++;
                     }
                 }
+            });
+
+            window.events.subscribe('tagchange', () => {
+                console.log('TAGCHANGE');
+                this.drawTagsList().catch(err => console.error(err));
             });
         }
     }

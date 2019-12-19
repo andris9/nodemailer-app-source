@@ -1087,13 +1087,20 @@ async function setupCatchall(curWin, projects) {
     return await projects.setupCatchall();
 }
 
-async function getTags(curWin, projects, analyzer, params) {
-    let list = await analyzer.getProjectTags(params.email);
+async function getTags(curWin, projects, analyzer) {
+    let list = await analyzer.getProjectTags();
     return list;
 }
 
 async function updateTags(curWin, projects, analyzer, params) {
-    await analyzer.setEmailTags(params.email, params.tags);
+    let { tagChanges } = await analyzer.setEmailTags(params.email, params.tags);
+    if (tagChanges) {
+        console.log(tagChanges, analyzer.id);
+        projects.sendToProjectWindows(analyzer.id, 'tagchange', {
+            id: analyzer.id,
+            tagChanges
+        });
+    }
     return true;
 }
 

@@ -40,6 +40,10 @@
             return this.active;
         }
 
+        clear() {
+            this.active = false;
+        }
+
         hide(tab) {
             let tabElm = this.groupElm.querySelector(`#${this.prefix}-${tab}`);
             tabElm.classList.remove('active');
