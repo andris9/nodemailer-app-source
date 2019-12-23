@@ -581,7 +581,6 @@
 
                 let cell01Elm = document.createElement('td');
                 let cell02Elm = document.createElement('td');
-                cell02Elm.classList.add('text-select');
 
                 cell01Elm.style.width = '20%';
 
@@ -607,12 +606,14 @@
                     let textElm = document.createElement('span');
                     textElm.textContent = info.value;
                     textElm.title = info.value;
+                    textElm.classList.add('text-select');
 
                     cell02Elm.appendChild(actionBtnElm);
                     cell02Elm.appendChild(textElm);
                 } else {
                     cell02Elm.textContent = info.value;
                     cell02Elm.title = info.value;
+                    cell02Elm.classList.add('text-select');
                 }
 
                 rowElm.appendChild(cell01Elm);
@@ -1298,6 +1299,8 @@
                 pages: 0,
                 data: []
             });
+            this.selectable.select();
+            await this.drawTagsList();
         }
 
         find() {
@@ -1378,7 +1381,7 @@
                         row: linkElm
                     });
                 }
-                if (!this.activeTag) {
+                if (!this.activeTag || !tags.length) {
                     this.emailsTagsAll.classList.add('active');
                 }
                 if (this.activeTag && !hasActiveTag) {
