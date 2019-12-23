@@ -1119,6 +1119,9 @@
                         return;
                     }
                 }
+            } else {
+                // external search, clear label
+                this.setActiveEmailTag();
             }
 
             this.query = search || false;
@@ -1246,7 +1249,7 @@
             this.search().catch(() => false);
         }
 
-        setActiveEmailTag(tag) {
+        setActiveEmailTag(tag, skipReload) {
             if (tag === this.activeTag || this._reloading) {
                 return;
             }
@@ -1270,6 +1273,10 @@
                 }
             } else {
                 this.emailsTagsAll.classList.add('active');
+            }
+
+            if (skipReload) {
+                return;
             }
 
             this.reload()
