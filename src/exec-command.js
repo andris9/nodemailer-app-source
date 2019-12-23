@@ -83,8 +83,8 @@ async function processMboxImport(curWin, projects, analyzer, paths) {
                             },
                             idate: messageData.time,
                             returnPath: messageData.returnPath,
-                            flags: messageData.flags && messageData.flags.size ? Array.from(messageData.flags) : null,
-                            labels: messageData.labels && messageData.labels.size ? Array.from(messageData.labels) : null
+                            flags: messageData.flags,
+                            labels: messageData.labels
                         },
                         messageData.content
                     );

@@ -1569,7 +1569,9 @@ class Analyzer {
             `[emails].[hdate] AS hdate`,
             `[emails].[attachments] AS attachments`,
             `[emails].[key] AS key`,
-            `[emails].[source] AS source`
+            `[emails].[source] AS source`,
+            `[emails].[labels] AS labels`,
+            `[emails].[flags] AS flags`
         ];
         let countFields = ['COUNT([emails].[id]) AS total'];
 
@@ -1802,6 +1804,26 @@ class Analyzer {
                     console.log(emailData.source);
                     console.error(err);
                     emailData.source = null;
+                }
+            }
+
+            if (emailData.labels) {
+                try {
+                    emailData.labels = JSON.parse(emailData.labels);
+                } catch (err) {
+                    console.log(emailData.labels);
+                    console.error(err);
+                    emailData.labels = null;
+                }
+            }
+
+            if (emailData.flags) {
+                try {
+                    emailData.flags = JSON.parse(emailData.flags);
+                } catch (err) {
+                    console.log(emailData.flags);
+                    console.error(err);
+                    emailData.flags = null;
                 }
             }
 

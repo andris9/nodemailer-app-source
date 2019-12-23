@@ -701,15 +701,29 @@
                 };
 
                 if (data.source.format) {
-                    addMetadataRow({ key: 'Source format', value: data.source.format.replace(/^./, c => c.toUpperCase()) });
+                    addMetadataRow({ key: 'Source Format', value: data.source.format.replace(/^./, c => c.toUpperCase()) });
                 }
 
                 if (data.source.filename) {
-                    addMetadataRow({ key: 'File path', value: data.source.filename });
+                    addMetadataRow({ key: 'Source File', value: data.source.filename });
                 }
 
                 if (data.idate) {
-                    addMetadataRow({ key: 'Date', value: moment(data.idate).format('LLL') });
+                    addMetadataRow({ key: 'Envelope Date', value: moment(data.idate).format('LLL') });
+                }
+
+                if (data.hdate) {
+                    addMetadataRow({ key: 'Header Date', value: moment(data.hdate).format('LLL') });
+                }
+
+                if (data.labels) {
+                    for (let label of [].concat(data.labels || [])) {
+                        addMetadataRow({ key: 'Mailbox', value: label });
+                    }
+                }
+
+                if (data.flags && data.flags.length) {
+                    addMetadataRow({ key: 'Keywords', value: data.flags.join(', ') });
                 }
 
                 if (data.source.envelope) {
