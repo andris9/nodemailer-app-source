@@ -1944,6 +1944,7 @@ class Analyzer {
             `[emails].[key] AS key`,
             `[emails].[return_path] AS returnPath`,
             `[emails].[source] AS source`,
+            `[emails].[labels] AS [labels]`,
             `[emails].[flags] AS [flags]`
         ];
 
@@ -1967,15 +1968,29 @@ class Analyzer {
             try {
                 emailData.source = JSON.parse(emailData.source);
             } catch (err) {
+                console.log(emailData.flags);
+                console.error(err);
                 emailData.source = {};
+            }
+        }
+
+        if (emailData.labels) {
+            try {
+                emailData.labels = JSON.parse(emailData.labels);
+            } catch (err) {
+                console.log(emailData.labels);
+                console.error(err);
+                emailData.labels = null;
             }
         }
 
         if (emailData.flags) {
             try {
-                emailData.flags = JSON.parse(emailData.source);
+                emailData.flags = JSON.parse(emailData.flags);
             } catch (err) {
-                emailData.flags = [];
+                console.log(emailData.flags);
+                console.error(err);
+                emailData.flags = null;
             }
         }
 

@@ -723,7 +723,7 @@
                 }
 
                 if (data.flags && data.flags.length) {
-                    addMetadataRow({ key: 'Keywords', value: data.flags.join(', ') });
+                    addMetadataRow({ key: 'Message Flags', value: data.flags.join(', ') });
                 }
 
                 if (data.source.envelope) {
