@@ -2,7 +2,7 @@
     "name": "NodemailerApp",
     "private": true,
     "productName": "NodemailerApp",
-    "version": "1.0.14",
+    "version": "1.0.15",
     "description": "The ultimate email debugging tool",
     "main": "src/index.js",
     "scripts": {
@@ -142,7 +142,7 @@
     },
     "dependencies": {
         "@electron-forge/maker-deb": "6.0.0-beta.47",
-        "@yaireo/tagify": "^3.2.3",
+        "@yaireo/tagify": "^3.2.4",
         "about-window": "1.13.2",
         "appdata-path": "1.0.0",
         "base32.js": "0.1.0",
