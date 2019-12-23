@@ -1,5 +1,5 @@
 /* eslint global-require: 0 */
-/* global window, document, exec, showLoader, hideLoader, DOMPurify, Tabs, confirm, Tagify */
+/* global window, document, exec, showLoader, hideLoader, DOMPurify, Tabs, confirm, Tagify, alert */
 
 'use strict';
 
@@ -588,8 +588,32 @@
                 cell01Elm.textContent = info.key;
                 cell01Elm.title = info.key;
 
-                cell02Elm.textContent = info.value;
-                cell02Elm.title = info.value;
+                if (info.action) {
+                    let actionBtnElm = document.createElement('button');
+                    actionBtnElm.classList.add('btn', 'btn-mini', 'btn-default');
+                    actionBtnElm.style.float = 'right';
+
+                    let iconElm = document.createElement('span');
+                    iconElm.classList.add('icon', 'icon-' + info.action.icon);
+                    actionBtnElm.appendChild(iconElm);
+
+                    actionBtnElm.addEventListener('click', ev => {
+                        ev.stopPropagation();
+                        ev.preventDefault();
+
+                        info.action.handler().catch(err => console.error(err));
+                    });
+
+                    let textElm = document.createElement('span');
+                    textElm.textContent = info.value;
+                    textElm.title = info.value;
+
+                    cell02Elm.appendChild(actionBtnElm);
+                    cell02Elm.appendChild(textElm);
+                } else {
+                    cell02Elm.textContent = info.value;
+                    cell02Elm.title = info.value;
+                }
 
                 rowElm.appendChild(cell01Elm);
                 rowElm.appendChild(cell02Elm);
@@ -705,7 +729,24 @@
                 }
 
                 if (data.source.filename) {
-                    addMetadataRow({ key: 'Source File', value: data.source.filename });
+                    addMetadataRow({
+                        key: 'Source File',
+                        value: data.source.filename,
+                        action: {
+                            icon: 'folder',
+                            async handler() {
+                                let opened = await exec({
+                                    command: 'showItemInFolder',
+                                    params: {
+                                        filename: data.source.filename
+                                    }
+                                });
+                                if (!opened) {
+                                    alert('Source file not found');
+                                }
+                            }
+                        }
+                    });
                 }
 
                 if (data.idate) {

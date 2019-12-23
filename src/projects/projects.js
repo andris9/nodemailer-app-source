@@ -14,6 +14,7 @@ const chokidar = require('chokidar');
 const EventSource = require('eventsource');
 const crypto = require('crypto');
 const fetch = require('node-fetch');
+const stringToColor = require('string-to-color');
 const packageData = require('../meta.json');
 
 const Server = require('../server/server.js');
@@ -359,6 +360,7 @@ class Projects {
             return {
                 id: item.id,
                 name: item.name,
+                color: stringToColor(item.id),
                 folderName: item.folderName,
                 emails: item.emails,
                 size: item.size,

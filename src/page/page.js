@@ -65,7 +65,12 @@
         // icon
         let imgElm = document.createElement('img');
         imgElm.classList.add('img-circle', 'media-object', 'pull-left');
-        imgElm.setAttribute('src', '../assets/envelope-small.png');
+        imgElm.setAttribute(
+            'src',
+            `data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' height='100px' width='100px'%3E%3Crect x='0' y='0' width='100' height='100' style='fill:%23${data.color.substr(
+                1
+            )};' /%3E%3C/svg%3E`
+        );
         imgElm.setAttribute('width', '32');
         imgElm.setAttribute('height', '32');
         liElm.appendChild(imgElm);

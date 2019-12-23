@@ -1108,6 +1108,19 @@ async function getEmailTags(curWin, projects, analyzer, params) {
     return list;
 }
 
+async function showItemInFolder(curWin, projects, analyzer, params) {
+    try {
+        await fs.stat(params.filename);
+    } catch (err) {
+        if (err.code === 'ENOENT') {
+            return false;
+        }
+        throw err;
+    }
+    shell.showItemInFolder(params.filename);
+    return true;
+}
+
 module.exports = async (curWin, projects, analyzer, data, menu) => {
     switch (data.command) {
         case 'listProjects':
@@ -1238,6 +1251,9 @@ module.exports = async (curWin, projects, analyzer, data, menu) => {
 
         case 'getEmailTags':
             return await getEmailTags(curWin, projects, analyzer, data.params);
+
+        case 'showItemInFolder':
+            return await showItemInFolder(curWin, projects, analyzer, data.params);
 
         default:
             throw new Error('Unknown command ' + JSON.stringify(data));

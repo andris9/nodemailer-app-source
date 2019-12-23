@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8" />
 
-        <link rel="stylesheet" href="../../css/photon.min.css" />
+        <link rel="stylesheet" href="../../css/photon.css" />
         <link rel="stylesheet" href="../../css/file-icons/style.css" />
         <link rel="stylesheet" href="../../css/tagify.css" />
         <link rel="stylesheet" href="../../css/forensicat.css" />
@@ -470,11 +470,17 @@ const transporter = nodemailer.createTransport({
 
                                 <div class="center-block" style="margin-bottom: 5px;">
                                     <div class="btn-group" id="email-action-buttons">
-                                        <button class="btn btn-default" id="email-action-view-source">View source</button>
-                                        <button class="btn btn-default" id="email-action-save">Save original</button>
-                                        <button class="btn btn-default" id="email-action-upload">Upload to server</button>
-                                        <button class="btn btn-default" id="email-action-pdf">Export PDF</button>
-                                        <button class="btn btn-default" id="email-action-external">Load external content</button>
+                                        <button class="btn btn-default" id="email-action-view-source">
+                                            <span class="icon icon-map"></span>&nbsp;View source
+                                        </button>
+                                        <button class="btn btn-default" id="email-action-save"><span class="icon icon-floppy"></span>&nbsp; Save source</button>
+                                        <button class="btn btn-default" id="email-action-upload">
+                                            <span class="icon icon-upload-cloud"></span>&nbsp; Upload to server
+                                        </button>
+                                        <button class="btn btn-default" id="email-action-pdf"><span class="icon icon-export"></span>&nbsp; Export PDF</button>
+                                        <button class="btn btn-default" id="email-action-external">
+                                            <span class="icon icon-picture"></span>&nbsp; Load external content
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -489,7 +495,7 @@ const transporter = nodemailer.createTransport({
                                 </table>
                             </div>
                             <div id="email-tab-metadata-content" class="hidden">
-                                <table class="table-striped" style="table-layout: fixed;">
+                                <table class="table-striped table-no-active" style="table-layout: fixed;">
                                     <tbody id="email-metadata-list"></tbody>
                                 </table>
                             </div>
