@@ -360,7 +360,7 @@ class Projects {
             return {
                 id: item.id,
                 name: item.name,
-                color: stringToColor(item.id),
+                color: stringToColor({ id: item.id, folder: item.folderName }),
                 folderName: item.folderName,
                 emails: item.emails,
                 size: item.size,

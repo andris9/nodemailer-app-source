@@ -107,7 +107,7 @@
 
         // "<123> emails indexed (<456>)"
         let middleText = document.createElement('span');
-        middleText.textContent = ' emails indexed (';
+        middleText.textContent = ` email${Number(data.emails) !== 1 ? 's' : ''} indexed (`;
         let endText = document.createElement('span');
         endText.textContent = ')';
 
