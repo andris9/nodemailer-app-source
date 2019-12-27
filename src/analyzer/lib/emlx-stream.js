@@ -235,7 +235,7 @@ function parseEmlx(path, input) {
     input.pipe(parser);
     input.on('error', err => joiner.emit('error', err));
 
-    return joiner;
+    return { content: joiner, parser };
 }
 
 module.exports = parseEmlx;

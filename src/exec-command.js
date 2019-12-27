@@ -214,6 +214,22 @@ async function processMaildirImport(curWin, projects, analyzer, folderPaths) {
     return importId;
 }
 
+function bufferStream(stream) {
+    return new Promise((resolve, reject) => {
+        let chunks = [];
+        let chunklen = 0;
+        stream.on('readable', () => {
+            let chunk;
+            while ((chunk = stream.read()) !== null) {
+                chunks.push(chunk);
+                chunklen += chunk.length;
+            }
+        });
+        stream.once('end', () => resolve(Buffer.concat(chunks, chunklen)));
+        stream.on('error', reject);
+    });
+}
+
 async function processFolderImport(curWin, projects, analyzer, folderPaths) {
     let paths = [];
     for (let path of folderPaths) {
@@ -260,20 +276,57 @@ async function processFolderImport(curWin, projects, analyzer, folderPaths) {
                     input = gunzip;
                 }
 
+                let sourceMeta = {
+                    source: {
+                        format: 'eml',
+                        filename: path,
+                        importId
+                    }
+                };
+
                 if (pathlib.extname(path).toLowerCase() === '.emlx') {
-                    input = emlxStream(path, input);
+                    let { content, parser } = emlxStream(path, input);
+
+                    content = await bufferStream(content);
+                    sourceMeta.source.format = 'emlx';
+                    if (parser.idate) {
+                        sourceMeta.idate = parser.idate;
+                    }
+                    if (parser.uid) {
+                        sourceMeta.source.uid = parser.uid;
+                    }
+                    if (parser.flags) {
+                        let flags = [];
+                        if (parser.flags.read) {
+                            flags.push('\\Seen');
+                        }
+                        if (parser.flags.deleted) {
+                            flags.push('\\Deleted');
+                        }
+                        if (parser.flags.answered) {
+                            flags.push('\\Answered');
+                        }
+                        if (parser.flags.flagged) {
+                            flags.push('\\Flagged');
+                        }
+                        if (parser.flags.draft) {
+                            flags.push('\\Draft');
+                        }
+                        if (parser.flags.forwarded) {
+                            flags.push('\\Forwarded');
+                        }
+                        if (parser.flags.junk) {
+                            flags.push('$Junk');
+                        }
+                        if (flags.length) {
+                            sourceMeta.flags = flags;
+                        }
+                    }
+
+                    input = content;
                 }
 
-                let { size, duplicate } = await analyzer.import(
-                    {
-                        source: {
-                            format: 'eml',
-                            filename: path,
-                            importId
-                        }
-                    },
-                    input
-                );
+                let { size, duplicate } = await analyzer.import(sourceMeta, input);
 
                 if (duplicate) {
                     continue;
@@ -485,18 +538,56 @@ async function processEmlxImport(curWin, projects, analyzer, paths) {
                     input = gunzip;
                 }
 
-                input = emlxStream(path, input);
+                let sourceMeta = {
+                    source: {
+                        format: 'eml',
+                        filename: path,
+                        importId
+                    }
+                };
 
-                let { size, duplicate } = await analyzer.import(
-                    {
-                        source: {
-                            format: 'eml',
-                            filename: path,
-                            importId
+                if (pathlib.extname(path).toLowerCase() === '.emlx') {
+                    let { content, parser } = emlxStream(path, input);
+
+                    content = await bufferStream(content);
+                    sourceMeta.source.format = 'emlx';
+                    if (parser.idate) {
+                        sourceMeta.idate = parser.idate;
+                    }
+                    if (parser.uid) {
+                        sourceMeta.source.uid = parser.uid;
+                    }
+                    if (parser.flags) {
+                        let flags = [];
+                        if (parser.flags.read) {
+                            flags.push('\\Seen');
                         }
-                    },
-                    input
-                );
+                        if (parser.flags.deleted) {
+                            flags.push('\\Deleted');
+                        }
+                        if (parser.flags.answered) {
+                            flags.push('\\Answered');
+                        }
+                        if (parser.flags.flagged) {
+                            flags.push('\\Flagged');
+                        }
+                        if (parser.flags.draft) {
+                            flags.push('\\Draft');
+                        }
+                        if (parser.flags.forwarded) {
+                            flags.push('\\Forwarded');
+                        }
+                        if (parser.flags.junk) {
+                            flags.push('$Junk');
+                        }
+                        if (flags.length) {
+                            sourceMeta.flags = flags;
+                        }
+                    }
+                    input = content;
+                }
+
+                let { size, duplicate } = await analyzer.import(sourceMeta, input);
 
                 if (duplicate) {
                     continue;
