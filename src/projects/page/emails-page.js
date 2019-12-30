@@ -366,6 +366,7 @@
 
             let tabHtmlContentElm = document.getElementById('email-tab-html-content');
             let tabPlainContentElm = document.getElementById('email-tab-plain-content');
+            let tabAmpContentElm = document.getElementById('email-tab-amp-content');
             let tabHeadersContentElm = document.getElementById('email-tab-headers-content');
             let tabFilesListElm = document.getElementById('email-file-list');
             let tabMetadataListElm = document.getElementById('email-metadata-list');
@@ -373,6 +374,7 @@
 
             tabHtmlContentElm.innerHTML = '';
             tabPlainContentElm.innerHTML = '';
+            tabAmpContentElm.innerHTML = '';
             tabHeadersContentElm.innerHTML = '';
             tabFilesListElm.innerHTML = '';
             tabMetadataListElm.innerHTML = '';
@@ -446,12 +448,12 @@
                 } else {
                     clean = htmlStyleTag + clean;
                 }
-                clean = clean.replace();
 
                 let iframe = document.createElement('iframe');
                 iframe.setAttribute('sandbox', 'allow-popups allow-same-origin');
                 iframe.srcdoc = clean;
 
+                // always prefer html for PDF
                 this.currentHtml = clean;
 
                 tabHtmlContentElm.appendChild(iframe);
@@ -475,6 +477,26 @@
                 tabPlainContentElm.appendChild(iframe);
             };
 
+            let drawAmp = html => {
+                tabAmpContentElm.innerHTML = '';
+
+                html = html.replace(/<a\b[^>]+/gi, link => {
+                    link = link.replace(/(href=[\s'"]*)([^\s'"]+)/, (a, prefix, url) => {
+                        return prefix + `proxy.html#url=${encodeURIComponent(url)}`;
+                    });
+
+                    link += ' target="_blank"';
+                    return link;
+                });
+
+                let iframe = document.createElement('iframe');
+                iframe.setAttribute('sandbox', 'allow-scripts allow-forms allow-same-origin allow-popups allow-presentation');
+
+                iframe.srcdoc = html;
+
+                tabAmpContentElm.appendChild(iframe);
+            };
+
             let drawHtmlSource = text => {
                 let escapeElm = document.createElement('span');
 
@@ -492,10 +514,6 @@
                 let iframe = document.createElement('iframe');
                 iframe.setAttribute('sandbox', 'allow-popups allow-same-origin');
                 iframe.srcdoc = html;
-
-                if (!this.currentHtml) {
-                    this.currentHtml = html;
-                }
 
                 tabHtmlSourceContentElm.appendChild(iframe);
             };
@@ -630,7 +648,6 @@
             };
 
             let activeTab = false;
-
             let currentActiveTab = this.viewTabs.getActive();
             switch (currentActiveTab) {
                 case 'html':
@@ -654,153 +671,180 @@
                     break;
             }
 
-            if (data.text.html) {
-                getPrefs()
-                    .then(prefs => drawHtml(data.text.html, !prefs.disableRemote))
-                    .catch(err => console.error(err));
-                drawHtmlSource(data.text.html);
-
-                this.viewTabs.show('html');
-                this.viewTabs.show('html-source');
-                if (!activeTab || activeTab === 'html') {
-                    this.viewTabs.activate('html');
-                    activeTab = 'html';
-                }
-
-                if (activeTab === 'html-source') {
-                    this.viewTabs.activate('html-source');
-                }
-
-                addFileRow({
-                    title: 'HTML message',
-                    filename: 'message_' + data.id + '.html',
-                    id: 'html',
-                    contentType: 'application/octet-stream',
-                    size: data.text.html.length
-                });
-            } else {
-                this.viewTabs.hide('html');
-                this.viewTabs.hide('html-source');
-            }
-
-            if (data.text.plain) {
-                drawPlain(data.text.plain);
-
-                this.viewTabs.show('plain');
-                if (!activeTab || activeTab === 'plain') {
-                    this.viewTabs.activate('plain');
-                    activeTab = 'plain';
-                }
-
-                addFileRow({
-                    title: 'Plain text message',
-                    filename: 'message_' + data.id + '.txt',
-                    id: 'plain',
-                    contentType: 'application/octet-stream',
-                    size: data.text.plain.length
-                });
-            } else {
-                this.viewTabs.hide('plain');
-            }
-
-            for (let attachmentData of data.attachments) {
-                addFileRow(attachmentData);
-            }
-
-            if (activeTab === 'files') {
-                this.viewTabs.activate('files');
-            }
-
-            drawHeaders(data.headers);
-            this.viewTabs.show('headers');
-            if (!activeTab || activeTab === 'headers') {
-                this.viewTabs.activate('headers');
-                activeTab = 'headers';
-            }
-
-            if (data.source) {
-                this.viewTabs.show('metadata');
-
-                let getTextValue = address => {
-                    return (address && address.address) || address || '';
-                };
-
-                if (data.source.format) {
-                    addMetadataRow({ key: 'Source Format', value: data.source.format.replace(/^./, c => c.toUpperCase()) });
-                }
-
-                if (data.source.filename) {
-                    addMetadataRow({
-                        key: 'Source File',
-                        value: data.source.filename,
-                        action: {
-                            icon: 'folder',
-                            async handler() {
-                                let opened = await exec({
-                                    command: 'showItemInFolder',
-                                    params: {
-                                        filename: data.source.filename
-                                    }
-                                });
-                                if (!opened) {
-                                    alert('Source file not found');
-                                }
+            getPrefs()
+                .then(prefs => {
+                    if (data.text.amp) {
+                        if (prefs.disableAmp) {
+                            this.viewTabs.hide('amp');
+                        } else {
+                            drawAmp(data.text.amp);
+                            this.viewTabs.show('amp');
+                            if (!activeTab || activeTab === 'amp') {
+                                this.viewTabs.activate('amp');
+                                activeTab = 'amp';
                             }
                         }
-                    });
-                }
 
-                if (data.idate) {
-                    addMetadataRow({ key: 'Envelope Date', value: moment(data.idate).format('LLL') });
-                }
-
-                if (data.hdate) {
-                    addMetadataRow({ key: 'Header Date', value: moment(data.hdate).format('LLL') });
-                }
-
-                if (data.labels) {
-                    for (let label of [].concat(data.labels || [])) {
-                        addMetadataRow({ key: 'Mailbox', value: label });
-                    }
-                }
-
-                if (data.flags && data.flags.length) {
-                    addMetadataRow({ key: 'Message Flags', value: data.flags.join(', ') });
-                }
-
-                if (data.source.envelope) {
-                    if (data.source.envelope.mailFrom) {
-                        addMetadataRow({ key: 'From', value: getTextValue(data.source.envelope.mailFrom) });
-                    } else if (data.source.envelope.sender) {
-                        addMetadataRow({ key: 'From', value: getTextValue(data.source.envelope.sender) });
-                    } else if (data.returnPath) {
-                        addMetadataRow({ key: 'From', value: getTextValue(data.returnPath) });
+                        addFileRow({
+                            title: '⚡4email',
+                            filename: 'amp_' + data.id + '.html',
+                            id: 'x-amp-html',
+                            contentType: 'application/octet-stream',
+                            size: data.text['x-amp-html'].length
+                        });
+                    } else {
+                        this.viewTabs.hide('amp');
                     }
 
-                    for (let addr of [].concat(data.source.envelope.rcptTo || [])) {
-                        addMetadataRow({ key: 'Recipient', value: getTextValue(addr) });
+                    if (data.text.html) {
+                        getPrefs()
+                            .then(prefs => drawHtml(data.text.html, !prefs.disableRemote))
+                            .catch(err => console.error(err));
+                        drawHtmlSource(data.text.html);
+
+                        this.viewTabs.show('html');
+                        this.viewTabs.show('html-source');
+                        if (!activeTab || activeTab === 'html') {
+                            this.viewTabs.activate('html');
+                            activeTab = 'html';
+                        }
+
+                        if (activeTab === 'html-source') {
+                            this.viewTabs.activate('html-source');
+                        }
+
+                        addFileRow({
+                            title: 'HTML message',
+                            filename: 'message_' + data.id + '.html',
+                            id: 'html',
+                            contentType: 'application/octet-stream',
+                            size: data.text.html.length
+                        });
+                    } else {
+                        this.viewTabs.hide('html');
+                        this.viewTabs.hide('html-source');
                     }
 
-                    for (let addr of [].concat(data.source.envelope.recipient || [])) {
-                        addMetadataRow({ key: 'Recipient', value: getTextValue(addr) });
+                    if (data.text.plain) {
+                        drawPlain(data.text.plain);
+
+                        this.viewTabs.show('plain');
+                        if (!activeTab || activeTab === 'plain') {
+                            this.viewTabs.activate('plain');
+                            activeTab = 'plain';
+                        }
+
+                        addFileRow({
+                            title: 'Plain text message',
+                            filename: 'message_' + data.id + '.txt',
+                            id: 'plain',
+                            contentType: 'application/octet-stream',
+                            size: data.text.plain.length
+                        });
+                    } else {
+                        this.viewTabs.hide('plain');
                     }
 
-                    Object.keys(data.source.envelope.attributes || {}).forEach(key => {
-                        let fKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase());
-                        addMetadataRow({ key: fKey, value: data.source.envelope.attributes[key] });
-                    });
-                }
+                    for (let attachmentData of data.attachments) {
+                        addFileRow(attachmentData);
+                    }
 
-                if (!activeTab || activeTab === 'metadata') {
-                    this.viewTabs.activate('metadata');
-                    activeTab = 'metadata';
-                }
-            } else {
-                this.viewTabs.hide('metadata');
-            }
+                    if (activeTab === 'files') {
+                        this.viewTabs.activate('files');
+                    }
 
-            // keep reference for button actions
-            this.renderedData = data;
+                    drawHeaders(data.headers);
+                    this.viewTabs.show('headers');
+                    if (!activeTab || activeTab === 'headers') {
+                        this.viewTabs.activate('headers');
+                        activeTab = 'headers';
+                    }
+
+                    if (data.source) {
+                        this.viewTabs.show('metadata');
+
+                        let getTextValue = address => {
+                            return (address && address.address) || address || '';
+                        };
+
+                        if (data.source.format) {
+                            addMetadataRow({ key: 'Source Format', value: data.source.format.replace(/^./, c => c.toUpperCase()) });
+                        }
+
+                        if (data.source.filename) {
+                            addMetadataRow({
+                                key: 'Source File',
+                                value: data.source.filename,
+                                action: {
+                                    icon: 'folder',
+                                    async handler() {
+                                        let opened = await exec({
+                                            command: 'showItemInFolder',
+                                            params: {
+                                                filename: data.source.filename
+                                            }
+                                        });
+                                        if (!opened) {
+                                            alert('Source file not found');
+                                        }
+                                    }
+                                }
+                            });
+                        }
+
+                        if (data.idate) {
+                            addMetadataRow({ key: 'Envelope Date', value: moment(data.idate).format('LLL') });
+                        }
+
+                        if (data.hdate) {
+                            addMetadataRow({ key: 'Header Date', value: moment(data.hdate).format('LLL') });
+                        }
+
+                        if (data.labels) {
+                            for (let label of [].concat(data.labels || [])) {
+                                addMetadataRow({ key: 'Mailbox', value: label });
+                            }
+                        }
+
+                        if (data.flags && data.flags.length) {
+                            addMetadataRow({ key: 'Message Flags', value: data.flags.join(', ') });
+                        }
+
+                        if (data.source.envelope) {
+                            if (data.source.envelope.mailFrom) {
+                                addMetadataRow({ key: 'From', value: getTextValue(data.source.envelope.mailFrom) });
+                            } else if (data.source.envelope.sender) {
+                                addMetadataRow({ key: 'From', value: getTextValue(data.source.envelope.sender) });
+                            } else if (data.returnPath) {
+                                addMetadataRow({ key: 'From', value: getTextValue(data.returnPath) });
+                            }
+
+                            for (let addr of [].concat(data.source.envelope.rcptTo || [])) {
+                                addMetadataRow({ key: 'Recipient', value: getTextValue(addr) });
+                            }
+
+                            for (let addr of [].concat(data.source.envelope.recipient || [])) {
+                                addMetadataRow({ key: 'Recipient', value: getTextValue(addr) });
+                            }
+
+                            Object.keys(data.source.envelope.attributes || {}).forEach(key => {
+                                let fKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase());
+                                addMetadataRow({ key: fKey, value: data.source.envelope.attributes[key] });
+                            });
+                        }
+
+                        if (!activeTab || activeTab === 'metadata') {
+                            this.viewTabs.activate('metadata');
+                            activeTab = 'metadata';
+                        }
+                    } else {
+                        this.viewTabs.hide('metadata');
+                    }
+
+                    // keep reference for button actions
+                    this.renderedData = data;
+                })
+                .catch(err => console.error(err));
         }
 
         async actionPdf() {

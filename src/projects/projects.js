@@ -470,6 +470,7 @@ class Projects {
             preferences.generalJson = {};
         }
         preferences.generalJson.disableRemote = !!preferences.generalJson.disableRemote;
+        preferences.generalJson.disableAmp = !!preferences.generalJson.disableAmp;
 
         row = await this.sql.findOne('SELECT [value] FROM [appmeta] WHERE [key] = ?', ['prefs_smtp_json']);
         try {

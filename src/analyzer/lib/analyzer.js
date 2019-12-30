@@ -19,6 +19,8 @@ const human = require('humanparser');
 const isemail = require('isemail');
 const fs = require('fs').promises;
 const fsCreateWriteStream = require('fs').createWriteStream;
+const amphtmlValidator = require('amphtml-validator');
+const he = require('he');
 
 const Splitter = mailsplit.Splitter;
 const Joiner = mailsplit.Joiner;
@@ -592,7 +594,7 @@ class Analyzer {
                     return data.done();
                 }
 
-                let isTextNode = ['text/html', 'text/plain'].includes(data.node.contentType) || (data.node.root && !data.node.contentType);
+                let isTextNode = ['text/html', 'text/plain', 'text/x-amp-html'].includes(data.node.contentType) || (data.node.root && !data.node.contentType);
                 if ((!data.node.disposition || data.node.disposition === 'inline') && isTextNode) {
                     // text
                     let decoder = data.decoder;
@@ -636,20 +638,39 @@ class Analyzer {
                     });
                     decoder.once('error', err => reject(err));
                     decoder.once('end', () => {
-                        let textContent = {
-                            contentType: data.node.contentType || 'text/plain',
-                            charset: data.node.charset,
-                            text: Buffer.concat(chunks, chunklen)
-                                .toString()
-                                // newlines
-                                .replace(/\r?\n/g, '\n')
-                                // trailing whitespace
-                                .replace(/\s+$/, ''),
-                            key: `${key}:text:${textParts.length + 1}`
+                        let processTextContent = async () => {
+                            let textContent = {
+                                contentType: data.node.contentType || 'text/plain',
+                                charset: data.node.charset,
+                                text: Buffer.concat(chunks, chunklen)
+                                    .toString()
+                                    // newlines
+                                    .replace(/\r?\n/g, '\n')
+                                    // trailing whitespace
+                                    .replace(/\s+$/, ''),
+                                key: `${key}:text:${textParts.length + 1}`
+                            };
+
+                            if (data.node.contentType === 'text/x-amp-html') {
+                                if (!data.node.parentNode || data.node.parentNode.multipart !== 'alternative') {
+                                    // AMP4EMAIL found but not inside multipart/alternative
+                                    textContent.notAlternative = true;
+                                }
+                                const validator = await amphtmlValidator.getInstance();
+                                // NB! Assumes that severity, line, col, message, specUrl, code etc error params are enumerable
+                                textContent.ampValidationResult = validator.validateString(textContent.text, 'AMP4EMAIL');
+                            }
+                            return textContent;
                         };
 
-                        textParts.push(textContent);
-                        return data.done();
+                        processTextContent()
+                            .then(textContent => {
+                                textParts.push(textContent);
+                            })
+                            .catch(err => console.error(err))
+                            .finally(() => {
+                                data.done();
+                            });
                     });
 
                     return;
@@ -1880,11 +1901,26 @@ class Analyzer {
 
             let text = {};
             let attachmentReferences = new Set();
+            let ampErrors = [];
             textParts.forEach(textPart => {
                 let contentType = (textPart.contentType || '').toLowerCase();
                 let partKey = contentType.substr(contentType.indexOf('/') + 1);
                 if (!text[partKey]) {
                     text[partKey] = [];
+                }
+
+                if (textPart.contentType === 'text/x-amp-html') {
+                    if (textPart.notAlternative) {
+                        ampErrors.push(new Error('AMP for Email content has to be nested inside multipart/alternative MIME node'));
+                    }
+                    const result = textPart.ampValidationResult;
+                    if (!result || result.status !== 'PASS') {
+                        let errors = [].concat((result && result.errors) || []);
+                        if (!errors.length) {
+                            errors = [new Error('Failed to validate AMP for Email content')];
+                        }
+                        errors.forEach(err => ampErrors.push(err));
+                    }
                 }
 
                 let content = textPart.text || '';
@@ -1903,6 +1939,40 @@ class Analyzer {
             Object.keys(text).forEach(key => {
                 text[key] = text[key].join('\n');
             });
+
+            if (text['x-amp-html']) {
+                if (!text.html && !text.plain) {
+                    ampErrors.push(new Error('⚡4email requires HTML or Plaintext content alternative'));
+                }
+
+                if (ampErrors.length) {
+                    text.amp = `<!doctype html>
+                    <head>
+                        <meta charset="utf-8">
+                        <style>
+                        body {
+                            font-size: 13px;
+                            font-family: Sans-Serif;
+                            color: #0f0f0f;
+                        }
+                        h4 {
+                            color: red;
+                            font-size: 13px;
+                            font-weight: bold;
+                        }
+                        </style>
+                    </head>
+                    <body>
+                        <h4>AMP for Email rendering failed:</h4>
+                        <ul>
+                            ${ampErrors.map(err => `<li>${he.encode(err.message, { useNamedReferences: true })}</li>`).join('\n')}
+                        </ul>
+                    </body>
+                    </html>`;
+                } else {
+                    text.amp = text['x-amp-html'];
+                }
+            }
 
             emailData.text = text;
         };
@@ -1968,7 +2038,7 @@ class Analyzer {
             try {
                 emailData.source = JSON.parse(emailData.source);
             } catch (err) {
-                console.log(emailData.flags);
+                console.error(emailData.source);
                 console.error(err);
                 emailData.source = {};
             }
@@ -1978,7 +2048,7 @@ class Analyzer {
             try {
                 emailData.labels = JSON.parse(emailData.labels);
             } catch (err) {
-                console.log(emailData.labels);
+                console.error(emailData.labels);
                 console.error(err);
                 emailData.labels = null;
             }
@@ -1988,7 +2058,7 @@ class Analyzer {
             try {
                 emailData.flags = JSON.parse(emailData.flags);
             } catch (err) {
-                console.log(emailData.flags);
+                console.error(emailData.flags);
                 console.error(err);
                 emailData.flags = null;
             }

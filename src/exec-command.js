@@ -1048,7 +1048,7 @@ async function saveAttachment(curWin, projects, analyzer, params) {
         return false;
     }
 
-    if (['html', 'plain'].includes(params.attachment)) {
+    if (['html', 'plain', 'x-amp-html'].includes(params.attachment)) {
         return await analyzer.saveText(params.email, params.attachment, res.filePath);
     }
 

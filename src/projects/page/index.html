@@ -8,7 +8,7 @@
         <link rel="stylesheet" href="../../css/tagify.css" />
         <link rel="stylesheet" href="../../css/forensicat.css" />
 
-        <meta http-equiv="Content-Security-Policy" content="script-src 'self';" />
+        <meta http-equiv="Content-Security-Policy" content="script-src 'self' https://cdn.ampproject.org/;" />
     </head>
     <body>
         <div class="window">
@@ -446,6 +446,9 @@ const transporter = nodemailer.createTransport({
                     <div class="pane emails-component hidden">
                         <div id="email-info" class="full-height hidden">
                             <div id="email-tab" class="tab-group">
+                                <div id="email-tab-amp" class="tab-item">
+                                    AMP4Email
+                                </div>
                                 <div id="email-tab-html" class="tab-item">
                                     Rich text
                                 </div>
@@ -487,6 +490,7 @@ const transporter = nodemailer.createTransport({
 
                             <div id="email-tab-html-content" class="padded-sides hidden"></div>
                             <div id="email-tab-plain-content" class="padded-sides hidden"></div>
+                            <div id="email-tab-amp-content" class="padded-sides hidden"></div>
                             <div id="email-tab-html-source-content" class="padded-sides hidden"></div>
                             <div id="email-tab-headers-content" class="padded-sides hidden"></div>
                             <div id="email-tab-files-content" class="hidden">
