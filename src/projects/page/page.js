@@ -106,7 +106,7 @@
 
             cell01Elm.classList.add('pre-text');
             cell02Elm.classList.add('pre-text');
-            cell03Elm.classList.add('pre-text');
+            cell03Elm.classList.add('pre-text', 'text-select');
 
             cell01Elm.textContent = this.formatDate(log.time);
             cell02Elm.textContent = log.sess;
