@@ -241,11 +241,20 @@
                         promptOptions.query['catchall:domain'] = catchallConfig.domain;
                     }
 
+                    if (catchallConfig.secret) {
+                        promptOptions.query['catchall:secret'] = catchallConfig.secret;
+                    }
+
                     // update field values
                     document.getElementById('data-catchall:domain').value = catchallConfig.domain;
+                    document.getElementById('data-catchall:secret').value = catchallConfig.secret;
 
                     for (let elm of document.querySelectorAll('.value-catchall_domain')) {
                         elm.textContent = catchallConfig.domain;
+                    }
+
+                    for (let elm of document.querySelectorAll('.value-catchall_secret')) {
+                        elm.textContent = catchallConfig.secret;
                     }
 
                     renderSelectBox(document.getElementById('data-catchall:project'));
