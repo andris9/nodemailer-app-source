@@ -1,5 +1,11 @@
 # Nodemailer app
 
+```
+$ npm install electron-forge -g
+$ npm install
+$ npm start
+```
+
 ### Sendmail in XAMPP-VM
 
 XAMPP Apache uses older libstdc than required, so it needs to be replaced like this

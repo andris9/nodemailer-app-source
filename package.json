@@ -90,7 +90,7 @@
                     ],
                     "config": {
                         "identity": "Developer ID Installer: Andris Reinman (8JM6VJ352Q)",
-                        "license": "./eula.html",
+                        "license": "./LICENSE",
                         "isVersionChecked": false,
                         "hasStrictIdentifier": false
                     }
@@ -116,7 +116,7 @@
                         "win32"
                     ],
                     "config": {
-                        "authToken": "0c31a67f143987790e43acfe38ffb4c45d92f803",
+                        "authToken": "",
                         "repository": {
                             "owner": "Nodemailer",
                             "name": "nodemailer-app"
